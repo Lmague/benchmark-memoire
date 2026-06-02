@@ -1,0 +1,16 @@
+# Extraction frozen — SimDINOv2 ViT-L/16 (iNat Plantae, repo ilyassmoummad/sslplant).
+# CLS (x_norm_clstoken), dim 1024. Normalisation custom plantes (clé `simdino_inat`).
+#   python extract.py --config configs/frozen_simdinov2_vitl16.yaml
+regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
+
+# Chemin du checkpoint .pth `teacher` SimDINOv2 ViT-L/16 (iNat21 Plantae).
+checkpoint: "/home/erazal/Documents/Mémoire/checkpoints/simdinov2_vitl_inat21plantae.pth"
+
+model:
+  name: simdinov2_vitl16
+  num_classes: 12
+  norm: simdino_inat
+features:
+  cache: true
+  remap_v3: false
+  layerwise: false

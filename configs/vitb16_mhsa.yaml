@@ -1,0 +1,14 @@
+# ViT-B/16 ImageNet — MHSA-only (attn + head dégelés, FFN gelé ; Touvron 2022).
+# LR canoniques notebook : attn=4e-5, head=2e-4. weight_decay=0.05 (DeiT III).
+model:
+  name: vitb16
+  num_classes: 12
+  norm: imagenet
+
+regime: mhsa
+
+optim:
+  weight_decay: 0.05
+  lr:
+    attn: 4.0e-5
+    head: 2.0e-4

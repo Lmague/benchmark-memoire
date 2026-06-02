@@ -1,0 +1,17 @@
+# Évaluation frozen : probe + k-NN (probe.py) et RankMe/anisotropie (analyze.py)
+# sur les 6 modèles frozen déjà cachés dans embeddings/ (ordre ancien split -> remap v3).
+#
+#   python probe.py   --config configs/frozen_eval.yaml
+#   python analyze.py --config configs/frozen_eval.yaml
+
+regime: none          # ignoré pour probe/analyse (aucun entraînement, aucun optimizer)
+
+features:
+  remap_v3: true        # embeddings extraits sur l'ancien split -> remap v3 par filename
+
+probe:
+  include_finetuned: false   # mettre true pour ajouter resnet50_arctic / vitb16_arctic
+
+# `models` / `finetuned_models` héritent des défauts de base.yaml :
+#   models: resnet50_imagenet, vitb16_imagenet, dinov3_vitb16_lvd,
+#           dinov3_vitl16_sat, simdinov2_vitb16, simdinov2_vitl16

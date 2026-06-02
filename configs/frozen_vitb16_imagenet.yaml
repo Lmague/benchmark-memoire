@@ -1,0 +1,12 @@
+# Extraction frozen — ViT-B/16 ImageNet (CLS, dim 768, normalisation ImageNet).
+#   python extract.py --config configs/frozen_vitb16_imagenet.yaml
+regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
+
+model:
+  name: vitb16_imagenet
+  num_classes: 12
+  norm: imagenet
+features:
+  cache: true
+  remap_v3: false
+  layerwise: false

@@ -1,0 +1,30 @@
+# .gitignore — dépôt CODE-SEUL (transport Colab).
+# Stratégie liste blanche : tout ignorer par défaut, puis ré-inclure UNIQUEMENT
+# le code transportable. Garantit que seuls src/, les 5 CLIs, configs/ et
+# requirements.txt sont versionnés — aucune donnée / sortie / rapport ne fuit.
+
+# 1) Tout ignorer à la racine…
+/*
+
+# 2) …puis ré-inclure explicitement le code
+!/src/
+!/configs/
+!/probe.py
+!/extract.py
+!/analyze.py
+!/train.py
+!/make_figures.py
+!/requirements.txt
+!/.gitignore
+
+# 3) Caches Python toujours exclus, y compris sous src/ et configs/
+__pycache__/
+*.pyc
+*.pyo
+
+# --- Exclusions explicites (déjà couvertes par /* ci-dessus, rappelées pour intention) ---
+# Données & sorties        : embeddings/ results/ results_v3/ checkpoints/ out/ splits/
+# Datasets & tuiles        : "Data for Early Detection .../"  "High-Resolution Arctic .../"  tiles/
+# Artefacts lourds         : *.zip *.pdf *.npy *.pth
+# Hors transport           : legacy/ notebooks/ scripts/ "After Training/" .claude/
+# Utilitaires chemin absolu : validate_split.py  _gen_project_index.py

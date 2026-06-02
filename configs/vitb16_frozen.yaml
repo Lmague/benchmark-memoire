@@ -1,0 +1,13 @@
+# ViT-B/16 ImageNet — backbone gelé, tête seule entraînée (régime frozen).
+# LR tête non spécifié par la spec → défaut documenté 1e-3 (réglable ici).
+model:
+  name: vitb16
+  num_classes: 12
+  norm: imagenet
+
+regime: frozen
+
+optim:
+  weight_decay: 0.05
+  lr:
+    head: 1.0e-3

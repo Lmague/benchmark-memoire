@@ -1,0 +1,15 @@
+# Extraction frozen — DINOv3 ViT-L/16 LVD-1689M (HuggingFace transformers)
+# Override pour extraction CPU : batch_size=1, num_workers=0, pas de pin_memory
+regime: none
+
+model:
+  name: dinov3_vitl16_lvd
+  num_classes: 12
+  norm: imagenet
+data:
+  batch_size: 1
+  num_workers: 0
+features:
+  cache: true
+  remap_v3: false
+  layerwise: false

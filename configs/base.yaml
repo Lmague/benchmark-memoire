@@ -1,0 +1,79 @@
+# Configuration de base — défauts communs à toutes les étapes.
+# Une config spécifique (configs/<modele>_<regime>.yaml ou frozen_*.yaml) est
+# fusionnée PAR-DESSUS ce fichier. Le champ `env` choisit le bloc de chemins.
+#
+# NB float YAML : toujours écrire 1.0e-7 (et non 1e-7), sinon PyYAML lit une chaîne.
+
+env: local            # local | colab
+
+# --- Chemins locaux (machine de développement / analyse CPU) ---
+paths_local:
+  data_root:   /home/erazal/Documents/Mémoire
+  tiles_dir:   /home/erazal/Documents/Mémoire/out/tiles
+  csv_dir:     /home/erazal/Documents/Mémoire/splits             # split v3 canonique
+  old_csv_dir: /home/erazal/Documents/Mémoire/out/dataset_splits # ordre des embeddings cachés
+  emb_dir:     /home/erazal/Documents/Mémoire/embeddings
+  ckpt_dir:    /home/erazal/Documents/Mémoire/checkpoints
+  results_dir: /home/erazal/Documents/Mémoire/results
+
+# --- Chemins Colab (entraînement / extraction GPU) ---
+paths_colab:
+  data_root:   /content/drive/MyDrive/Memoire
+  tiles_dir:   /content/tiles                                    # SSD local rapide
+  csv_dir:     /content/drive/MyDrive/Memoire/splits
+  old_csv_dir: /content/drive/MyDrive/Memoire/dataset_splits
+  emb_dir:     /content/drive/MyDrive/Memoire/embeddings
+  ckpt_dir:    /content/drive/MyDrive/Memoire/checkpoints
+  results_dir: /content/drive/MyDrive/Memoire/results
+
+data:
+  batch_size: 128
+  num_workers: 4
+  image_size: 224
+
+model:
+  name: vitb16
+  num_classes: 12
+  norm: imagenet        # imagenet | dinov3_sat
+
+regime: full            # frozen | mhsa | full  (mhsa interdit sur ResNet -> ValueError)
+
+optim:
+  type: adamw
+  weight_decay: 0.05
+  # PAS de `lr` ici : chaque config d'entraînement fournit SES propres groupes
+  # (full -> backbone/head ; mhsa -> attn/head ; frozen -> head). Définir lr dans base
+  # ferait fuiter une clé inutilisée (ex. backbone) dans les régimes mhsa/frozen.
+
+schedule:
+  type: cosine
+  eta_min: 1.0e-7
+  warmup_epochs: 0      # 0 = pas de warmup (comportement notebook)
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0   # 0 = pas de phase head-only (comportement notebook)
+  amp: true
+  seed: 42
+  save_every: 10
+
+probe:
+  C_grid: [0.01, 0.1, 1.0, 10.0]
+  max_iter: 2000
+  knn_k: [5, 10, 20]
+  include_finetuned: false   # exclure resnet50_arctic / vitb16_arctic de l'analyse latente
+  # Métrique de sélection du C : ALIGNÉE sur la métrique reportée (F1-Macro 12 classes).
+  selection_metric: f1_macro_all   # f1_macro_all | f1_macro_present
+
+latent:
+  n_pairs: 10000
+  rankme_subsample: 20000
+  # RankMe ET anisotropie sur le MÊME split = test (comparabilité + cohérence avec le F1 test).
+  rankme_split: test
+  anisotropy_split: test
+
+features:
+  cache: true
+  remap_v3: true        # embeddings extraits sur l'ancien split -> remap v3 par filename
+  layerwise: false

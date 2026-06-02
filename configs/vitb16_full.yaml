@@ -1,0 +1,14 @@
+# ViT-B/16 ImageNet — fine-tuning complet (régime full).
+# LR canoniques notebook : backbone=1e-5, head=1e-4. weight_decay=0.05.
+model:
+  name: vitb16
+  num_classes: 12
+  norm: imagenet
+
+regime: full
+
+optim:
+  weight_decay: 0.05
+  lr:
+    backbone: 1.0e-5
+    head: 1.0e-4

@@ -1,0 +1,12 @@
+# Extraction frozen — ResNet-50 ImageNet (pooled, dim 2048, normalisation ImageNet).
+#   python extract.py --config configs/frozen_resnet50_imagenet.yaml
+regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
+
+model:
+  name: resnet50_imagenet
+  num_classes: 12
+  norm: imagenet
+features:
+  cache: true
+  remap_v3: false      # extraction fraîche = ordre v3 (pas de remap nécessaire)
+  layerwise: false

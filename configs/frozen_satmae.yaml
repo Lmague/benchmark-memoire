@@ -1,0 +1,17 @@
+# Extraction frozen — SatMAE (encodeur MAE satellite).  ⚠️ POINT D'EXTENSION / STUB.
+#
+# Non implémenté : build_frozen_extractor('satmae') lève NotImplementedError.
+# Pour l'activer (voir README §Extensions) :
+#   1. sourcer les poids SatMAE + sa normalisation dédiée ;
+#   2. ajouter une branche dans src/models.build_frozen_extractor (loader + forward_fn + dim) ;
+#   3. enregistrer la normalisation dans src/utils.NORMALIZATIONS et la référencer ici.
+regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
+
+model:
+  name: satmae
+  num_classes: 12
+  norm: imagenet      # à remplacer par la normalisation satellite de SatMAE
+features:
+  cache: true
+  remap_v3: false
+  layerwise: false

@@ -1,0 +1,14 @@
+# ResNet-50 ImageNet — fine-tuning complet (régime full).
+# LR notebook : 1e-4 unique (exprimé backbone=head=1e-4). weight_decay=1e-4.
+model:
+  name: resnet50
+  num_classes: 12
+  norm: imagenet
+
+regime: full
+
+optim:
+  weight_decay: 1.0e-4
+  lr:
+    backbone: 1.0e-4
+    head: 1.0e-4

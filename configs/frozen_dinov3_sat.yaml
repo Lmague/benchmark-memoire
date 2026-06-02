@@ -1,0 +1,13 @@
+# Extraction frozen — DINOv3 ViT-L/16 SAT-493M (CLS, dim 1024).
+# Normalisation SATELLITE dédiée (mean/std spécifiques) — clé `dinov3_sat`.
+#   python extract.py --config configs/frozen_dinov3_sat.yaml
+regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
+
+model:
+  name: dinov3_vitl16_sat
+  num_classes: 12
+  norm: dinov3_sat
+features:
+  cache: true
+  remap_v3: false
+  layerwise: false

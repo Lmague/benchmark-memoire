@@ -1,0 +1,13 @@
+# Extraction frozen — DINOv3 ViT-B/16 LVD-1689M (CLS, dim 768, normalisation ImageNet).
+#   python extract.py --config configs/frozen_dinov3_lvd.yaml
+#   python extract.py --config configs/frozen_dinov3_lvd.yaml --layerwise
+regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
+
+model:
+  name: dinov3_vitb16_lvd
+  num_classes: 12
+  norm: imagenet
+features:
+  cache: true
+  remap_v3: false
+  layerwise: false

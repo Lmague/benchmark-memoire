@@ -1,0 +1,13 @@
+# ResNet-50 ImageNet — backbone gelé, entraînement de la tête fc seule (régime frozen).
+# LR tête non spécifié par la spec → défaut documenté 1e-3 (réglable ici).
+model:
+  name: resnet50
+  num_classes: 12
+  norm: imagenet
+
+regime: frozen
+
+optim:
+  weight_decay: 1.0e-4
+  lr:
+    head: 1.0e-3
