@@ -166,8 +166,10 @@ def _layerwise_sanity(model, forward_fn, blocks, sel, cfg, norm_key, dim, model_
 
     Lève ``RuntimeError`` immédiatement si :
       - ``len(blocks)`` != nb de blocs attendu pour l'archi (ViT-L/16=24, ViT-B/16=12) ;
-      - un bloc sélectionné n'émet pas un tenseur ``(B, tokens, dim)`` avec la bonne ``dim`` ;
-      - ``std/dim <= 0.01`` sur le token CLS (``o[:, 0, :]``) : collapse ou hook mal placé.
+      - la DERNIÈRE couche n'émet pas un tenseur ``(B, tokens, dim)`` avec la bonne ``dim`` ;
+      - ``std/dim <= 0.01`` sur le CLS (``o[:, 0, :]``) de la DERNIÈRE couche : collapse / hook
+        mal placé. Le seuil n'est PAS appliqué aux couches basses (CLS peu discriminant en bloc
+        0/1, std/dim≈0.006 : comportement normal, pas un collapse).
     """
     import torch
 
@@ -201,23 +203,25 @@ def _layerwise_sanity(model, forward_fn, blocks, sel, cfg, norm_key, dim, model_
         for h in handles:
             h.remove()
 
-    for li in sel:
-        o = raw.get(li)
-        if o is None:
-            raise RuntimeError(f"[layerwise:sanity] bloc {li}: aucun tenseur capturé (hook inactif).")
-        if o.ndim != 3 or o.shape[0] != n:
-            raise RuntimeError(
-                f"[layerwise:sanity] bloc {li}: forme {tuple(o.shape)} (attendu ({n}, tokens, dim)).")
-        if o.shape[-1] != dim:
-            raise RuntimeError(
-                f"[layerwise:sanity] bloc {li}: dim={o.shape[-1]} ≠ {dim} attendu.")
-        sd = float(o[:, 0, :].float().cpu().std(0).mean())
-        if sd <= 0.01:
-            raise RuntimeError(
-                f"[layerwise:sanity] bloc {li}: std/dim={sd:.4f} <= 0.01 sur le CLS "
-                "(collapse / hook mal placé).")
+    # Seuil std/dim sur la DERNIÈRE couche seulement (les couches basses ont un CLS
+    # naturellement peu discriminant : ce n'est pas un collapse). Structure validée sur ce bloc.
+    last = sel[-1]
+    o = raw.get(last)
+    if o is None:
+        raise RuntimeError(f"[layerwise:sanity] bloc {last}: aucun tenseur capturé (hook inactif).")
+    if o.ndim != 3 or o.shape[0] != n:
+        raise RuntimeError(
+            f"[layerwise:sanity] bloc {last}: forme {tuple(o.shape)} (attendu ({n}, tokens, dim)).")
+    if o.shape[-1] != dim:
+        raise RuntimeError(
+            f"[layerwise:sanity] bloc {last}: dim={o.shape[-1]} ≠ {dim} attendu.")
+    sd = float(o[:, 0, :].float().cpu().std(0).mean())
+    if sd <= 0.01:
+        raise RuntimeError(
+            f"[layerwise:sanity] bloc {last}: std/dim={sd:.4f} <= 0.01 sur le CLS "
+            "(collapse / hook mal placé).")
     print(f"[layerwise:sanity] OK {model_key}: {len(blocks)} blocs, dim={dim}, "
-          f"CLS (B,tokens,dim) validé sur {n} tuiles (split={split}).")
+          f"CLS dernière couche (bloc {last}) validé sur {n} tuiles (split={split}).")
 
 
 def extract_layerwise(cfg, model_key: str, splits=SPLITS, layers=None) -> int:

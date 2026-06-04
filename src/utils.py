@@ -121,5 +121,7 @@ def maybe_mount_drive(env: str) -> None:
     """
     if env != "colab":
         return
+    if os.path.isdir("/content/drive/MyDrive"):
+        return  # déjà monté (cellule notebook) — éviter drive.mount() en subprocess
     from google.colab import drive  # import local volontaire (Colab seulement)
     drive.mount("/content/drive")
