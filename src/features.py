@@ -32,6 +32,38 @@ def _layer_emb_path(emb_dir: str, key: str, split: str, layer: int) -> str:
     return os.path.join(emb_dir, f"{key}_{split}_layer{layer:02d}.npy")
 
 
+def _infer_expected_blocks(model_key: str):
+    k = model_key.lower()
+    if "vitl" in k:
+        return 24
+    if "vitb" in k:
+        return 12
+    return None
+
+
+def count_layerwise_layers(cfg, model_key: str, split: str) -> int:
+    import glob
+    pattern = os.path.join(cfg.paths.emb_dir, f"{model_key}_{split}_layer*.npy")
+    files = sorted(glob.glob(pattern))
+    if not files:
+        raise FileNotFoundError(
+            f"Aucun fichier layerwise pour {model_key}/{split} dans {cfg.paths.emb_dir}. "
+            f"Lancer extract.py --layerwise d'abord.")
+    indices = []
+    for f in files:
+        base = os.path.basename(f)
+        part = base.replace(f"{model_key}_{split}_layer", "").replace(".npy", "")
+        try:
+            indices.append(int(part))
+        except ValueError:
+            continue
+    indices = sorted(indices)
+    if indices != list(range(len(indices))):
+        raise RuntimeError(
+            f"Trous dans les couches layerwise {model_key}/{split} : {indices}")
+    return len(indices)
+
+
 # --------------------------------------------------------------- loaders d'extraction
 def _eval_loader(cfg, split: str, mean, std):
     """DataLoader déterministe (transforms d'éval, normalisation du modèle)."""
@@ -128,6 +160,66 @@ def extract_features(cfg, model_key: str, splits=SPLITS) -> dict:
 
 
 # ----------------------------------------------------- extraction couche-par-couche
+def _layerwise_sanity(model, forward_fn, blocks, sel, cfg, norm_key, dim, model_key,
+                      split: str, n: int = 8) -> None:
+    """Garde-fou AVANT l'extraction des 80k : valide la structure layerwise sur ``n`` tuiles.
+
+    Lève ``RuntimeError`` immédiatement si :
+      - ``len(blocks)`` != nb de blocs attendu pour l'archi (ViT-L/16=24, ViT-B/16=12) ;
+      - un bloc sélectionné n'émet pas un tenseur ``(B, tokens, dim)`` avec la bonne ``dim`` ;
+      - ``std/dim <= 0.01`` sur le token CLS (``o[:, 0, :]``) : collapse ou hook mal placé.
+    """
+    import torch
+
+    from .data import ArcticTVCDataset, build_transforms
+    from .utils import get_device, get_normalization
+
+    expected = _infer_expected_blocks(model_key)
+    if expected is not None and len(blocks) != expected:
+        raise RuntimeError(
+            f"[layerwise:sanity] {model_key}: {len(blocks)} blocs captés via "
+            f"get_transformer_blocks, {expected} attendus pour cette architecture — "
+            "mauvaise ModuleList (structure HF inattendue ?). Extraction NON lancée.")
+
+    mean, std = get_normalization(norm_key)
+    ds = ArcticTVCDataset(os.path.join(cfg.paths.csv_dir, f"{split}.csv"), cfg.paths.tiles_dir,
+                          build_transforms("eval", mean, std, cfg.data.image_size))
+    device = get_device()
+    xb = torch.stack([ds[i][0] for i in range(n)]).to(device)
+
+    raw: dict[int, "torch.Tensor"] = {}
+    handles = []
+    for li in sel:
+        def _h(_m, _inp, out, li=li):
+            raw[li] = (out[0] if isinstance(out, tuple) else out).detach()
+        handles.append(blocks[li].register_forward_hook(_h))
+    try:
+        model.eval()
+        with torch.no_grad():
+            forward_fn(model, xb)
+    finally:
+        for h in handles:
+            h.remove()
+
+    for li in sel:
+        o = raw.get(li)
+        if o is None:
+            raise RuntimeError(f"[layerwise:sanity] bloc {li}: aucun tenseur capturé (hook inactif).")
+        if o.ndim != 3 or o.shape[0] != n:
+            raise RuntimeError(
+                f"[layerwise:sanity] bloc {li}: forme {tuple(o.shape)} (attendu ({n}, tokens, dim)).")
+        if o.shape[-1] != dim:
+            raise RuntimeError(
+                f"[layerwise:sanity] bloc {li}: dim={o.shape[-1]} ≠ {dim} attendu.")
+        sd = float(o[:, 0, :].float().cpu().std(0).mean())
+        if sd <= 0.01:
+            raise RuntimeError(
+                f"[layerwise:sanity] bloc {li}: std/dim={sd:.4f} <= 0.01 sur le CLS "
+                "(collapse / hook mal placé).")
+    print(f"[layerwise:sanity] OK {model_key}: {len(blocks)} blocs, dim={dim}, "
+          f"CLS (B,tokens,dim) validé sur {n} tuiles (split={split}).")
+
+
 def extract_layerwise(cfg, model_key: str, splits=SPLITS, layers=None) -> int:
     """Extrait + cache la représentation CLS à la sortie de chaque bloc transformer.
 
@@ -146,6 +238,10 @@ def extract_layerwise(cfg, model_key: str, splits=SPLITS, layers=None) -> int:
     model = model.to(device).eval()
     blocks = get_transformer_blocks(model)
     sel = list(range(len(blocks))) if layers is None else list(layers)
+
+    # Garde-fou : valide structure/dim/CLS sur 8 tuiles AVANT la boucle sur les 80k.
+    _layerwise_sanity(model, forward_fn, blocks, sel, cfg, norm_key, dim, model_key,
+                      split=splits[0])
 
     captured: dict[int, "torch.Tensor"] = {}
     handles = []

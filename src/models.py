@@ -243,14 +243,31 @@ def _load_simdinov2(arch: str, checkpoint: str):
 
 
 # --------------------------------------------------------- accès couche-par-couche
-def get_transformer_blocks(model):
-    """Retourne la liste des blocs transformer pour l'extraction couche-par-couche.
+def _is_module_list(obj) -> bool:
+    """Vrai si ``obj`` est une séquence de sous-modules (ModuleList/Sequential, len>=2)."""
+    try:
+        return len(obj) >= 2
+    except TypeError:
+        return False
 
-    Gère timm ViT (``model.blocks``), torchvision ViT (``model.encoder.layers``) et les
-    ViT DINOv3 du hub (``model.blocks``). Lève ``ValueError`` pour un modèle sans blocs
-    (ex. CNN).
+
+def get_transformer_blocks(model):
+    """Retourne la ModuleList des blocs transformer pour l'extraction couche-par-couche.
+
+    Couvre les conventions d'attributs connues :
+      - timm ViT / DINOv3 du hub : ``model.blocks`` ;
+      - torchvision ViT          : ``model.encoder.layers`` ;
+      - HuggingFace DINOv2       : ``model.encoder.layer`` (singulier) ;
+      - HuggingFace DINOv3 (``Dinov3ViTModel``, transformers>=4.56) : ``model.layer``.
+
+    L'attribut exact de DINOv3-HF n'a pas pu être vérifié hors-ligne (transformers non
+    installé sur la machine d'analyse) : on tente donc plusieurs chemins, puis, en dernier
+    recours, on prend la plus longue ``nn.ModuleList`` du modèle. Le garde-fou de
+    :func:`extract_layerwise` valide ensuite que ``len(blocks) == nb attendu`` (24 pour ViT-L).
+    Lève ``ValueError`` pour un modèle sans blocs (ex. CNN).
     """
-    for attr_path in (("blocks",), ("encoder", "layers")):
+    for attr_path in (("blocks",), ("layer",), ("layers",),
+                      ("encoder", "layers"), ("encoder", "layer")):
         obj = model
         ok = True
         for a in attr_path:
@@ -259,8 +276,17 @@ def get_transformer_blocks(model):
             else:
                 ok = False
                 break
-        if ok:
+        if ok and _is_module_list(obj):
             return obj
+    # Repli robuste (structure HF inattendue) : la plus longue ModuleList du modèle.
+    import torch.nn as nn
+    longest = None
+    for m in model.modules():
+        if isinstance(m, nn.ModuleList) and len(m) >= 2:
+            if longest is None or len(m) > len(longest):
+                longest = m
+    if longest is not None:
+        return longest
     raise ValueError(
         "Blocs transformer introuvables : l'extraction couche-par-couche n'est supportée "
-        "que pour les ViT (timm/torchvision/DINOv3), pas pour les CNN.")
+        "que pour les ViT (timm/torchvision/DINOv3/HF), pas pour les CNN.")

@@ -14,7 +14,7 @@ import os
 
 from src import utils
 from src.config import load_config
-from src.features import load_features, load_layerwise
+from src.features import count_layerwise_layers, load_features, load_layerwise
 from src.latent import drop_class, layerwise_curves, metrics_on
 
 
@@ -25,22 +25,6 @@ def _model_keys(cfg):
     return keys
 
 
-def _infer_n_layers(model_key: str) -> int:
-    """Nb de blocs transformer selon l'architecture (ViT-B/16=12, ViT-L/16=24).
-
-    Évite le défaut figé à 12 qui tronquait les ViT-L/16 (DINOv3 L/16, SimDINOv2 L/16).
-    Passer ``--n-layers`` explicitement court-circuite cette inférence.
-    """
-    k = model_key.lower()
-    if "vitl" in k or "vit_l" in k or "vitl16" in k:
-        return 24
-    if "vitb" in k or "vit_b" in k or "vitb16" in k:
-        return 12
-    raise ValueError(
-        f"Nombre de blocs indéterminé pour '{model_key}' : passez --n-layers explicitement "
-        "(ViT-B/16=12, ViT-L/16=24).")
-
-
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--config", required=True)
@@ -48,7 +32,7 @@ def main() -> None:
                     help="courbes RankMe/anisotropie couche-par-couche (features layerwise requises)")
     ap.add_argument("--layerwise-model", default=None, help="modèle pour les courbes (défaut: 1er)")
     ap.add_argument("--n-layers", type=int, default=None,
-                    help="nb de blocs (défaut: inféré du modèle — ViT-B/16=12, ViT-L/16=24)")
+                    help="nb de couches layerwise (défaut: compté sur les fichiers présents)")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -74,7 +58,9 @@ def main() -> None:
 
     if args.layerwise:
         key = args.layerwise_model or keys[0]
-        n_layers = args.n_layers if args.n_layers is not None else _infer_n_layers(key)
+        # n_layers = nombre RÉEL de fichiers layerwise extraits (pas une inférence d'archi).
+        n_layers = (args.n_layers if args.n_layers is not None
+                    else count_layerwise_layers(cfg, key, rk_split))
         feats = load_layerwise(cfg, key, rk_split, n_layers)
         curves = layerwise_curves(feats, n_pairs=cfg.latent.n_pairs,
                                   subsample_n=cfg.latent.rankme_subsample)
