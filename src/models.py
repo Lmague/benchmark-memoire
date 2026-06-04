@@ -165,9 +165,15 @@ def build_frozen_extractor(name: str, checkpoint: str | None = None):
         m = AutoModel.from_pretrained("facebook/dinov3-vitl16-pretrain-lvd1689m")
         return m, _dinov3_hf_forward, 1024, "imagenet"
     if name == "dinov3_vitl16_sat":
-        import torch
-        m = torch.hub.load("facebookresearch/dinov3", "dinov3_vitl16_sat493m", pretrained=True)
-        return m, _forward_direct, 1024, "dinov3_sat"
+        # HuggingFace (reproductibilité notebook legacy) : transformers.AutoModel + pooler_output
+        # Réf. : facebook/dinov3-vitl16-pretrain-sat493m, dim=1024, norm satellite dédiée
+        try:
+            from transformers import AutoModel
+        except ImportError:
+            raise ImportError(
+                "dinov3_vitl16_sat nécessite transformers>=4.56.0 : pip install transformers")
+        m = AutoModel.from_pretrained("facebook/dinov3-vitl16-pretrain-sat493m")
+        return m, _dinov3_hf_forward, 1024, "dinov3_sat"
     if name in ("simdinov2_vitb16", "simdinov2_vitl16"):
         arch = "vitb" if name.endswith("b16") else "vitl"
         dim = 768 if arch == "vitb" else 1024
