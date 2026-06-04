@@ -151,9 +151,15 @@ def build_frozen_extractor(name: str, checkpoint: str | None = None):
         m.heads = nn.Identity()
         return m, _forward_direct, 768, "imagenet"
     if name == "dinov3_vitb16_lvd":
-        import torch
-        m = torch.hub.load("facebookresearch/dinov3", "dinov3_vitb16", pretrained=True)
-        return m, _forward_direct, 768, "imagenet"
+        # HuggingFace (reproductibilité notebook legacy) : transformers.AutoModel + pooler_output
+        # Réf. : facebook/dinov3-vitb16-pretrain-lvd1689m, dim=768, norm ImageNet
+        # (le CDN torch.hub facebookresearch/dinov3 renvoie 403 Forbidden sur Colab)
+        try:
+            from transformers import AutoModel
+        except ImportError:
+            raise ImportError("dinov3_vitb16_lvd nécessite transformers>=4.56.0")
+        m = AutoModel.from_pretrained("facebook/dinov3-vitb16-pretrain-lvd1689m")
+        return m, _dinov3_hf_forward, 768, "imagenet"
     if name == "dinov3_vitl16_lvd":
         # HuggingFace (reproductibilité notebook legacy) : transformers.AutoModel + pooler_output
         # Réf. : facebook/dinov3-vitl16-pretrain-lvd1689m, dim=1024, norm ImageNet
