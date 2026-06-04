@@ -76,7 +76,7 @@ def main() -> None:
     fr = _load_frozen(cfg.paths.results_dir, args.pass_tag)
     probe, lat = fr["probe"], fr["latent_metrics"]
     if probe:
-        f1 = {k: v["test"]["f1_macro_pres"] for k, v in probe.items()}
+        f1 = {k: v["test"]["f1_macro_all"] for k, v in probe.items()}
         made.append(figures.plot_f1_barplot(
             f1, os.path.join(fig_dir, f"f1_barplot_{args.pass_tag}.png"),
             title=f"Probe F1-Macro (test, {args.pass_tag})"))

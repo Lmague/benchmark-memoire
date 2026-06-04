@@ -144,7 +144,7 @@ def fit(cfg, model, groups: dict, loaders: dict, criterion, device, resume: str 
     optimizer = build_optimizer(groups, cfg)
     scheduler = build_scheduler(optimizer, cfg)
     use_amp = cfg.train.amp and device.type == "cuda"
-    scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
+    scaler = torch.amp.GradScaler('cuda', enabled=use_amp)
 
     tag = run_tag(cfg.model.name, cfg.regime)
     ensure_dir(cfg.paths.ckpt_dir)
