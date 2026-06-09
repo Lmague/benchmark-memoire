@@ -75,5 +75,5 @@ latent:
 
 features:
   cache: true
-  remap_v3: true        # embeddings extraits sur l'ancien split -> remap v3 par filename
+  remap_v3: false       # embeddings ré-extraits en ordre v3 natif — pas de remap
   layerwise: false

@@ -28,3 +28,8 @@ __pycache__/
 # Artefacts lourds         : *.zip *.pdf *.npy *.pth
 # Hors transport           : legacy/ notebooks/ scripts/ "After Training/" .claude/
 # Utilitaires chemin absolu : validate_split.py  _gen_project_index.py
+
+# Exception : transporter le script bootstrap CI (le reste de scripts/ reste ignoré)
+!/scripts/
+/scripts/*
+!/scripts/bootstrap_ci.py
