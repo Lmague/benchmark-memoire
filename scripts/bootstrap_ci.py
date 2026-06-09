@@ -116,9 +116,16 @@ def _observed_f1(y_true, y_pred, n_classes: int = N_CLASSES) -> tuple[float, flo
 
 
 def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
-        seed: int = 42) -> dict:
-    """Bootstrappe tous les modèles disponibles et construit le dict de résultats."""
-    best_C = _load_best_C(probe_json)
+        seed: int = 42, force_c: float | None = None) -> dict:
+    """Bootstrappe tous les modèles disponibles et construit le dict de résultats.
+
+    ``force_c`` : si fourni, ce C est utilisé pour TOUS les modèles (bypass de la
+    lecture des best_C dans ``probe_json`` et du skip "aucun best_C").
+    """
+    best_C = {} if force_c is not None else _load_best_C(probe_json)
+
+    def _get_c(model_key: str):
+        return force_c if force_c is not None else best_C.get(model_key)
 
     wanted = list(cfg.models)
     if include_finetuned:
@@ -134,20 +141,21 @@ def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
     pres_samples: dict[str, np.ndarray] = {}
 
     for model_key in wanted:
-        if model_key not in best_C:
+        c = _get_c(model_key)
+        if c is None:
             print(f"[skip] {model_key}: aucun best_C dans {os.path.basename(probe_json)}")
             continue
         test_emb = os.path.join(emb_dir, f"{model_key}_test.npy")
         if not os.path.exists(test_emb):
             print(f"[skip] {model_key}: embeddings absents ({test_emb})")
             continue
-        print(f"[bootstrap] {model_key}: re-fit (C={best_C[model_key]}) + {n_boot} tirages")
-        y_true, y_pred = _refit_predict(cfg, model_key, best_C[model_key], seed=seed)
+        print(f"[bootstrap] {model_key}: re-fit (C={c}) + {n_boot} tirages")
+        y_true, y_pred = _refit_predict(cfg, model_key, c, seed=seed)
         obs_all, obs_pres = _observed_f1(y_true, y_pred)
         f1_all, f1_pres = _bootstrap_metrics(y_true, y_pred, n_boot, seed=seed)
         pres_samples[model_key] = f1_pres
         results[model_key] = {
-            "best_C": best_C[model_key],
+            "best_C": c,
             "n_test": int(np.asarray(y_true).shape[0]),
             "f1_macro_all": _summary(f1_all, obs_all),
             "f1_macro_pres": _summary(f1_pres, obs_pres),
@@ -238,6 +246,9 @@ def main() -> None:
     ap.add_argument("--probe-json", default=None,
                     help="probe_knn.json source des best_C "
                          "(défaut: <results_dir>/with_rhol/probe_knn.json)")
+    ap.add_argument("--force-c", type=float, default=None,
+                    help="forcer ce C pour TOUS les modèles (bypass best_C du JSON "
+                         "et du skip 'aucun best_C')")
     ap.add_argument("--output", default="results/bootstrap_ci.json",
                     help="fichier de sortie JSON (défaut: results/bootstrap_ci.json)")
     args = ap.parse_args()
@@ -245,7 +256,8 @@ def main() -> None:
     cfg = load_config(args.config)
     probe_json = args.probe_json or os.path.join(cfg.paths.results_dir,
                                                  "with_rhol", "probe_knn.json")
-    out = run(cfg, probe_json, args.n_bootstrap, args.include_finetuned)
+    out = run(cfg, probe_json, args.n_bootstrap, args.include_finetuned,
+              force_c=args.force_c)
 
     _print_table(out["models"])
     _print_comparison(out["comparison"])
