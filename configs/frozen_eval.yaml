@@ -7,7 +7,7 @@
 regime: none          # ignoré pour probe/analyse (aucun entraînement, aucun optimizer)
 
 features:
-  remap_v3: true        # embeddings extraits sur l'ancien split -> remap v3 par filename
+  remap_v3: false       # embeddings ré-extraits en ordre v3 natif — pas de remap
 
 probe:
   include_finetuned: false   # mettre true pour ajouter resnet50_arctic / vitb16_arctic
