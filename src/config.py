@@ -14,8 +14,16 @@ from typing import Any
 
 import yaml
 
-CONFIGS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "configs")
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONFIGS_DIR = os.path.join(_PROJECT_ROOT, "configs")
 BASE_CONFIG = os.path.join(CONFIGS_DIR, "base.yaml")
+
+
+def _resolve_path(p: str) -> str:
+    """Résout un chemin relatif depuis la racine du projet (absolu = inchangé)."""
+    if not p or os.path.isabs(p):
+        return p
+    return os.path.join(_PROJECT_ROOT, p)
 
 
 @dataclass
@@ -154,16 +162,22 @@ def load_config(path: str, base_path: str = BASE_CONFIG) -> Config:
     return build_config(merged)
 
 
+def _detect_env() -> str:
+    """Détecte l'environnement d'exécution : 'colab' si /content existe, sinon 'local'."""
+    return "colab" if os.path.exists("/content") else "local"
+
+
 def build_config(d: dict) -> Config:
     """Construit un :class:`Config` à partir d'un dict fusionné, chemins résolus par ``env``."""
-    env = d.get("env", "local")
+    env = d.get("env") or _detect_env()
     paths_block = d.get(f"paths_{env}")
     if paths_block is None:
         paths_block = d.get("paths", {})
+    resolved_paths = {k: _resolve_path(v) for k, v in paths_block.items() if isinstance(v, str)}
     return Config(
         env=env,
         regime=d.get("regime", "full"),
-        paths=Paths(**_only(Paths, paths_block)),
+        paths=Paths(**_only(Paths, resolved_paths)),
         data=DataCfg(**_only(DataCfg, d.get("data", {}))),
         model=ModelCfg(**_only(ModelCfg, d.get("model", {}))),
         optim=OptimCfg(**_only(OptimCfg, d.get("optim", {}))),

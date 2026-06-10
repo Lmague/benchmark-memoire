@@ -10,7 +10,7 @@
 regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
 
 # Chemin du checkpoint .pth SatMAE fMoW-RGB ViT-L/16.
-checkpoint: "/home/erazal/Documents/Mémoire/checkpoints/satmae_vitl16_fmow_rgb.pth"
+checkpoint: "satmae_vitl16_fmow_rgb.pth"
 
 model:
   name: satmae_vitl16
