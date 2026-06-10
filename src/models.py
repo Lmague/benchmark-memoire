@@ -12,7 +12,7 @@ from __future__ import annotations
 CNN_NAMES = {"resnet50"}
 VIT_NAMES = {"vitb16"}
 # Familles non encore implémentées (points d'extension propres) :
-EXTENSION_NAMES = {"dinov3_ft", "simdino_ft", "satmae"}
+EXTENSION_NAMES = {"dinov3_ft", "simdino_ft"}
 
 _TIMM_ID = {"resnet50": "resnet50", "vitb16": "vit_base_patch16_224"}
 
@@ -23,8 +23,7 @@ def _validate_regime(name: str, regime: str) -> None:
     if name in EXTENSION_NAMES:
         raise NotImplementedError(
             f"'{name}' est un point d'extension non implémenté (voir README §Extensions). "
-            "DINOv3/SimDINO fine-tuning réutilisent la logique de régime ViT ; SatMAE = "
-            "encodeur MAE satellite (poids + normalisation à sourcer).")
+            "DINOv3/SimDINO fine-tuning réutilisent la logique de régime ViT.")
     if name in CNN_NAMES:
         if regime == "mhsa":
             raise ValueError(
@@ -131,6 +130,26 @@ def _simdino_forward(model, x):
     return out
 
 
+def _cls_from_forward_features(model, x):
+    """CLS token (index 0) depuis ``forward_features`` d'un ViT (SatMAE / ScaleMAE).
+
+    ``forward_features`` renvoie les tokens ``(B, N, dim)`` — on prend le CLS ``[:, 0]``.
+    Replis : dict (clé ``x_norm_clstoken`` / ``cls_token`` / ``pooler_output``), tuple/list,
+    ou sortie déjà réduite ``(B, dim)``.
+    """
+    out = model.forward_features(x)
+    if isinstance(out, dict):
+        for k in ("x_norm_clstoken", "cls_token", "pooler_output"):
+            if k in out:
+                return out[k]
+        out = next(iter(out.values()))
+    if isinstance(out, (tuple, list)):
+        out = out[0]
+    if out.ndim == 3:
+        out = out[:, 0]
+    return out
+
+
 def build_frozen_extractor(name: str, checkpoint: str | None = None):
     """Charge un backbone frozen pour extraction de features.
 
@@ -189,10 +208,26 @@ def build_frozen_extractor(name: str, checkpoint: str | None = None):
                 f"(chemin du .pth teacher SimDINOv2) dans configs/frozen_{name}.yaml.")
         model = _load_simdinov2(arch, checkpoint)
         return model, _simdino_forward, dim, "simdino_inat"
-    if name == "satmae":
-        raise NotImplementedError(
-            "SatMAE est un point d'extension (voir README §Extensions) : encodeur MAE "
-            "satellite, poids + normalisation dédiée à sourcer puis ajouter ici.")
+    if name == "satmae_vitl16":
+        # SatMAE ViT-L/16 (fMoW-RGB). Chargé dans un ViT-L/16 timm standard (num_classes=0)
+        # par remap strict=False — SatMAE est bâti sur timm, la majorité des clés matchent.
+        # ⚠ Utiliser le checkpoint fMoW-**RGB** (3 canaux), PAS fMoW-Sentinel (multispectral).
+        if not checkpoint:
+            raise ValueError(
+                "satmae_vitl16 : aucun checkpoint fourni. Renseigne `checkpoint:` "
+                "(chemin du .pth SatMAE fMoW-RGB ViT-L) dans configs/frozen_satmae.yaml.")
+        m = _load_satmae(checkpoint)
+        return m, _cls_from_forward_features, 1024, "imagenet"
+    if name == "scalemae_vitl16":
+        # ScaleMAE ViT-L/16 (fMoW-RGB) via TorchGeo (poids téléchargés automatiquement).
+        # ⚠ Positional embeddings dépendants du GSD : entraîné satellite (~0.3-3 m/px), nos
+        # tuiles UAV sont à ~2.5 mm/px — hors régime nominal (à garder en tête à l'analyse).
+        try:
+            from torchgeo.models import ScaleMAELarge16_Weights, scalemae_large_patch16
+        except ImportError:
+            raise ImportError("scalemae_vitl16 nécessite torchgeo : pip install torchgeo")
+        m = scalemae_large_patch16(weights=ScaleMAELarge16_Weights.FMOW_RGB)
+        return m, _cls_from_forward_features, 1024, "imagenet"
     raise ValueError(f"extracteur frozen inconnu : '{name}'.")
 
 
@@ -252,6 +287,39 @@ def _load_simdinov2(arch: str, checkpoint: str):
             f"({frac:.0%} > 10%) — checkpoint/architecture incompatibles "
             f"(clés inattendues={len(incompatible.unexpected_keys)}).")
     return encoder.eval()
+
+
+def _load_satmae(checkpoint: str):
+    """Charge un ViT-L/16 timm et y injecte les poids SatMAE (fMoW-RGB) en strict=False.
+
+    SatMAE est bâti sur timm ViT : les clés (``cls_token``, ``pos_embed``, ``blocks.*``,
+    ``norm.*``) matchent un ``vit_large_patch16_224`` timm. On charge ``num_classes=0`` (head
+    Identity), on retire un éventuel wrapper ``model``/``state_dict``, un préfixe ``module.``
+    et la tête de classif du checkpoint, puis on garde si <10 % des clés du modèle manquent
+    (même garde-fou que SimDINOv2). Évite de dépendre du timm==0.3.2 épinglé par le repo SatMAE.
+    """
+    import os
+    import timm
+    import torch
+    if not os.path.exists(checkpoint):
+        raise FileNotFoundError(f"checkpoint SatMAE introuvable : {checkpoint}")
+    model = timm.create_model("vit_large_patch16_224", pretrained=False, num_classes=0)
+    ckpt = torch.load(checkpoint, map_location="cpu")
+    state = ckpt.get("model", ckpt.get("state_dict", ckpt))
+    state = {k.replace("module.", "", 1): v for k, v in state.items()}
+    state = {k: v for k, v in state.items() if not k.startswith("head.")}
+    incompatible = model.load_state_dict(state, strict=False)
+    n_model = len(model.state_dict())
+    n_missing = len(incompatible.missing_keys)
+    frac = n_missing / max(1, n_model)
+    print(f"[satmae] vitl16: chargé {n_model - n_missing}/{n_model} clés "
+          f"(manquantes={n_missing}, inattendues={len(incompatible.unexpected_keys)})")
+    if frac > 0.10:
+        raise RuntimeError(
+            f"SatMAE vitl16 : {n_missing}/{n_model} clés manquantes ({frac:.0%} > 10%) — "
+            f"checkpoint incompatible (clés inattendues={len(incompatible.unexpected_keys)}). "
+            "Vérifie qu'il s'agit bien d'un ViT-L/16 fMoW-RGB (3 canaux).")
+    return model.eval()
 
 
 # --------------------------------------------------------- accès couche-par-couche
