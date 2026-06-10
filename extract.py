@@ -50,10 +50,10 @@ def main() -> None:
           f"norm={cfg.model.norm} layerwise={layerwise} splits={list(splits)}")
 
     if args.dry_run:
-        needs_ckpt = key.startswith("simdinov2")
+        needs_ckpt = key.startswith("simdinov2") or key.startswith("satmae")
         print(f"[dry-run] checkpoint={ckpt!r}")
         if needs_ckpt and not ckpt:
-            print("[dry-run] ⚠ SimDINOv2 : champ `checkpoint:` vide — à renseigner avant extraction.")
+            print(f"[dry-run] ⚠ {key} : champ `checkpoint:` vide — à renseigner avant extraction.")
         print(f"[dry-run] plan : {'layerwise CLS/bloc' if layerwise else 'frozen CLS/pooled'} "
               f"sur splits={list(splits)} — extraction NON lancée.")
         return

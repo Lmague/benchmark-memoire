@@ -1,0 +1,19 @@
+# Extraction frozen — ScaleMAE ViT-L/16 (fMoW-RGB) via TorchGeo. CLS, dim 1024.
+#   pip install torchgeo
+#   python extract.py --config configs/frozen_scalemae.yaml
+#
+# Poids téléchargés automatiquement par TorchGeo (ScaleMAELarge16_Weights.FMOW_RGB) —
+# aucun `checkpoint:` à fournir.
+# ⚠ ScaleMAE encode le GSD dans ses positional embeddings (entraîné satellite ~0.3-3 m/px ;
+#   nos tuiles UAV ~2.5 mm/px) — hors régime nominal, à garder en tête pour l'interprétation.
+# ⚠ Normalisation : `imagenet` (recette d'éval amont) — à vérifier au besoin.
+regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
+
+model:
+  name: scalemae_vitl16
+  num_classes: 12
+  norm: imagenet
+features:
+  cache: true
+  remap_v3: false
+  layerwise: false

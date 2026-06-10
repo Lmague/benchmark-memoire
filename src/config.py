@@ -95,9 +95,10 @@ class FeaturesCfg:
 
 
 # Modèles frozen évalués par défaut (probe / k-NN / latent), et fine-tunés optionnels.
+# satmae_vitl16 / scalemae_vitl16 = RS-FM satellite (extraction GPU requise au préalable).
 _DEFAULT_MODELS = ["resnet50_imagenet", "vitb16_imagenet", "dinov3_vitb16_lvd",
                    "dinov3_vitl16_sat", "dinov3_vitl16_lvd", "simdinov2_vitb16",
-                   "simdinov2_vitl16"]
+                   "simdinov2_vitl16", "satmae_vitl16", "scalemae_vitl16"]
 _DEFAULT_FINETUNED = ["resnet50_arctic", "vitb16_arctic"]
 
 

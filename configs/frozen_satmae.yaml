@@ -1,16 +1,21 @@
-# Extraction frozen — SatMAE (encodeur MAE satellite).  ⚠️ POINT D'EXTENSION / STUB.
+# Extraction frozen — SatMAE ViT-L/16 (fMoW-RGB, MAE satellite). CLS, dim 1024.
+#   python extract.py --config configs/frozen_satmae.yaml
 #
-# Non implémenté : build_frozen_extractor('satmae') lève NotImplementedError.
-# Pour l'activer (voir README §Extensions) :
-#   1. sourcer les poids SatMAE + sa normalisation dédiée ;
-#   2. ajouter une branche dans src/models.build_frozen_extractor (loader + forward_fn + dim) ;
-#   3. enregistrer la normalisation dans src/utils.NORMALIZATIONS et la référencer ici.
+# ⚠ Checkpoint : utiliser le pré-entraînement fMoW-**RGB** (3 canaux) de SatMAE,
+#   PAS fMoW-Sentinel (multispectral, 13 canaux — incompatible avec 3 canaux UAV).
+#   Source : README SatMAE (github.com/sustainlab-group/SatMAE). Chargé dans un ViT-L/16
+#   timm par remap strict=False (évite le timm==0.3.2 épinglé par le repo).
+# ⚠ Normalisation : `imagenet` par défaut (recette d'éval amont) — à vérifier contre le
+#   transform du repo si les scores semblent anormaux.
 regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
 
+# Chemin du checkpoint .pth SatMAE fMoW-RGB ViT-L/16.
+checkpoint: "/home/erazal/Documents/Mémoire/checkpoints/satmae_vitl16_fmow_rgb.pth"
+
 model:
-  name: satmae
+  name: satmae_vitl16
   num_classes: 12
-  norm: imagenet      # à remplacer par la normalisation satellite de SatMAE
+  norm: imagenet
 features:
   cache: true
   remap_v3: false
