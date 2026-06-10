@@ -116,11 +116,13 @@ def _observed_f1(y_true, y_pred, n_classes: int = N_CLASSES) -> tuple[float, flo
 
 
 def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
-        seed: int = 42, force_c: float | None = None) -> dict:
+        seed: int = 42, force_c: float | None = None,
+        pairs: list[tuple[str, str]] | None = None) -> dict:
     """Bootstrappe tous les modèles disponibles et construit le dict de résultats.
 
     ``force_c`` : si fourni, ce C est utilisé pour TOUS les modèles (bypass de la
     lecture des best_C dans ``probe_json`` et du skip "aucun best_C").
+    ``pairs``   : liste de (model_a, model_b) à comparer via ``_compare_pair_generic``.
     """
     best_C = {} if force_c is not None else _load_best_C(probe_json)
 
@@ -134,6 +136,12 @@ def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
     for m in (PAIR_FROZEN, PAIR_FINETUNED):
         if m not in wanted:
             wanted.append(m)
+    # Les modèles des paires explicites sont aussi tentés.
+    if pairs:
+        for a, b in pairs:
+            for m in (a, b):
+                if m not in wanted:
+                    wanted.append(m)
 
     emb_dir = cfg.paths.emb_dir
     results: dict[str, dict] = {}
@@ -162,7 +170,7 @@ def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
         }
 
     comparison = _compare_pair(results, pres_samples)
-    return {
+    out = {
         "config_models": wanted,
         "n_bootstrap": n_boot,
         "seed": seed,
@@ -171,6 +179,12 @@ def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
         "models": results,
         "comparison": comparison,
     }
+    if pairs:
+        out["pairs"] = [
+            _compare_pair_generic(a, b, results, pres_samples)
+            for a, b in pairs
+        ]
+    return out
 
 
 def _compare_pair(results: dict, pres_samples: dict[str, np.ndarray]) -> dict:
@@ -204,6 +218,39 @@ def _compare_pair(results: dict, pres_samples: dict[str, np.ndarray]) -> dict:
         "p_frozen_gt_finetuned": p_frozen_gt,
         "ci95_frozen": [fz_pres["ci95_low"], fz_pres["ci95_high"]],
         "ci95_finetuned": [ft_pres["ci95_low"], ft_pres["ci95_high"]],
+        "conclusion": "distinguishable" if disjoint else "not distinguishable",
+    }
+
+
+def _compare_pair_generic(model_a: str, model_b: str,
+                          results: dict, pres_samples: dict[str, np.ndarray]) -> dict:
+    """Compare deux modèles quelconques sur f1_macro_pres (bootstrap apparié)."""
+    base = {"model_a": model_a, "model_b": model_b}
+    if model_a not in results or model_b not in results:
+        missing = [m for m in (model_a, model_b) if m not in results]
+        return {**base, "available": False,
+                "reason": f"modèle(s) indisponible(s) : {missing}"}
+
+    a_pres = results[model_a]["f1_macro_pres"]
+    b_pres = results[model_b]["f1_macro_pres"]
+    delta = a_pres["observed"] - b_pres["observed"]
+
+    sa, sb = pres_samples[model_a], pres_samples[model_b]
+    assert sa.shape == sb.shape and len(sa) > 0, (
+        f"shapes incompatibles pour comparaison appariée : {sa.shape} vs {sb.shape}"
+    )
+    p_a_gt_b = float(np.mean(sa > sb))
+
+    disjoint = (a_pres["ci95_low"] > b_pres["ci95_high"]) or \
+               (b_pres["ci95_low"] > a_pres["ci95_high"])
+    return {
+        **base,
+        "available": True,
+        "delta_observed_a_minus_b": float(delta),
+        "p_a_gt_b": p_a_gt_b,
+        "ci95_a": [a_pres["ci95_low"], a_pres["ci95_high"]],
+        "ci95_b": [b_pres["ci95_low"], b_pres["ci95_high"]],
+        "ci95_disjoint": disjoint,
         "conclusion": "distinguishable" if disjoint else "not distinguishable",
     }
 
@@ -251,13 +298,24 @@ def main() -> None:
                          "et du skip 'aucun best_C')")
     ap.add_argument("--output", default="results/bootstrap_ci.json",
                     help="fichier de sortie JSON (défaut: results/bootstrap_ci.json)")
+    ap.add_argument("--pairs", action="append", default=[], metavar="A:B",
+                    help="paire à comparer A:B sur f1_macro_pres (répétable)")
+    ap.add_argument("--pairs-output", default="results/bootstrap_pairs.json",
+                    help="sortie JSON pour --pairs (défaut: results/bootstrap_pairs.json)")
     args = ap.parse_args()
+
+    parsed_pairs: list[tuple[str, str]] = []
+    for p in args.pairs:
+        parts = p.split(":")
+        if len(parts) != 2 or not parts[0] or not parts[1]:
+            raise ValueError(f"--pairs : format attendu A:B, reçu '{p}'")
+        parsed_pairs.append((parts[0], parts[1]))
 
     cfg = load_config(args.config)
     probe_json = args.probe_json or os.path.join(cfg.paths.results_dir,
                                                  "with_rhol", "probe_knn.json")
     out = run(cfg, probe_json, args.n_bootstrap, args.include_finetuned,
-              force_c=args.force_c)
+              force_c=args.force_c, pairs=parsed_pairs if parsed_pairs else None)
 
     _print_table(out["models"])
     _print_comparison(out["comparison"])
@@ -266,6 +324,29 @@ def main() -> None:
     with open(args.output, "w") as f:
         json.dump(out, f, indent=2)
     print(f"\n[saved] {args.output}  ({len(out['models'])} modèles)")
+
+    if parsed_pairs:
+        pairs_out = {
+            "n_bootstrap": out["n_bootstrap"],
+            "seed": out["seed"],
+            "metric": "f1_macro_pres",
+            "probe_source": out["probe_source"],
+            "pairs": out.get("pairs", []),
+            "models": out["models"],
+        }
+        pairs_path = os.path.abspath(args.pairs_output)
+        os.makedirs(os.path.dirname(pairs_path), exist_ok=True)
+        with open(pairs_path, "w") as f:
+            json.dump(pairs_out, f, indent=2)
+        print(f"[saved] {pairs_path}  ({len(parsed_pairs)} paires)")
+        for cmp in pairs_out["pairs"]:
+            a, b = cmp["model_a"], cmp["model_b"]
+            if not cmp.get("available"):
+                print(f"  {a}:{b}  SKIP — {cmp['reason']}")
+            else:
+                print(f"  {a} vs {b}  Δ={cmp['delta_observed_a_minus_b']:+.4f}  "
+                      f"P(A>B)={cmp['p_a_gt_b']:.3f}  "
+                      f"IC_disjoints={cmp['ci95_disjoint']}  {cmp['conclusion']}")
 
 
 if __name__ == "__main__":
