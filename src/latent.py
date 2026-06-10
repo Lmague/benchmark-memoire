@@ -21,6 +21,12 @@ def rankme(Z, eps: float = 1e-7) -> float:
     return float(np.exp(h))
 
 
+def rankme_normalized(Z, eps: float = 1e-7) -> float:
+    """RankMe normalisé par la dimension : rankme(Z) / D."""
+    dim = int(np.asarray(Z).shape[1])
+    return rankme(Z, eps=eps) / dim
+
+
 def anisotropy(Z, n_pairs: int = 10000, seed: int = 42) -> float:
     """Cosinus moyen sur ``n_pairs`` paires aléatoires distinctes (embeddings L2-normalisés)."""
     Z = np.asarray(Z, dtype=np.float32)

@@ -11,6 +11,7 @@ features:
 
 probe:
   include_finetuned: false   # mettre true pour ajouter resnet50_arctic / vitb16_arctic
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
 
 # `models` / `finetuned_models` héritent des défauts de base.yaml :
 #   models: resnet50_imagenet, vitb16_imagenet, dinov3_vitb16_lvd,
