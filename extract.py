@@ -11,6 +11,7 @@ Le modèle extrait = ``cfg.model.name`` (clé d'extracteur frozen). Cache fp16 d
 from __future__ import annotations
 
 import argparse
+import os
 
 from src import utils
 from src.config import load_config
@@ -32,6 +33,9 @@ def main() -> None:
     utils.set_seed(cfg.train.seed)
     key = cfg.model.name
     ckpt = cfg.raw.get("checkpoint")
+    # Résolution : chemin relatif → relatif à ckpt_dir (local ou colab selon env auto-détecté)
+    if ckpt and not os.path.isabs(ckpt):
+        ckpt = os.path.join(cfg.paths.ckpt_dir, ckpt)
     layerwise = args.layerwise or cfg.features.layerwise
 
     # Résolution des splits : --splits prime ; sinon test-seul en layerwise, sinon les 3.

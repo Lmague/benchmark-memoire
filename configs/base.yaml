@@ -13,7 +13,7 @@ paths_local:
   csv_dir:     /home/erazal/Documents/Mémoire/splits             # split v3 canonique
   old_csv_dir: /home/erazal/Documents/Mémoire/out/dataset_splits # ordre des embeddings cachés
   emb_dir:     /home/erazal/Documents/Mémoire/embeddings
-  ckpt_dir:    /home/erazal/Documents/Mémoire/checkpoints
+  ckpt_dir:    checkpoints
   results_dir: /home/erazal/Documents/Mémoire/results
 
 # --- Chemins Colab (entraînement / extraction GPU) ---
@@ -23,7 +23,7 @@ paths_colab:
   csv_dir:     /content/drive/MyDrive/Memoire/splits
   old_csv_dir: /content/drive/MyDrive/Memoire/dataset_splits
   emb_dir:     /content/drive/MyDrive/Memoire/embeddings
-  ckpt_dir:    /content/drive/MyDrive/Memoire/checkpoints
+  ckpt_dir:    checkpoints
   results_dir: /content/drive/MyDrive/Memoire/results
 
 data:

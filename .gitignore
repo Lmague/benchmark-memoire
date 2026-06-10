@@ -23,7 +23,7 @@ __pycache__/
 *.pyo
 
 # --- Exclusions explicites (déjà couvertes par /* ci-dessus, rappelées pour intention) ---
-# Données & sorties        : embeddings/ results/ results_v3/ checkpoints/ out/ splits/
+# Données & sorties        : embeddings/ results/ results_v3/ out/ splits/
 # Datasets & tuiles        : "Data for Early Detection .../"  "High-Resolution Arctic .../"  tiles/
 # Artefacts lourds         : *.zip *.pdf *.npy *.pth
 # Hors transport           : legacy/ notebooks/ scripts/ "After Training/" .claude/
@@ -33,3 +33,7 @@ __pycache__/
 !/scripts/
 /scripts/*
 !/scripts/bootstrap_ci.py
+
+# Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
+!/checkpoints/
+/checkpoints/*.pth
