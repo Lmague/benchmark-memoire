@@ -150,6 +150,26 @@ def _cls_from_forward_features(model, x):
     return out
 
 
+def _meanpool_from_forward_features(model, x):
+    """Mean-pool des patch tokens (hors CLS) depuis ``forward_features`` — convention MAE.
+
+    Pour les modèles MAE (SatMAE / ScaleMAE), le token CLS n'est PAS entraîné comme
+    représentation (contrairement à DINO/DINOv2/v3) : il est quasi-constant et donne un
+    espace effondré (anisotropie ~0.99, RankMe ~42 mesurés sur ScaleMAE). La recette
+    linear-eval canonique des MAE est le global average pooling des patch tokens.
+    ``forward_features`` renvoie ``(B, N, dim)`` avec le CLS en position 0 → on moyenne ``[:, 1:]``.
+    Replis dict/tuple identiques à :func:`_cls_from_forward_features` ; sortie déjà réduite (B,dim) inchangée.
+    """
+    out = model.forward_features(x)
+    if isinstance(out, dict):
+        out = out.get("x_norm_patchtokens", next(iter(out.values())))
+    if isinstance(out, (tuple, list)):
+        out = out[0]
+    if out.ndim == 3:
+        out = out[:, 1:].mean(dim=1)
+    return out
+
+
 def build_frozen_extractor(name: str, checkpoint: str | None = None):
     """Charge un backbone frozen pour extraction de features.
 
@@ -217,7 +237,7 @@ def build_frozen_extractor(name: str, checkpoint: str | None = None):
                 "satmae_vitl16 : aucun checkpoint fourni. Renseigne `checkpoint:` "
                 "(chemin du .pth SatMAE fMoW-RGB ViT-L) dans configs/frozen_satmae.yaml.")
         m = _load_satmae(checkpoint)
-        return m, _cls_from_forward_features, 1024, "imagenet"
+        return m, _meanpool_from_forward_features, 1024, "imagenet"
     if name == "scalemae_vitl16":
         # ScaleMAE ViT-L/16 (fMoW-RGB) via TorchGeo (poids téléchargés automatiquement).
         # ⚠ Positional embeddings dépendants du GSD : entraîné satellite (~0.3-3 m/px), nos
@@ -227,7 +247,7 @@ def build_frozen_extractor(name: str, checkpoint: str | None = None):
         except ImportError:
             raise ImportError("scalemae_vitl16 nécessite torchgeo : pip install torchgeo")
         m = scalemae_large_patch16(weights=ScaleMAELarge16_Weights.FMOW_RGB)
-        return m, _cls_from_forward_features, 1024, "imagenet"
+        return m, _meanpool_from_forward_features, 1024, "imagenet"
     raise ValueError(f"extracteur frozen inconnu : '{name}'.")
 
 
