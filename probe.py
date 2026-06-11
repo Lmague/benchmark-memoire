@@ -9,6 +9,7 @@ Deux passes (with/without RHOL). Écrit ``results_dir/<pass>/probe_knn.json``.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 
 from src import utils
@@ -33,6 +34,9 @@ def main() -> None:
     ap.add_argument("--only", nargs="*", default=None, help="restreindre à certains modèles")
     ap.add_argument("--output-tag", default=None,
                     help="suffixe du fichier de sortie : probe_knn_T.json (défaut: probe_knn.json)")
+    ap.add_argument("--merge", action="store_true",
+                    help="fusionne dans le JSON existant (met à jour les modèles calculés, "
+                         "garde les autres) au lieu d'écraser — pour ajouter/recalculer un sous-ensemble")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -57,7 +61,16 @@ def main() -> None:
                   f"testF1m(all)={p['f1_macro_all']:.4f} acc={p['accuracy']:.4f}")
         fname = f"probe_knn_{args.output_tag}.json" if args.output_tag else "probe_knn.json"
         out = os.path.join(cfg.paths.results_dir, tag, fname)
-        utils.save_json({"probe": probe_res, "knn": knn_res}, out)
+        if args.merge and os.path.exists(out):
+            with open(out) as f:
+                prev = json.load(f)
+            prev.setdefault("probe", {}).update(probe_res)
+            prev.setdefault("knn", {}).update(knn_res)
+            payload = prev
+            print(f"[probe:{tag}] fusion : {list(probe_res)} dans {len(prev['probe'])} modèles existants")
+        else:
+            payload = {"probe": probe_res, "knn": knn_res}
+        utils.save_json(payload, out)
         print(f"[probe:{tag}] -> {out}")
 
 
