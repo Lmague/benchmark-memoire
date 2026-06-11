@@ -304,7 +304,7 @@ def _load_satmae(checkpoint: str):
     if not os.path.exists(checkpoint):
         raise FileNotFoundError(f"checkpoint SatMAE introuvable : {checkpoint}")
     model = timm.create_model("vit_large_patch16_224", pretrained=False, num_classes=0)
-    ckpt = torch.load(checkpoint, map_location="cpu")
+    ckpt = torch.load(checkpoint, map_location="cpu", weights_only=False)
     state = ckpt.get("model", ckpt.get("state_dict", ckpt))
     state = {k.replace("module.", "", 1): v for k, v in state.items()}
     state = {k: v for k, v in state.items() if not k.startswith("head.")}
