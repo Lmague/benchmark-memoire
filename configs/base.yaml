@@ -4,7 +4,7 @@
 #
 # NB float YAML : toujours écrire 1.0e-7 (et non 1e-7), sinon PyYAML lit une chaîne.
 
-env: local            # local | colab
+# env: local          # ne pas définir ici — auto-détecté (colab si /content existe, sinon local)
 
 # --- Chemins locaux (machine de développement / analyse CPU) ---
 paths_local:
