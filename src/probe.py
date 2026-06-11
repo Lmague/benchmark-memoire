@@ -53,8 +53,7 @@ def linear_probe(feats: dict, n_classes: int, class_names: list[str],
 
     best_c, best_f1, best = None, -1.0, None
     for c in C_grid:
-        clf = LogisticRegression(C=c, max_iter=max_iter, solver="lbfgs",
-                                 multi_class="multinomial", random_state=seed)
+        clf = LogisticRegression(C=c, max_iter=max_iter, solver="lbfgs", random_state=seed)
         clf.fit(xtr, ytr)
         f1v = f1_score(yva, clf.predict(xva), average="macro", zero_division=0, labels=sel_labels)
         if f1v > best_f1:
