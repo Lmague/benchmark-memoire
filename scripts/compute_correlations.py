@@ -8,12 +8,11 @@ Calcule dinov3_vitl16_lvd latent metrics depuis embeddings/dinov3_vitl16_lvd_tes
 si absents du latent-json.
 
 Groupes :
-  (a) ViT-L  : dinov3_vitl16_sat, dinov3_vitl16_lvd, simdinov2_vitl16
-               dinov3_vitl16_sat sans F1 -> n_eff=2, corrélation non calculable.
+  (a) ViT-L  : les 5 ViT-L/16 (dim 1024) — dinov3_sat, dinov3_lvd, simdinov2_l,
+               satmae, scalemae. Architecture contrôlée, pré-entraînement varié. IC95 bootstrap.
   (b) dim-768 : vitb16_imagenet, dinov3_vitb16_lvd, simdinov2_vitb16
                n=3, point estimate uniquement.
-  (c) global  : intersection latent ∩ F1 disponibles (≤7 modèles).
-               IC95 bootstrap (n=1000), n reste faible.
+  (c) global  : les 9 modèles. IC95 bootstrap (n=1000), n reste faible.
   (c') global avec rankme_normalized = rankme/dim.
 
 Usage :
@@ -198,28 +197,24 @@ def main() -> None:
     for m, v in latent.items():
         v["rankme_normalized"] = v["rankme"] / v["dim"]
 
-    VITL = ["dinov3_vitl16_sat", "dinov3_vitl16_lvd", "simdinov2_vitl16"]
+    # ViT-L/16 (dim 1024) : architecture contrôlée, 5 pré-entraînements (2 satellite-MAE,
+    # 1 satellite-DINO, 1 naturel-DINO, 1 plante-DINO) — le groupe le mieux contrôlé.
+    VITL = ["dinov3_vitl16_sat", "dinov3_vitl16_lvd", "simdinov2_vitl16",
+            "satmae_vitl16", "scalemae_vitl16"]
     DIM768 = ["vitb16_imagenet", "dinov3_vitb16_lvd", "simdinov2_vitb16"]
-    ALL7 = ["resnet50_imagenet", "vitb16_imagenet", "dinov3_vitb16_lvd",
-            "simdinov2_vitb16", "dinov3_vitl16_sat", "dinov3_vitl16_lvd",
-            "simdinov2_vitl16"]
+    ALL_GLOBAL = ["resnet50_imagenet", "vitb16_imagenet", "dinov3_vitb16_lvd",
+                  "simdinov2_vitb16", "dinov3_vitl16_sat", "dinov3_vitl16_lvd",
+                  "simdinov2_vitl16", "satmae_vitl16", "scalemae_vitl16"]
 
     results = {}
 
-    # (a) ViT-L — n=3 voulu, mais dinov3_vitl16_sat sans F1 → n_eff ≤ 2
+    # (a) ViT-L — n=5, architecture contrôlée, IC95 bootstrap
     results["vit_l"] = {
-        "rankme": _group_corr(VITL, latent, f1, "rankme", ci=False),
-        "anisotropy": _group_corr(VITL, latent, f1, "anisotropy", ci=False),
+        "rankme": _group_corr(VITL, latent, f1, "rankme", ci=True, n_boot=args.n_bootstrap),
+        "anisotropy": _group_corr(VITL, latent, f1, "anisotropy", ci=True, n_boot=args.n_bootstrap),
     }
-    # Override ci_note pour n=3 demandé (n_eff peut être 2)
     for metric_key in ("rankme", "anisotropy"):
-        r = results["vit_l"][metric_key]
-        r["ci_note"] = "CI non pertinent à n=3"
-        if r.get("n", 3) < 3:
-            r["status"] = (
-                f"INSUFFICIENT n_eff={r['n']} (dinov3_vitl16_sat F1 indisponible "
-                "— train.npy manquant) : corrélation non calculable"
-            )
+        results["vit_l"][metric_key]["n_note"] = "n=5 (ViT-L, archi contrôlée) — IC95 indicatif"
 
     # (b) dim-768 — n=3, point estimate
     results["dim_768"] = {
@@ -227,19 +222,19 @@ def main() -> None:
         "anisotropy": _group_corr(DIM768, latent, f1, "anisotropy", ci=False),
     }
 
-    # (c) global 7 modèles (≤ 5 dispo) — IC95 bootstrap
+    # (c) global 9 modèles — IC95 bootstrap
     results["global"] = {
-        "rankme": _group_corr(ALL7, latent, f1, "rankme",
+        "rankme": _group_corr(ALL_GLOBAL, latent, f1, "rankme",
                               ci=True, n_boot=args.n_bootstrap),
-        "anisotropy": _group_corr(ALL7, latent, f1, "anisotropy",
+        "anisotropy": _group_corr(ALL_GLOBAL, latent, f1, "anisotropy",
                                   ci=True, n_boot=args.n_bootstrap),
     }
 
     # (c') global avec rankme_normalized
     results["global_rankme_normalized"] = {
-        "rankme_normalized": _group_corr(ALL7, latent, f1, "rankme_normalized",
+        "rankme_normalized": _group_corr(ALL_GLOBAL, latent, f1, "rankme_normalized",
                                          ci=True, n_boot=args.n_bootstrap),
-        "anisotropy": _group_corr(ALL7, latent, f1, "anisotropy",
+        "anisotropy": _group_corr(ALL_GLOBAL, latent, f1, "anisotropy",
                                   ci=True, n_boot=args.n_bootstrap),
     }
 
@@ -266,10 +261,10 @@ def main() -> None:
 
     # Résumé terminal
     print("\n=== CORRÉLATIONS GÉOMÉTRIE ↔ F1 ===")
-    for group_name, group in [("ViT-L (n=3 voulu)", results["vit_l"]),
+    for group_name, group in [("ViT-L (n=5, archi contrôlée)", results["vit_l"]),
                                ("dim-768 (n=3)", results["dim_768"]),
-                               ("global (n≤7)", results["global"]),
-                               ("global rankme_norm", results["global_rankme_normalized"])]:
+                               ("global (n=9)", results["global"]),
+                               ("global rankme_norm (n=9)", results["global_rankme_normalized"])]:
         print(f"\n{group_name} :")
         for mx, gr in group.items():
             n = gr.get("n", "?")
