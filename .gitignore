@@ -29,10 +29,17 @@ __pycache__/
 # Hors transport           : legacy/ notebooks/ scripts/ "After Training/" .claude/
 # Utilitaires chemin absolu : validate_split.py  _gen_project_index.py
 
-# Exception : transporter le script bootstrap CI (le reste de scripts/ reste ignoré)
+# Exception : transporter les scripts d'analyse (le reste de scripts/ reste ignoré)
 !/scripts/
 /scripts/*
 !/scripts/bootstrap_ci.py
+!/scripts/compute_correlations.py
+!/scripts/significance_matrix.py
+!/scripts/multiple_comparison.py
+!/scripts/make_support_figures.py
+!/scripts/geometry_extended.py
+!/scripts/sample_efficiency.py
+!/scripts/layerwise_probe.py
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/
