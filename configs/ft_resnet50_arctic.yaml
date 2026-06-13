@@ -1,0 +1,24 @@
+# Extraction backbone — ResNet-50 FINE-TUNÉ Arctic-TVC.
+#   python extract.py --config configs/ft_resnet50_arctic.yaml --dry-run
+#   python extract.py --config configs/ft_resnet50_arctic.yaml --force-reextract
+#
+# Backbone timm resnet50 num_classes=0 (fc retirée) → features global-pooled, dim 2048.
+# Régime d'origine : full (fine-tuning complet, LR différentiel backbone/head).
+#
+# ⚠ CHECKPOINT : poids fine-tunés sur Drive (même dossier que le .pth SatMAE). Copier le .pth
+#   dans `checkpoints/` (chemin relatif résolu contre ckpt_dir), comme pour SatMAE.
+#   Nom à VÉRIFIER : convention CLI src/ → `resnet50_full_best.pth`, mais le notebook a pu
+#   sauver `resnet50_best.pth`. Renseigner le nom EXACT du .pth.
+# ⚠ Provenance des .npy existants douteuse → forcer --force-reextract à la 1re extraction.
+regime: none          # ignoré pour l'extraction (aucun entraînement, aucun optimizer)
+
+checkpoint: "resnet50_full_best.pth"   # ← VÉRIFIER/REMPLACER par le nom exact du .pth sur Drive
+
+model:
+  name: resnet50_arctic
+  num_classes: 12
+  norm: imagenet
+features:
+  cache: true
+  remap_v3: false
+  layerwise: false

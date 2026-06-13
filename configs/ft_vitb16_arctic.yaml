@@ -1,0 +1,24 @@
+# Extraction backbone — ViT-B/16 FINE-TUNÉ Arctic-TVC (régime MHSA-only, Touvron 2022).
+#   python extract.py --config configs/ft_vitb16_arctic.yaml --dry-run
+#   python extract.py --config configs/ft_vitb16_arctic.yaml --force-reextract
+#
+# Backbone timm vit_base_patch16_224 num_classes=0 (tête retirée) → CLS pooled, dim 768.
+# Régime d'origine : mhsa (FFN gelés, attn+head dégelés).
+#
+# ⚠ CHECKPOINT : poids fine-tunés sur Drive (même dossier que le .pth SatMAE). Copier le .pth
+#   dans `checkpoints/` (chemin relatif résolu contre ckpt_dir), comme pour SatMAE.
+#   Nom à VÉRIFIER : la convention CLI src/ donne `vitb16_mhsa_best.pth`, mais l'entraînement
+#   notebook a pu sauver `vitb16_best.pth`. Renseigner le nom EXACT ci-dessous.
+# ⚠ Provenance des .npy existants douteuse → forcer --force-reextract à la 1re extraction.
+regime: none          # ignoré pour l'extraction (aucun entraînement, aucun optimizer)
+
+checkpoint: "vitb16_mhsa_best.pth"   # ← VÉRIFIER/REMPLACER par le nom exact du .pth sur Drive
+
+model:
+  name: vitb16_arctic
+  num_classes: 12
+  norm: imagenet
+features:
+  cache: true
+  remap_v3: false
+  layerwise: false
