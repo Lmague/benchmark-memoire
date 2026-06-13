@@ -38,14 +38,21 @@ class ArcticTVCDataset(Dataset):
     def __getitem__(self, idx: int):
         from PIL import Image
         fp, lb = self.samples[idx]
+        fb = os.environ.get("ARCTIC_TILES_FALLBACK", "")
         path = os.path.join(self.tiles_root, fp)
-        if not os.path.exists(path):
-            fb = os.environ.get("ARCTIC_TILES_FALLBACK", "")
-            if fb:
-                path = os.path.join(fb, fp)
-        img = Image.open(path)
-        if img.mode != "RGB":
-            img = img.convert("RGB")
+        if not os.path.exists(path) and fb:
+            path = os.path.join(fb, fp)
+        try:
+            img = Image.open(path)
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+        except Exception:
+            # Fichier absent ou corrompu (ex. écriture SHM incomplète) → fallback Drive
+            if not fb:
+                raise
+            img = Image.open(os.path.join(fb, fp))
+            if img.mode != "RGB":
+                img = img.convert("RGB")
         if self.transform is not None:
             img = self.transform(img)
         return img, lb
