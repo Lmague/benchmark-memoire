@@ -38,7 +38,12 @@ class ArcticTVCDataset(Dataset):
     def __getitem__(self, idx: int):
         from PIL import Image
         fp, lb = self.samples[idx]
-        img = Image.open(os.path.join(self.tiles_root, fp))
+        path = os.path.join(self.tiles_root, fp)
+        if not os.path.exists(path):
+            fb = os.environ.get("ARCTIC_TILES_FALLBACK", "")
+            if fb:
+                path = os.path.join(fb, fp)
+        img = Image.open(path)
         if img.mode != "RGB":
             img = img.convert("RGB")
         if self.transform is not None:
