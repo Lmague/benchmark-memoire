@@ -40,6 +40,7 @@ __pycache__/
 !/scripts/geometry_extended.py
 !/scripts/sample_efficiency.py
 !/scripts/layerwise_probe.py
+!/scripts/make_paper_figures.py
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/

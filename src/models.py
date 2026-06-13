@@ -248,6 +248,25 @@ def build_frozen_extractor(name: str, checkpoint: str | None = None):
             raise ImportError("scalemae_vitl16 nécessite torchgeo : pip install torchgeo")
         m = scalemae_large_patch16(weights=ScaleMAELarge16_Weights.FMOW_RGB)
         return m, _meanpool_from_forward_features, 1024, "imagenet"
+    if name in ("vitb16_arctic", "vitb16_fulft_arctic"):
+        # ViT-B/16 fine-tuné Arctic-TVC (mhsa pour _arctic, full pour _fulft_arctic).
+        # Backbone timm vit_base_patch16_224 num_classes=0 → CLS pooled (cohérent avec
+        # l'entraînement, global_pool='token' par défaut). Checkpoint requis (poids sur Drive).
+        if not checkpoint:
+            raise ValueError(
+                f"{name} : aucun checkpoint fourni. Renseigne `checkpoint:` (chemin du .pth "
+                f"fine-tuné, p.ex. vitb16_mhsa_best.pth / vitb16_full_best.pth) dans configs/ft_*.yaml.")
+        m = _load_finetuned_backbone("vit_base_patch16_224", checkpoint, 768)
+        return m, _forward_direct, 768, "imagenet"
+    if name == "resnet50_arctic":
+        # ResNet-50 fine-tuné Arctic-TVC. Backbone timm resnet50 num_classes=0 → (B, 2048)
+        # global-pooled. Checkpoint requis (poids sur Drive).
+        if not checkpoint:
+            raise ValueError(
+                f"{name} : aucun checkpoint fourni. Renseigne `checkpoint:` (chemin du .pth "
+                "fine-tuné, p.ex. resnet50_full_best.pth) dans configs/ft_resnet50_arctic.yaml.")
+        m = _load_finetuned_backbone("resnet50", checkpoint, 2048)
+        return m, _forward_direct, 2048, "imagenet"
     raise ValueError(f"extracteur frozen inconnu : '{name}'.")
 
 
@@ -339,6 +358,57 @@ def _load_satmae(checkpoint: str):
             f"SatMAE vitl16 : {n_missing}/{n_model} clés manquantes ({frac:.0%} > 10%) — "
             f"checkpoint incompatible (clés inattendues={len(incompatible.unexpected_keys)}). "
             "Vérifie qu'il s'agit bien d'un ViT-L/16 fMoW-RGB (3 canaux).")
+    return model.eval()
+
+
+def _load_finetuned_backbone(arch: str, checkpoint: str, expected_dim: int):
+    """Charge un backbone timm (``arch``) avec des poids fine-tunés Arctic-TVC, tête retirée.
+
+    Sert aux 3 modèles fine-tunés (vitb16_arctic, vitb16_fulft_arctic, resnet50_arctic).
+    On crée un timm ``num_classes=0`` (donc head/fc = Identity → la sortie est le backbone nu)
+    et on y injecte les poids du checkpoint en ``strict=False`` avec le MÊME garde-fou que
+    :func:`_load_satmae` (lève si >10 % des clés du modèle manquent).
+
+    Le checkpoint vient de :func:`engine._save_ckpt` (poids sous ``model_state_dict``) ou d'un
+    notebook (dict nu / ``model`` / ``state_dict``) — tous gérés. On retire les préfixes
+    ``module.``/``backbone.`` et les clés de tête de classif (``head.*`` pour ViT, ``fc.*`` pour
+    ResNet) qui n'existent pas dans le backbone ``num_classes=0``.
+    """
+    import os
+    import timm
+    import torch
+    if not checkpoint or not os.path.exists(checkpoint):
+        raise FileNotFoundError(f"checkpoint fine-tuné introuvable : {checkpoint!r}")
+    model = timm.create_model(arch, pretrained=False, num_classes=0)
+    if getattr(model, "num_features", expected_dim) != expected_dim:
+        raise RuntimeError(
+            f"{arch} : num_features={model.num_features} ≠ dim attendue {expected_dim}.")
+    ckpt = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    if isinstance(ckpt, dict):
+        state = ckpt.get("model_state_dict",
+                         ckpt.get("model", ckpt.get("state_dict", ckpt)))
+    else:
+        state = ckpt
+    cleaned = {}
+    for k, v in state.items():
+        nk = k
+        for pref in ("module.", "backbone."):
+            if nk.startswith(pref):
+                nk = nk[len(pref):]
+        if nk.startswith("head.") or nk.startswith("fc."):
+            continue  # tête de classif : absente du backbone num_classes=0
+        cleaned[nk] = v
+    incompatible = model.load_state_dict(cleaned, strict=False)
+    n_model = len(model.state_dict())
+    n_missing = len(incompatible.missing_keys)
+    frac = n_missing / max(1, n_model)
+    print(f"[finetuned] {arch}: chargé {n_model - n_missing}/{n_model} clés "
+          f"(manquantes={n_missing}, inattendues={len(incompatible.unexpected_keys)})")
+    if frac > 0.10:
+        raise RuntimeError(
+            f"{arch} fine-tuné : {n_missing}/{n_model} clés manquantes ({frac:.0%} > 10%) — "
+            f"checkpoint incompatible (clés inattendues={len(incompatible.unexpected_keys)}). "
+            "Vérifie l'architecture et le bon .pth.")
     return model.eval()
 
 

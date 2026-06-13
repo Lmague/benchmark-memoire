@@ -51,13 +51,15 @@ def linear_probe(feats: dict, n_classes: int, class_names: list[str],
         raise ValueError(f"selection_metric inconnu : '{selection_metric}' "
                          "(f1_macro_all | f1_macro_present).")
 
-    best_c, best_f1, best = None, -1.0, None
-    for c in C_grid:
+    def _fit_one(c):
         clf = LogisticRegression(C=c, max_iter=max_iter, solver="lbfgs", random_state=seed)
         clf.fit(xtr, ytr)
         f1v = f1_score(yva, clf.predict(xva), average="macro", zero_division=0, labels=sel_labels)
-        if f1v > best_f1:
-            best_c, best_f1, best = c, f1v, clf
+        return c, f1v, clf
+
+    from joblib import Parallel, delayed
+    results = Parallel(n_jobs=-1)(delayed(_fit_one)(c) for c in C_grid)
+    best_c, best_f1, best = max(results, key=lambda x: x[1])
 
     ypte = best.predict(xte)
     return {
