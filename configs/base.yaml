@@ -28,7 +28,7 @@ paths_colab:
 
 data:
   batch_size: 128
-  num_workers: 4
+  num_workers: 2
   image_size: 224
 
 model:
