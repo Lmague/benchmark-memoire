@@ -5,13 +5,12 @@
 # Backbone timm vit_base_patch16_224 num_classes=0 (tête retirée) → CLS pooled, dim 768.
 # Régime d'origine : full (tout le backbone + head dégelés).
 #
-# ⚠ CHECKPOINT : poids fine-tunés sur Drive (même dossier que le .pth SatMAE). Copier le .pth
-#   dans `checkpoints/` (chemin relatif résolu contre ckpt_dir), comme pour SatMAE.
-#   Nom à VÉRIFIER : convention CLI src/ → `vitb16_full_best.pth`. Renseigner le nom EXACT.
+# ⚠ CHECKPOINT : Drive `checkpoints_v3/vitb16_fulft_best.pth` (split v3). Copier dans
+#   `checkpoints/` local, comme pour SatMAE.
 # ⚠ Provenance des .npy existants douteuse → forcer --force-reextract à la 1re extraction.
 regime: none          # ignoré pour l'extraction (aucun entraînement, aucun optimizer)
 
-checkpoint: "vitb16_full_best.pth"   # ← VÉRIFIER/REMPLACER par le nom exact du .pth sur Drive
+checkpoint: "vitb16_fulft_best.pth"   # depuis Drive checkpoints_v3/ (ViT-B full ft v3)
 
 model:
   name: vitb16_fulft_arctic
