@@ -24,6 +24,13 @@ from src.utils import load_json
 
 
 def _load_frozen(results_dir: str, pass_tag: str) -> dict:
+    """Charge probe + latent + knn pour la passe demandée.
+
+    Préfère le JSON CANONIQUE ``probe_knn_cgrid.json`` (grille étendue
+    C∈{1e-4..10}, F1≈0.4789 pour le co-leader).  L'ancien ``probe_knn.json``
+    (grille restreinte, F1≈0.4675 périmé) est marqué .deprecated et n'est
+    lu que si le canonique est absent.
+    """
     pdir = os.path.join(results_dir, pass_tag)
     data = {"latent_metrics": {}, "probe": {}, "knn": {}}
     combined = os.path.join(pdir, "latent_results.json")
@@ -35,10 +42,16 @@ def _load_frozen(results_dir: str, pass_tag: str) -> dict:
     lm = os.path.join(pdir, "latent_metrics.json")
     if os.path.exists(lm):
         data["latent_metrics"] = load_json(lm).get("latent_metrics", {})
-    pk = os.path.join(pdir, "probe_knn.json")
+    # Canonique d'abord (grille étendue) ; fallback sur l'ancien si nécessaire.
+    pk_canon = os.path.join(pdir, "probe_knn_cgrid.json")
+    pk_old = os.path.join(pdir, "probe_knn.json")
+    pk = pk_canon if os.path.exists(pk_canon) else pk_old
     if os.path.exists(pk):
         d = load_json(pk)
         data["probe"], data["knn"] = d.get("probe", {}), d.get("knn", {})
+        if pk == pk_old:
+            print(f"[make_figures] WARN: {pk} est PÉRIMÉ (F1≈0.4675, grille restreinte). "
+                  f"Utilise probe_knn_cgrid.json (F1≈0.4789) si disponible.")
     return data
 
 
