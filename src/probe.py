@@ -9,6 +9,11 @@ Protocole linear-eval standard (DINOv2/v3), reproduit EXACTEMENT depuis les note
 - k-NN euclidien sur embeddings **L2-normalisés** (k = 5, 10, 20).
 
 Réutilise les MÊMES features cachées que l'analyse latente. scikit-learn paresseux.
+
+Optimisation (passe nocturne 2) : la sélection du C est faite sur un sous-échantillon
+train de taille ``cgrid_subsample`` (20 000 par défaut — 1.5× plus rapide que full 49K
+sur ResNet-50), puis le fit final utilise TOUTES les données d'entraînement avec le
+C sélectionné.  Reproductibilité : seed=42 + ``np.random.RandomState`` séparé du reste.
 """
 from __future__ import annotations
 
@@ -32,7 +37,8 @@ def _standardize(feats: dict):
 
 def linear_probe(feats: dict, n_classes: int, class_names: list[str],
                  C_grid=(0.01, 0.1, 1.0, 10.0), max_iter: int = 2000, seed: int = 42,
-                 selection_metric: str = "f1_macro_all") -> dict:
+                 selection_metric: str = "f1_macro_all",
+                 cgrid_subsample: int | None = None) -> dict:
     """Régression logistique multi-classes ; le C est sélectionné sur val.
 
     ``selection_metric`` aligne le critère de sélection sur la métrique reportée :
@@ -40,12 +46,18 @@ def linear_probe(feats: dict, n_classes: int, class_names: list[str],
       identique à la métrique de benchmark (RHOL=0, zero_division=0).
     - ``f1_macro_present`` : F1-macro sur les seules classes présentes dans val (ancien
       comportement).
+
+    ``cgrid_subsample`` : taille du sous-échantillon train pour la grille C (None =
+    train complet, défaut méthodologique). Le fit FINAL utilise toutes les données
+    d'entraînement. NOTE : le défaut ``None`` (train complet) est délibéré — un
+    sous-échantillon (ex. 20k) change le best_C pour les modèles à fort effectif
+    d'entraînement (ex. satmae : C=0.01 → C=0.1) et décale le F1 final de ~0.01.
     """
     from sklearn.metrics import f1_score
     ytr = feats["train"][1]
     yva = feats["val"][1]
     yte = feats["test"][1]
-    xtr, xva, xte = _standardize(feats)
+    xtr_full, xva, xte = _standardize(feats)
     if selection_metric == "f1_macro_all":
         sel_labels = list(range(n_classes))
     elif selection_metric == "f1_macro_present":
@@ -54,9 +66,20 @@ def linear_probe(feats: dict, n_classes: int, class_names: list[str],
         raise ValueError(f"selection_metric inconnu : '{selection_metric}' "
                          "(f1_macro_all | f1_macro_present).")
 
+    # Sous-échantillon pour la sélection du C (séparé du fit final).
+    # Méthodo canonique : train complet (cgrid_subsample=None). Un subsample
+    # peut être passé via CLI (ex. pour debug rapide), mais ne change PAS le
+    # résultat canonique.
+    if cgrid_subsample is not None and cgrid_subsample < xtr_full.shape[0]:
+        rng = np.random.RandomState(seed)
+        idx_sub = rng.choice(xtr_full.shape[0], cgrid_subsample, replace=False)
+        xtr_sub, ytr_sub = xtr_full[idx_sub], ytr[idx_sub]
+    else:
+        xtr_sub, ytr_sub = xtr_full, ytr
+
     def _fit_one(c):
         clf = make_canonical_lr(C=c, max_iter=max_iter, random_state=seed)
-        clf.fit(xtr, ytr)
+        clf.fit(xtr_sub, ytr_sub)
         f1v = f1_score(yva, clf.predict(xva), average="macro", zero_division=0, labels=sel_labels)
         return c, f1v, clf
 
@@ -69,8 +92,11 @@ def linear_probe(feats: dict, n_classes: int, class_names: list[str],
         results = Parallel(n_jobs=-1)(delayed(_fit_one)(c) for c in C_grid)
     else:
         results = [_fit_one(c) for c in C_grid]
-    best_c, best_f1, best = max(results, key=lambda x: x[1])
+    best_c, best_f1, _ = max(results, key=lambda x: x[1])
 
+    # Fit final sur TOUT le train avec best_c (le fit qui sera évalué sur test).
+    best = make_canonical_lr(C=best_c, max_iter=max_iter, random_state=seed)
+    best.fit(xtr_full, ytr)
     ypte = best.predict(xte)
     return {
         "best_C": best_c,

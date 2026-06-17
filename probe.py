@@ -34,6 +34,8 @@ def main() -> None:
     ap.add_argument("--only", nargs="*", default=None, help="restreindre à certains modèles")
     ap.add_argument("--output-tag", default=None,
                     help="suffixe du fichier de sortie : probe_knn_T.json (défaut: probe_knn.json)")
+    ap.add_argument("--force", action="store_true",
+                    help="re-calcule même si l'output existe déjà (défaut: skip si présent)")
     ap.add_argument("--merge", action="store_true",
                     help="fusionne dans le JSON existant (met à jour les modèles calculés, "
                          "garde les autres) au lieu d'écraser — pour ajouter/recalculer un sous-ensemble")
@@ -46,6 +48,12 @@ def main() -> None:
 
     for tag, drop, names in utils.rhol_passes():
         n_classes = len(names)
+        fname = f"probe_knn_{args.output_tag}.json" if args.output_tag else "probe_knn.json"
+        out = os.path.join(cfg.paths.results_dir, tag, fname)
+        # Skip si l'output existe déjà et pas --force (idempotence Makefile)
+        if not args.force and os.path.exists(out):
+            print(f"[probe:{tag}] {out} existe déjà → SKIP (utiliser --force pour re-calculer).")
+            continue
         probe_res, knn_res = {}, {}
         for key in keys:
             feats = load_features(cfg, key)
@@ -59,8 +67,6 @@ def main() -> None:
             print(f"[probe:{tag}] {key:24s} C={probe_res[key]['best_C']} "
                   f"(sel={cfg.probe.selection_metric}) "
                   f"testF1m(all)={p['f1_macro_all']:.4f} acc={p['accuracy']:.4f}")
-        fname = f"probe_knn_{args.output_tag}.json" if args.output_tag else "probe_knn.json"
-        out = os.path.join(cfg.paths.results_dir, tag, fname)
         if args.merge and os.path.exists(out):
             with open(out) as f:
                 prev = json.load(f)
