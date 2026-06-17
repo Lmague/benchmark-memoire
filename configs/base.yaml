@@ -19,7 +19,7 @@ paths_local:
 # --- Chemins Colab (entraînement / extraction GPU) ---
 paths_colab:
   data_root:   /content/drive/MyDrive/Memoire
-  tiles_dir:   /dev/shm/arctic_tiles                             # RAM-backed (prefetch fond) ; ARCTIC_TILES_FALLBACK=Drive si incomplet
+  tiles_dir:   /content/tile_cache                               # SSD local Colab (prefetch fond) ; ARCTIC_TILES_FALLBACK=Drive si incomplet
   csv_dir:     /content/drive/MyDrive/Memoire/splits
   old_csv_dir: /content/drive/MyDrive/Memoire/dataset_splits
   emb_dir:     /content/drive/MyDrive/Memoire/embeddings

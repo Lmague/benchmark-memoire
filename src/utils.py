@@ -125,3 +125,47 @@ def maybe_mount_drive(env: str) -> None:
         return  # déjà monté (cellule notebook) — éviter drive.mount() en subprocess
     from google.colab import drive  # import local volontaire (Colab seulement)
     drive.mount("/content/drive")
+
+
+# ------------------------------------------------------------------ Linear probe
+# Helper unique pour instancier la régression logistique selon la MÉTHODOLOGIE
+# CANONIQUE du benchmark. À utiliser partout au lieu d'instancier
+# ``LogisticRegression(...)`` à la main, pour garantir la cohérence des kwargs.
+#
+# Notes sklearn :
+#   - ``solver="lbfgs"`` ⇒ multi-classes intrinsèquement multinomial depuis
+#     longtemps (l'arg ``multi_class`` était ignoré depuis 0.22 puis supprimé
+#     en 1.8 — donc on le passe seulement quand sklearn le supporte encore,
+#     sinon le simple fait de fixer ``solver="lbfgs"`` suffit à garantir le
+#     comportement multinomial).
+#   - ``n_jobs=-1`` : utilise tous les cœurs pour le fit (cohérent avec
+#     ``joblib.Parallel`` utilisé en amont dans ``src.probe.linear_probe``).
+_CANONICAL_LR_SUPPORTS_MULTICLASS = True
+try:
+    from sklearn.linear_model import LogisticRegression as _LR
+    import inspect as _inspect
+    _CANONICAL_LR_SUPPORTS_MULTICLASS = (
+        "multi_class" in _inspect.signature(_LR).parameters
+    )
+except Exception:  # pragma: no cover - sklearn toujours dispo, filet de sécurité
+    _CANONICAL_LR_SUPPORTS_MULTICLASS = False
+
+
+def make_canonical_lr(C: float, max_iter: int = 2000, random_state: int = 42) -> "object":
+    """Régression logistique canonique : lbfgs + multinomial + random_state=42.
+
+    - Passe ``multi_class="multinomial"`` quand sklearn le supporte (<1.8).
+    - Sinon, ne le passe pas : ``lbfgs`` est intrinsèquement multinomial.
+    - ``random_state=42`` partout pour la reproductibilité bit-pour-bit.
+    - ``n_jobs`` : volontairement omis (ignoré depuis sklearn 1.8, warning sinon).
+    """
+    from sklearn.linear_model import LogisticRegression
+    kwargs = dict(
+        C=float(C),
+        solver="lbfgs",
+        max_iter=int(max_iter),
+        random_state=int(random_state),
+    )
+    if _CANONICAL_LR_SUPPORTS_MULTICLASS:
+        kwargs["multi_class"] = "multinomial"
+    return LogisticRegression(**kwargs)

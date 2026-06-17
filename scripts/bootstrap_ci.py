@@ -32,6 +32,7 @@ if _ROOT not in sys.path:
 from src.config import load_config
 from src.features import load_features
 from src.probe import _standardize
+from src.utils import make_canonical_lr
 
 # Pour P(gelé > fine-tuné) : f1_macro_pres est l'index 1 (cf. _bootstrap_metrics).
 N_CLASSES = 12
@@ -53,14 +54,11 @@ def _refit_predict(cfg, model_key: str, best_C: float, seed: int = 42):
 
     StandardScaler fit sur train (via :func:`src.probe._standardize`), C non re-griddé.
     """
-    from sklearn.linear_model import LogisticRegression
-
     feats = load_features(cfg, model_key)
     ytr = np.asarray(feats["train"][1])
     yte = np.asarray(feats["test"][1])
     xtr, _xva, xte = _standardize(feats)
-    clf = LogisticRegression(C=best_C, max_iter=cfg.probe.max_iter,
-                             solver="lbfgs", random_state=seed)
+    clf = make_canonical_lr(C=best_C, max_iter=cfg.probe.max_iter, random_state=seed)
     clf.fit(xtr, ytr)
     return yte, clf.predict(xte)
 
@@ -291,8 +289,11 @@ def main() -> None:
     ap.add_argument("--include-finetuned", action="store_true",
                     help="inclure les modèles fine-tunés (resnet50_arctic, etc.)")
     ap.add_argument("--probe-json", default=None,
-                    help="probe_knn.json source des best_C "
-                         "(défaut: <results_dir>/with_rhol/probe_knn.json)")
+                    help="probe JSON source des best_C. "
+                         "DÉFAUT = <results_dir>/with_rhol/probe_knn_cgrid.json "
+                         "(canonique, grille étendue C∈{1e-4..10}). "
+                         "Ancienne valeur probe_knn.json (grille restreinte, "
+                         "F1≈0.4675 périmé) marquée comme .deprecated.")
     ap.add_argument("--force-c", type=float, default=None,
                     help="forcer ce C pour TOUS les modèles (bypass best_C du JSON "
                          "et du skip 'aucun best_C')")
@@ -313,7 +314,7 @@ def main() -> None:
 
     cfg = load_config(args.config)
     probe_json = args.probe_json or os.path.join(cfg.paths.results_dir,
-                                                 "with_rhol", "probe_knn.json")
+                                                 "with_rhol", "probe_knn_cgrid.json")
     out = run(cfg, probe_json, args.n_bootstrap, args.include_finetuned,
               force_c=args.force_c, pairs=parsed_pairs if parsed_pairs else None)
 

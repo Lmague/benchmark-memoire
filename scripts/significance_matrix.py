@@ -30,6 +30,7 @@ if _ROOT not in sys.path:
 from src.config import load_config
 from src.features import load_features
 from src.probe import _standardize
+from src.utils import make_canonical_lr
 
 N_CLASSES = 12
 
@@ -44,13 +45,11 @@ def _load_best_C(probe_json: str) -> dict[str, float]:
 
 
 def _refit_predict(cfg, model_key: str, best_C: float, seed: int = 42):
-    from sklearn.linear_model import LogisticRegression
     feats = load_features(cfg, model_key)
     ytr = np.asarray(feats["train"][1])
     yte = np.asarray(feats["test"][1])
     xtr, _xva, xte = _standardize(feats)
-    clf = LogisticRegression(C=best_C, max_iter=cfg.probe.max_iter,
-                             solver="lbfgs", random_state=seed)
+    clf = make_canonical_lr(C=best_C, max_iter=cfg.probe.max_iter, random_state=seed)
     clf.fit(xtr, ytr)
     return yte, clf.predict(xte)
 

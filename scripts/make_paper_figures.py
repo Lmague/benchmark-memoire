@@ -145,28 +145,42 @@ def fig_geometry_extended_scatter(geom, outpath):
     print(f"[saved] {outpath}")
 
 
-def fig_controlled_pair(pairs_json, outpath):
-    """Comparaison IC95 de la paire contrôlée (même archi) gelé vs fine-tuné."""
-    d = json.load(open(pairs_json))
-    m = d["models"]
-    pr = d["pairs"][0]
+# Paires sourcées depuis la matrice canonique significance_matrix_all12.json
+# (best_C par modèle, bootstrap apparié n=1000, seed=42) — clé alphabétique "a:b".
+PAIR_CONTROLLED = "dinov3_vitb16_lvd:vitb16_fulft_arctic"   # même archi ViT-B/16 (contrôle)
+PAIR_HEADLINE = "dinov3_vitl16_lvd:vitb16_fulft_arctic"     # meilleur gelé vs meilleur fine-tuné
+
+
+def fig_pair_from_sig12(sig12, pair_key, title, outpath):
+    """Comparaison IC95 d'une paire (gelé `a` vs fine-tuné `b`).
+
+    Lit la SOURCE CANONIQUE significance_matrix_all12.json : ``model_stats`` (observé +
+    IC95 par modèle) et ``pairs[pair_key]`` (Δ, P(A>B) bootstrap apparié). Une seule
+    méthodo (best_C sélectionné, n=1000) pour toutes les paires.
+    """
+    stats = sig12["model_stats"]
+    pr = sig12["pairs"][pair_key]
     a, b = pr["model_a"], pr["model_b"]          # a = gelé, b = fine-tuné
     rows = [(b, "fine-tuné complet", "#d73027"), (a, "gelé (linear probe)", "#1b7837")]
     fig, ax = plt.subplots(figsize=(7.6, 2.0))
+    los, his = [], []
     for i, (key, lab, col) in enumerate(rows):
-        s = m[key]["f1_macro_pres"]
+        s = stats[key]
         obs, lo, hi = s["observed"], s["ci95_low"], s["ci95_high"]
+        los.append(lo); his.append(hi)
         ax.errorbar(obs, i, xerr=[[obs - lo], [hi - obs]], fmt="o", color=col,
                     ms=9, capsize=5, elinewidth=1.6, zorder=3)
         ax.text(hi + 0.0008, i, f"{obs:.4f}", va="center", fontsize=9)
         ax.text(lo - 0.0008, i, f"{key}\n({lab})", va="center", ha="right",
                 fontsize=8, color=col)
-    p2 = 2 * min(pr["p_a_gt_b"], 1 - pr["p_a_gt_b"])
+    p_ab = pr["p_a_gt_b"]
+    p2 = 2 * min(p_ab, 1 - p_ab)
+    span = (max(his) - min(los)) or 0.02
     ax.set_ylim(-0.6, 1.6); ax.set_yticks([])
-    ax.set_xlim(0.448, 0.482)
+    ax.set_xlim(min(los) - 0.55 * span, max(his) + 0.30 * span)
     ax.set_xlabel("f1_macro_pres (test) — point = observé, barre = IC95 bootstrap", fontsize=9)
-    ax.set_title(f"Paire contrôlée ViT-B/16 :  Δ = {pr['delta_observed_a_minus_b']:+.4f},  "
-                 f"P(gelé > FT) = {pr['p_a_gt_b']:.3f}  (bilatéral p ≈ {p2:.3f})",
+    ax.set_title(f"{title} :  Δ = {pr['delta_observed_a_minus_b']:+.4f},  "
+                 f"P(gelé > FT) = {p_ab:.3f}  (bilatéral p ≈ {p2:.3f})",
                  fontsize=9.5, fontweight="bold")
     ax.grid(axis="x", ls=":", alpha=0.5)
     fig.tight_layout()
@@ -181,7 +195,8 @@ def main():
     ap.add_argument("--sig", default="results/significance_matrix.json")
     ap.add_argument("--corrected", default="results/significance_corrected.json")
     ap.add_argument("--geom", default="results/geometry_extended.json")
-    ap.add_argument("--controlled", default="results/bootstrap_pairs_controlled.json")
+    ap.add_argument("--sig12", default="results/significance_matrix_all12.json",
+                    help="source CANONIQUE des paires (controlled + headline)")
     ap.add_argument("--outdir", default="results/figures_paper")
     args = ap.parse_args()
 
@@ -193,8 +208,12 @@ def main():
     fig_significance_holm(sig, corrected, os.path.join(args.outdir, "significance_holm.png"))
     fig_corr_forest(geom, os.path.join(args.outdir, "corr_forest.png"))
     fig_geometry_extended_scatter(geom, os.path.join(args.outdir, "geometry_extended_scatter.png"))
-    if os.path.exists(args.controlled):
-        fig_controlled_pair(args.controlled, os.path.join(args.outdir, "controlled_pair.png"))
+    if os.path.exists(args.sig12):
+        sig12 = json.load(open(args.sig12))
+        fig_pair_from_sig12(sig12, PAIR_CONTROLLED, "Paire contrôlée ViT-B/16",
+                            os.path.join(args.outdir, "controlled_pair.png"))
+        fig_pair_from_sig12(sig12, PAIR_HEADLINE, "Paire phare (meilleur gelé vs meilleur FT)",
+                            os.path.join(args.outdir, "headline_pair.png"))
 
 
 if __name__ == "__main__":

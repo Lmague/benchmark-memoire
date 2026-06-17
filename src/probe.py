@@ -3,8 +3,9 @@
 Protocole linear-eval standard (DINOv2/v3), reproduit EXACTEMENT depuis les notebooks /
 ``latent_v3_from_embeddings.py`` :
 - ``StandardScaler`` fit sur train, appliqué à val/test.
-- ``LogisticRegression(solver='lbfgs', max_iter=2000)`` NON pondéré ; grille ``C``,
-  sélection sur **val F1-macro (classes présentes)**.
+- ``LogisticRegression(solver='lbfgs', max_iter=2000)`` NON pondéré, multinomial
+  (``src.utils.make_canonical_lr`` gère l'épinglage compatible sklearn<1.8 et ≥1.8) ;
+  grille ``C``, sélection sur **val F1-macro (classes présentes)**.
 - k-NN euclidien sur embeddings **L2-normalisés** (k = 5, 10, 20).
 
 Réutilise les MÊMES features cachées que l'analyse latente. scikit-learn paresseux.
@@ -15,6 +16,7 @@ import numpy as np
 
 from .latent import l2norm
 from .metrics import eval_classifier, per_class_f1
+from .utils import make_canonical_lr
 
 
 def _standardize(feats: dict):
@@ -37,7 +39,6 @@ def linear_probe(feats: dict, n_classes: int, class_names: list[str],
     - ``f1_macro_present`` : F1-macro sur les seules classes présentes dans val (ancien
       comportement).
     """
-    from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import f1_score
     ytr = feats["train"][1]
     yva = feats["val"][1]
@@ -52,7 +53,7 @@ def linear_probe(feats: dict, n_classes: int, class_names: list[str],
                          "(f1_macro_all | f1_macro_present).")
 
     def _fit_one(c):
-        clf = LogisticRegression(C=c, max_iter=max_iter, solver="lbfgs", random_state=seed)
+        clf = make_canonical_lr(C=c, max_iter=max_iter, random_state=seed)
         clf.fit(xtr, ytr)
         f1v = f1_score(yva, clf.predict(xva), average="macro", zero_division=0, labels=sel_labels)
         return c, f1v, clf
