@@ -219,15 +219,23 @@ def build_frozen_extractor(name: str, checkpoint: str | None = None):
                 "dinov3_vitl16_sat nécessite transformers>=4.56.0 : pip install transformers")
         m = AutoModel.from_pretrained("facebook/dinov3-vitl16-pretrain-sat493m")
         return m, _dinov3_hf_forward, 1024, "dinov3_sat"
-    if name in ("simdinov2_vitb16", "simdinov2_vitl16"):
-        arch = "vitb" if name.endswith("b16") else "vitl"
+    if name in ("simdinov2_vitb16", "simdinov2_vitl16",
+                "simdinov2_vitb16_imagenet", "simdinov2_vitl16_imagenet"):
+        # Deux pré-entraînements SimDINOv2, MÊME recette/arch (DINOv2-with-registers, 4 reg.,
+        # patch16, block_chunks remappés par load_simdino_state_dict) → MÊME loader :
+        #   - iNat21 Plantae (sslplant ilyassmoummad) → normalisation plantes `simdino_inat` ;
+        #   - ImageNet-1k (officiel RobinWu218/SimDINO, teacher .pth) → normalisation `imagenet`.
+        # Chaque encodeur figé reçoit les tuiles dans la distribution de son pré-entraînement
+        # (norm native) — c'est ce qui rend la comparaison ImageNet vs iNat équitable.
+        arch = "vitb" if "vitb16" in name else "vitl"
         dim = 768 if arch == "vitb" else 1024
+        norm = "imagenet" if name.endswith("_imagenet") else "simdino_inat"
         if not checkpoint:
             raise ValueError(
                 f"{name} : aucun checkpoint fourni. Renseigne le champ `checkpoint:` "
                 f"(chemin du .pth teacher SimDINOv2) dans configs/frozen_{name}.yaml.")
         model = _load_simdinov2(arch, checkpoint)
-        return model, _simdino_forward, dim, "simdino_inat"
+        return model, _simdino_forward, dim, norm
     if name == "satmae_vitl16":
         # SatMAE ViT-L/16 (fMoW-RGB). Chargé dans un ViT-L/16 timm standard (num_classes=0)
         # par remap strict=False — SatMAE est bâti sur timm, la majorité des clés matchent.
@@ -299,21 +307,28 @@ def _ensure_sslplant_on_path() -> str:
 def _load_simdinov2(arch: str, checkpoint: str):
     """Charge un encodeur SimDINOv2 (``arch`` ∈ {vitb, vitl}) depuis un .pth teacher.
 
-    Réutilise le loader officiel du repo (``simdinov2/eval/get_model.py``) :
-    ``initialize_encoder`` (vit_base/vit_large DINOv2-with-registers) + ``load_simdino_state_dict``
-    (clé ``teacher`` → suppression du préfixe ``backbone.`` → ``remap_key``). On charge en
-    ``strict=False`` et on lève si >10% des clés du modèle manquent (sécurité ; le repo, lui,
-    utilise strict=True sur un dict déjà nettoyé).
+    Réutilise l'arch officielle (``initialize_encoder`` : vit_base/vit_large DINOv2-with-
+    registers, 4 registres, patch16, block_chunks=0) et le ``remap_key`` officiel (aplatit les
+    blocs imbriqués ``blocks.N.M``→``blocks.N`` issus de block_chunks>0 à l'entraînement).
+    On reproduit la logique de ``load_simdino_state_dict`` (clé ``teacher`` → suppression du
+    préfixe ``backbone.`` → ``remap_key``) MAIS avec notre propre ``torch.load`` en
+    ``map_location='cpu', weights_only=False`` : le loader du repo charge sans map_location, ce
+    qui échoue sur une machine CPU-only pour un checkpoint sauvegardé sur CUDA (cas du .pth
+    ImageNet officiel). On charge en ``strict=False`` et on lève si >10% des clés du modèle
+    manquent (sécurité ; le repo, lui, utilise strict=True sur un dict déjà nettoyé).
     """
     import os
     import torch
     if not os.path.exists(checkpoint):
         raise FileNotFoundError(f"checkpoint SimDINOv2 introuvable : {checkpoint}")
     _ensure_sslplant_on_path()
-    from get_model import initialize_encoder, load_simdino_state_dict  # simdinov2/eval/get_model.py
+    from get_model import initialize_encoder, remap_key  # simdinov2/eval/get_model.py
 
     encoder = initialize_encoder(arch=arch)
-    state_dict = load_simdino_state_dict(checkpoint)
+    raw = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    teacher = raw["teacher"]
+    teacher = {k.removeprefix("backbone."): v for k, v in teacher.items() if k.startswith("backbone.")}
+    state_dict = {remap_key(k): v for k, v in teacher.items()}
     incompatible = encoder.load_state_dict(state_dict, strict=False)
     n_model = len(encoder.state_dict())
     n_missing = len(incompatible.missing_keys)

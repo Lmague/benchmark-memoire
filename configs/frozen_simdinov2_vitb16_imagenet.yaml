@@ -1,0 +1,18 @@
+# Extraction frozen — SimDINOv2 ViT-B/16 (ImageNet-1k, repo officiel RobinWu218/SimDINO).
+# CLS (x_norm_clstoken), dim 768. Normalisation ImageNet (clé `imagenet`).
+# Pendant ImageNet du checkpoint iNat21 Plantae (frozen_simdinov2_vitb16.yaml) — même
+# recette/arch SimDINOv2, seul le corpus de pré-entraînement diffère.
+#   python extract.py --config configs/frozen_simdinov2_vitb16_imagenet.yaml
+regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
+
+# Chemin du checkpoint .pth `teacher` SimDINOv2 ViT-B/16 (ImageNet-1k).
+checkpoint: "/home/erazal/Documents/Mémoire/checkpoints/simdinov2_vitb_imagenet.pth"
+
+model:
+  name: simdinov2_vitb16_imagenet
+  num_classes: 12
+  norm: imagenet
+features:
+  cache: true
+  remap_v3: false
+  layerwise: false
