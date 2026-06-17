@@ -69,9 +69,13 @@ def _run(label: str, cmd: list[str], log_file: Path | None = None) -> int:
 # ------------------------------------------------------------------ A. probe
 def task_A(args, log_file: Path) -> int:
     """Régénère probe_knn_cgrid.json pour les 12 modèles (grille étendue C∈{1e-4..10}).
-    Best_C sélectionné sur val par f1_macro_all (méthodo canonique)."""
+    Best_C sélectionné sur val par f1_macro_all (méthodo canonique).
+
+    Le nom de sortie ``probe_knn_cgrid.json`` (via --output-tag cgrid) est ce que
+    lisent TOUS les scripts en aval (task_a/b/c/d, compute_correlations, figures).
+    """
     cfg = "configs/benchmark_12models.yaml"
-    cmd = ["python3", "probe.py", "--config", cfg]
+    cmd = ["python3", "probe.py", "--config", cfg, "--output-tag", "cgrid"]
     return _run("A. probe (12 modèles, grille étendue, best_C par val)", cmd, log_file)
 
 

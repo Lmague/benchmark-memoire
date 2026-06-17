@@ -56,3 +56,33 @@ __pycache__/
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/
 /checkpoints/*.pth
+
+# Sous-ensemble figé des JSON/CSV canoniques (reproductibilité)
+# Ces fichiers sont régénérés par ``make paper`` mais on en commit une copie
+# pour pouvoir relancer les figures/tables en local sans recalculer le probe.
+!/results/with_rhol/probe_knn_cgrid.json
+!/results/with_rhol/latent_metrics.json
+!/results/without_rhol/probe_knn_cgrid.json
+!/results/significance_matrix_all12.json
+!/results/significance_matrix_all12.png
+!/results/geometry_extended_12models.json
+!/results/transfer/spectrum_metrics.json
+!/results/transfer/spectrum_metrics.csv
+!/results/transfer/logme_scores.json
+!/results/transfer/logme_scores.csv
+!/results/transfer/logme_vs_f1.json
+!/results/transfer/logme_vs_f1.png
+!/results/transfer/correlations_with_f1.json
+!/results/transfer/headline_pairs_paired_tests.json
+!/results/transfer/aso_matrix_eps_min.json
+!/results/transfer/heatmap_eps_min.png
+!/results/transfer/bootstrap_distributions.json
+!/results/transfer/pipeline_summary.json
+!/results/transfer/pipeline_run.log
+!/results/correlations.json
+!/results/figures_paper/headline_pair.png
+!/results/figures_paper/controlled_pair.png
+!/results/figures_paper/corr_forest.png
+!/results/figures_paper/significance_holm.png
+!/results/figures_paper/geometry_extended_scatter.png
+!/scripts/make_reconciliation.py
