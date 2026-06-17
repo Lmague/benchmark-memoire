@@ -85,4 +85,6 @@ __pycache__/
 !/results/figures_paper/corr_forest.png
 !/results/figures_paper/significance_holm.png
 !/results/figures_paper/geometry_extended_scatter.png
-!/scripts/make_reconciliation.py
+#!/scripts/make_reconciliation.py
+!/CHANGELOG.md
+!/RECONCILIATION.md
