@@ -1,0 +1,157 @@
+{
+  "per_model": [
+    {
+      "model": "resnet50_imagenet",
+      "dim": 2048,
+      "n_test": 17598,
+      "subsample_n": 17598,
+      "rankme": 420.3497619628906,
+      "rankme_normalized": 0.2052489072084427,
+      "alpha_req": 2.5207789606513606,
+      "nesum": 2.7463598251342773,
+      "anisotropy": 0.6531723141670227,
+      "f1_macro_pres_test": 0.4080771534659235
+    },
+    {
+      "model": "vitb16_imagenet",
+      "dim": 768,
+      "n_test": 17598,
+      "subsample_n": 17598,
+      "rankme": 352.8688659667969,
+      "rankme_normalized": 0.4594646692276001,
+      "alpha_req": 1.6634360670219999,
+      "nesum": 5.089718818664551,
+      "anisotropy": 0.5975930690765381,
+      "f1_macro_pres_test": 0.44998821147275353
+    },
+    {
+      "model": "dinov3_vitb16_lvd",
+      "dim": 768,
+      "n_test": 17598,
+      "subsample_n": 17598,
+      "rankme": 357.5727233886719,
+      "rankme_normalized": 0.4655894835789998,
+      "alpha_req": 1.670945604124711,
+      "nesum": 5.8481035232543945,
+      "anisotropy": 0.5872923135757446,
+      "f1_macro_pres_test": 0.47150246507911503
+    },
+    {
+      "model": "dinov3_vitl16_sat",
+      "dim": 1024,
+      "n_test": 17598,
+      "subsample_n": 17598,
+      "rankme": 350.06341552734375,
+      "rankme_normalized": 0.34185880422592163,
+      "alpha_req": 1.655838362672798,
+      "nesum": 4.418653964996338,
+      "anisotropy": 0.8405900597572327,
+      "f1_macro_pres_test": 0.4619806850944929
+    },
+    {
+      "model": "dinov3_vitl16_lvd",
+      "dim": 1024,
+      "n_test": 17598,
+      "subsample_n": 17598,
+      "rankme": 449.208740234375,
+      "rankme_normalized": 0.43868041038513184,
+      "alpha_req": 1.658990312199613,
+      "nesum": 5.611725807189941,
+      "anisotropy": 0.6104364395141602,
+      "f1_macro_pres_test": 0.47888501118017557
+    },
+    {
+      "model": "simdinov2_vitb16",
+      "dim": 768,
+      "n_test": 17598,
+      "subsample_n": 17598,
+      "rankme": 442.78375244140625,
+      "rankme_normalized": 0.5765413443247477,
+      "alpha_req": 1.4615128956843437,
+      "nesum": 6.2376861572265625,
+      "anisotropy": 0.49350762367248535,
+      "f1_macro_pres_test": 0.47164615919203107
+    },
+    {
+      "model": "simdinov2_vitl16",
+      "dim": 1024,
+      "n_test": 17598,
+      "subsample_n": 17598,
+      "rankme": 574.8961181640625,
+      "rankme_normalized": 0.5614219903945923,
+      "alpha_req": 1.5997922141638141,
+      "nesum": 7.077688217163086,
+      "anisotropy": 0.4174744188785553,
+      "f1_macro_pres_test": 0.4760837892379522
+    },
+    {
+      "model": "satmae_vitl16",
+      "dim": 1024,
+      "n_test": 17598,
+      "subsample_n": 17598,
+      "rankme": 186.18260192871094,
+      "rankme_normalized": 0.18181894719600677,
+      "alpha_req": 1.7666216932316847,
+      "nesum": 2.656200408935547,
+      "anisotropy": 0.9200567603111267,
+      "f1_macro_pres_test": 0.4093025471183788
+    },
+    {
+      "model": "scalemae_vitl16",
+      "dim": 1024,
+      "n_test": 17598,
+      "subsample_n": 17598,
+      "rankme": 79.5210952758789,
+      "rankme_normalized": 0.0776573196053505,
+      "alpha_req": 1.8347849906996616,
+      "nesum": 2.537426710128784,
+      "anisotropy": 0.9645828008651733,
+      "f1_macro_pres_test": 0.44846574528346567
+    },
+    {
+      "model": "resnet50_arctic",
+      "dim": 2048,
+      "n_test": 17598,
+      "subsample_n": 17598,
+      "rankme": 1015.4577026367188,
+      "rankme_normalized": 0.4958289563655853,
+      "alpha_req": 1.4352036511277328,
+      "nesum": 4.169004917144775,
+      "anisotropy": 0.29949432611465454,
+      "f1_macro_pres_test": 0.46186817923660545
+    },
+    {
+      "model": "vitb16_arctic",
+      "dim": 768,
+      "n_test": 17598,
+      "subsample_n": 17598,
+      "rankme": 346.80694580078125,
+      "rankme_normalized": 0.4515715440114339,
+      "alpha_req": 1.5832026870498503,
+      "nesum": 3.7750091552734375,
+      "anisotropy": 0.39419543743133545,
+      "f1_macro_pres_test": 0.47575985910530977
+    },
+    {
+      "model": "vitb16_fulft_arctic",
+      "dim": 768,
+      "n_test": 17598,
+      "subsample_n": 17598,
+      "rankme": 348.3499755859375,
+      "rankme_normalized": 0.45358069737752277,
+      "alpha_req": 1.587574990271312,
+      "nesum": 3.8627676963806152,
+      "anisotropy": 0.49842369556427,
+      "f1_macro_pres_test": 0.4791156222790256
+    }
+  ],
+  "f1_source": "results/with_rhol/probe_knn_cgrid.json (f1_macro_pres canonique)",
+  "subsample_n": 20000,
+  "seed": 42,
+  "split": "test",
+  "embedding_pooler": true,
+  "formulae": {
+    "alpha_req": "Agrawal et al. NeurIPS 2022 \u2014 log(\u03bb\u2c7c) = -\u03b1 log(j) + c ; \u03b1 = -pente",
+    "nesum": "He & Ozay ICML 2022 D\u00e9f. 4.1 \u2014 \u03a3\u1d62 \u03bb\u1d62/\u03bb\u2081 sur spectre de cov. centr\u00e9e"
+  }
+}

@@ -1,0 +1,213 @@
+# Pipeline A→F — démarré 06:51:05
+[probe] modèles=['resnet50_imagenet', 'vitb16_imagenet', 'dinov3_vitb16_lvd', 'dinov3_vitl16_sat', 'dinov3_vitl16_lvd', 'simdinov2_vitb16', 'simdinov2_vitl16', 'satmae_vitl16', 'scalemae_vitl16', 'resnet50_arctic', 'vitb16_arctic', 'vitb16_fulft_arctic']
+[probe:with_rhol] /home/erazal/Documents/Mémoire/results/with_rhol/probe_knn_cgrid.json existe déjà → SKIP (utiliser --force pour re-calculer).
+[probe:without_rhol] /home/erazal/Documents/Mémoire/results/without_rhol/probe_knn_cgrid.json existe déjà → SKIP (utiliser --force pour re-calculer).
+
+
+=== A. probe (12 modèles, grille étendue, best_C par val) | python3 probe.py --config configs/benchmark_12models.yaml --output-tag cgrid ===
+[analyze:with_rhol] resnet50_imagenet        dim=2048  RankMe=  420.35 Aniso=+0.6532
+[analyze:with_rhol] vitb16_imagenet          dim=768   RankMe=  352.87 Aniso=+0.5976
+[analyze:with_rhol] dinov3_vitb16_lvd        dim=768   RankMe=  357.57 Aniso=+0.5873
+[analyze:with_rhol] dinov3_vitl16_sat        dim=1024  RankMe=  350.06 Aniso=+0.8406
+[analyze:with_rhol] dinov3_vitl16_lvd        dim=1024  RankMe=  449.21 Aniso=+0.6104
+[analyze:with_rhol] simdinov2_vitb16         dim=768   RankMe=  442.78 Aniso=+0.4935
+[analyze:with_rhol] simdinov2_vitl16         dim=1024  RankMe=  574.90 Aniso=+0.4175
+[analyze:with_rhol] satmae_vitl16            dim=1024  RankMe=  186.18 Aniso=+0.9201
+[analyze:with_rhol] scalemae_vitl16          dim=1024  RankMe=   79.52 Aniso=+0.9646
+[analyze:with_rhol] resnet50_arctic          dim=2048  RankMe= 1015.46 Aniso=+0.2995
+[analyze:with_rhol] vitb16_arctic            dim=768   RankMe=  346.81 Aniso=+0.3942
+[analyze:with_rhol] vitb16_fulft_arctic      dim=768   RankMe=  348.35 Aniso=+0.4984
+[analyze:with_rhol] -> /home/erazal/Documents/Mémoire/results/with_rhol/latent_metrics.json
+[analyze:without_rhol] resnet50_imagenet        dim=2048  RankMe=  420.35 Aniso=+0.6532
+[analyze:without_rhol] vitb16_imagenet          dim=768   RankMe=  352.87 Aniso=+0.5976
+[analyze:without_rhol] dinov3_vitb16_lvd        dim=768   RankMe=  357.57 Aniso=+0.5873
+[analyze:without_rhol] dinov3_vitl16_sat        dim=1024  RankMe=  350.06 Aniso=+0.8406
+[analyze:without_rhol] dinov3_vitl16_lvd        dim=1024  RankMe=  449.21 Aniso=+0.6104
+[analyze:without_rhol] simdinov2_vitb16         dim=768   RankMe=  442.78 Aniso=+0.4935
+[analyze:without_rhol] simdinov2_vitl16         dim=1024  RankMe=  574.90 Aniso=+0.4175
+[analyze:without_rhol] satmae_vitl16            dim=1024  RankMe=  186.18 Aniso=+0.9201
+[analyze:without_rhol] scalemae_vitl16          dim=1024  RankMe=   79.52 Aniso=+0.9646
+[analyze:without_rhol] resnet50_arctic          dim=2048  RankMe= 1015.46 Aniso=+0.2995
+[analyze:without_rhol] vitb16_arctic            dim=768   RankMe=  346.81 Aniso=+0.3942
+[analyze:without_rhol] vitb16_fulft_arctic      dim=768   RankMe=  348.35 Aniso=+0.4984
+[analyze:without_rhol] -> /home/erazal/Documents/Mémoire/results/without_rhol/latent_metrics.json
+
+
+=== B.1 latent — RankMe + anisotropie (12 modèles, 11 classes) | python3 analyze.py --config configs/benchmark_12models.yaml ===
+resnet50_imagenet        RankMe=  420.3 SR=  2.75 PR=  6.32 kNNpur=0.594
+vitb16_imagenet          RankMe=  352.9 SR=  5.09 PR= 15.23 kNNpur=0.602
+dinov3_vitb16_lvd        RankMe=  357.6 SR=  5.85 PR= 18.52 kNNpur=0.613
+simdinov2_vitb16         RankMe=  442.8 SR=  6.24 PR= 21.58 kNNpur=0.661
+dinov3_vitl16_sat        RankMe=  350.1 SR=  4.42 PR= 13.00 kNNpur=0.625
+dinov3_vitl16_lvd        RankMe=  449.2 SR=  5.61 PR= 17.23 kNNpur=0.608
+simdinov2_vitl16         RankMe=  574.9 SR=  7.08 PR= 22.78 kNNpur=0.664
+satmae_vitl16            RankMe=  186.2 SR=  2.66 PR=  5.05 kNNpur=0.594
+scalemae_vitl16          RankMe=   79.5 SR=  2.54 PR=  4.46 kNNpur=0.620
+resnet50_arctic          RankMe= 1015.5 SR=  4.17 PR= 10.64 kNNpur=0.668
+vitb16_arctic            RankMe=  346.8 SR=  3.78 PR=  8.93 kNNpur=0.681
+vitb16_fulft_arctic      RankMe=  348.3 SR=  3.86 PR=  9.60 kNNpur=0.679
+
+[SAVED] /home/erazal/Documents/Mémoire/results/geometry_extended_12models.json (12 modèles)
+
+
+=== B.2 geometry_extended_12models (stable_rank, TwoNN, Fisher, kNN purity) | python3 scripts/geometry_extended_12models.py ===
+======================================================================
+TÂCHE A — α-ReQ + NESum (12 modèles, sous-échantillon test 20k seed 42)
+======================================================================
+[resnet50_imagenet       ] dim= 2048  RankMe= 420.35  α-ReQ=2.521  NESum=  2.746  Aniso=+0.6532  F1=0.4081
+[vitb16_imagenet         ] dim=  768  RankMe= 352.87  α-ReQ=1.663  NESum=  5.090  Aniso=+0.5976  F1=0.4500
+[dinov3_vitb16_lvd       ] dim=  768  RankMe= 357.57  α-ReQ=1.671  NESum=  5.848  Aniso=+0.5873  F1=0.4715
+[dinov3_vitl16_sat       ] dim= 1024  RankMe= 350.06  α-ReQ=1.656  NESum=  4.419  Aniso=+0.8406  F1=0.4620
+[dinov3_vitl16_lvd       ] dim= 1024  RankMe= 449.21  α-ReQ=1.659  NESum=  5.612  Aniso=+0.6104  F1=0.4789
+[simdinov2_vitb16        ] dim=  768  RankMe= 442.78  α-ReQ=1.462  NESum=  6.238  Aniso=+0.4935  F1=0.4716
+[simdinov2_vitl16        ] dim= 1024  RankMe= 574.90  α-ReQ=1.600  NESum=  7.078  Aniso=+0.4175  F1=0.4761
+[satmae_vitl16           ] dim= 1024  RankMe= 186.18  α-ReQ=1.767  NESum=  2.656  Aniso=+0.9201  F1=0.4093
+[scalemae_vitl16         ] dim= 1024  RankMe=  79.52  α-ReQ=1.835  NESum=  2.537  Aniso=+0.9646  F1=0.4485
+[resnet50_arctic         ] dim= 2048  RankMe=1015.46  α-ReQ=1.435  NESum=  4.169  Aniso=+0.2995  F1=0.4619
+[vitb16_arctic           ] dim=  768  RankMe= 346.81  α-ReQ=1.583  NESum=  3.775  Aniso=+0.3942  F1=0.4758
+[vitb16_fulft_arctic     ] dim=  768  RankMe= 348.35  α-ReQ=1.588  NESum=  3.863  Aniso=+0.4984  F1=0.4791
+
+[csv] -> /home/erazal/Documents/Mémoire/results/transfer/spectrum_metrics.csv
+[json] -> /home/erazal/Documents/Mémoire/results/transfer/spectrum_metrics.json
+
+[corr] Spearman & Kendall (n=12) :
+  rankme                  ρ=+0.266 (p=0.404)  τ=+0.182 (p=0.459)
+  rankme_normalized       ρ=+0.497 (p=0.101)  τ=+0.333 (p=0.153)
+  alpha_req               ρ=-0.615 (p=0.0332)  τ=-0.424 (p=0.0629)
+  nesum                   ρ=+0.559 (p=0.0586)  τ=+0.394 (p=0.0863)
+  anisotropy              ρ=-0.538 (p=0.0709)  τ=-0.364 (p=0.116)
+
+[json] -> /home/erazal/Documents/Mémoire/results/transfer/correlations_with_f1.json
+======================================================================
+TÂCHE A terminée.
+======================================================================
+
+
+=== D.1 spectrum (α-ReQ + NESum) — 12 modèles, 20k subsample test, seed 42 | python3 scripts/task_a_spectrum.py ===
+======================================================================
+TÂCHE B — LogME (12 modèles, embeddings train, label-entiers)
+======================================================================
+[resnet50_imagenet       ] dim= 2048  LogME=+0.5156  ( 10.3s)  F1=0.4081
+[vitb16_imagenet         ] dim=  768  LogME=+0.5363  (  0.6s)  F1=0.4500
+[dinov3_vitb16_lvd       ] dim=  768  LogME=+0.5479  (  0.5s)  F1=0.4715
+[dinov3_vitl16_sat       ] dim= 1024  LogME=+0.5593  (  1.0s)  F1=0.4620
+[dinov3_vitl16_lvd       ] dim= 1024  LogME=+0.5550  (  1.0s)  F1=0.4789
+[simdinov2_vitb16        ] dim=  768  LogME=+0.5753  (  0.5s)  F1=0.4716
+[simdinov2_vitl16        ] dim= 1024  LogME=+0.5866  (  1.1s)  F1=0.4761
+[satmae_vitl16           ] dim= 1024  LogME=+0.5353  (  1.0s)  F1=0.4093
+[scalemae_vitl16         ] dim= 1024  LogME=+0.5468  (  1.1s)  F1=0.4485
+[resnet50_arctic         ] dim= 2048  LogME=+0.6139  (  5.9s)  F1=0.4619
+[vitb16_arctic           ] dim=  768  LogME=+0.6495  (  0.6s)  F1=0.4758
+[vitb16_fulft_arctic     ] dim=  768  LogME=+0.6344  (  0.6s)  F1=0.4791
+
+[csv] -> /home/erazal/Documents/Mémoire/results/transfer/logme_scores.csv
+[json] -> /home/erazal/Documents/Mémoire/results/transfer/logme_scores.json
+
+[corr] Spearman ρ=+0.762 (p=3.95e-03)  Kendall τ=+0.606 (p=5.38e-03)  (n=12)
+[json] -> /home/erazal/Documents/Mémoire/results/transfer/logme_vs_f1.json
+[fig] -> /home/erazal/Documents/Mémoire/results/transfer/logme_vs_f1.png
+
+LogME top-3  : ['vitb16_arctic', 'vitb16_fulft_arctic', 'resnet50_arctic']
+F1    top-3  : ['vitb16_fulft_arctic', 'dinov3_vitl16_lvd', 'simdinov2_vitl16']
+======================================================================
+TÂCHE B terminée.
+======================================================================
+
+
+=== D.2 LogME — 12 modèles, embeddings train 49 433 tuiles | python3 scripts/task_b_logme.py ===
+/home/erazal/Documents/Mémoire/scripts/compute_correlations.py:120: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  r, _ = spearmanr(x, y)
+
+[transfer] bloc 12 modèles (α-ReQ, NESum, LogME) ...
+[transfer] LogME resnet50_imagenet ...
+[transfer] LogME vitb16_imagenet ...
+[transfer] LogME dinov3_vitb16_lvd ...
+[transfer] LogME dinov3_vitl16_sat ...
+[transfer] LogME dinov3_vitl16_lvd ...
+[transfer] LogME simdinov2_vitb16 ...
+[transfer] LogME simdinov2_vitl16 ...
+[transfer] LogME satmae_vitl16 ...
+[transfer] LogME scalemae_vitl16 ...
+[transfer] LogME resnet50_arctic ...
+[transfer] LogME vitb16_arctic ...
+[transfer] LogME vitb16_fulft_arctic ...
+[saved] results/correlations.json
+
+=== CORRÉLATIONS GÉOMÉTRIE ↔ F1 ===
+
+ViT-L (n=5, archi contrôlée) :
+  rankme                 n=5  ρ=+0.800  τ=+0.600  IC95ρ=[0.1111111111111111, 1.0]
+  anisotropy             n=5  ρ=-0.800  τ=-0.600  IC95ρ=[-1.0, -0.1111111111111111]
+
+dim-768 (n=3) :
+  rankme                 n=3  ρ=+1.000  τ=+1.000  IC95ρ=—
+  anisotropy             n=3  ρ=-1.000  τ=-1.000  IC95ρ=—
+
+global (n=9) :
+  rankme                 n=9  ρ=+0.700  τ=+0.556  IC95ρ=[-0.0894448757763975, 0.9999999999999998]
+  anisotropy             n=9  ρ=-0.667  τ=-0.500  IC95ρ=[-0.9999999999999998, -0.1206896551724138]
+
+global rankme_norm (n=9) :
+  rankme_normalized      n=9  ρ=+0.717  τ=+0.500  IC95ρ=[0.125, 0.9473911070780399]
+  anisotropy             n=9  ρ=-0.667  τ=-0.500  IC95ρ=[-0.9999999999999998, -0.1206896551724138]
+
+transférabilité (n=12, F1 du rapport) :
+  rankme                 n=12  ρ=+0.266  τ=+0.182  IC95ρ=[-0.3870112095933264, 0.7420921327454165]
+  rankme_normalized      n=12  ρ=+0.497  τ=+0.333  IC95ρ=[-0.17733662613981765, 0.815500772028997]
+  alpha_req              n=12  ρ=-0.615  τ=-0.424  IC95ρ=[-0.9133574007220217, 0.08582774626095914]
+  nesum                  n=12  ρ=+0.559  τ=+0.394  IC95ρ=[-0.049999999999999996, 0.8642977885104218]
+  anisotropy             n=12  ρ=-0.538  τ=-0.364  IC95ρ=[-0.8705152007426318, 0.09683710821322347]
+  logme                  n=12  ρ=+0.762  τ=+0.606  IC95ρ=[0.20376344086021508, 0.9778638335833908]
+
+palier top_8 (8 modèles, F1∈[0.4619, 0.4791]) :
+  logme                  n=8  ρ=+0.214  τ=+0.143  IC95ρ=[-0.6153846153846154, 0.9230769230769231]
+  rankme                 n=8  ρ=-0.262  τ=-0.143  IC95ρ=[-0.8518518518518517, 0.6962025316455697]
+  rankme_normalized      n=8  ρ=-0.095  τ=-0.071  IC95ρ=[-0.8421052631578949, 0.6708860759493672]
+  alpha_req              n=8  ρ=+0.214  τ=+0.214  IC95ρ=[-0.5999999999999999, 0.973684210526316]
+  nesum                  n=8  ρ=-0.024  τ=+0.071  IC95ρ=[-0.7372566690699353, 0.9252644355817574]
+  anisotropy             n=8  ρ=+0.143  τ=+0.071  IC95ρ=[-0.8026776776776776, 0.9178082191780822]
+
+palier top_6 (6 modèles, F1∈[0.4715, 0.4791]) :
+  logme                  n=6  ρ=+0.429  τ=+0.333  IC95ρ=[-0.6363636363636362, 1.0]
+  rankme                 n=6  ρ=+0.086  τ=+0.067  IC95ρ=[-0.8064516129032258, 0.9393939393939392]
+  rankme_normalized      n=6  ρ=-0.486  τ=-0.333  IC95ρ=[-1.0, 0.6000000000000001]
+  alpha_req              n=6  ρ=-0.029  τ=+0.067  IC95ρ=[-0.9409090909090907, 1.0]
+  nesum                  n=6  ρ=-0.314  τ=-0.200  IC95ρ=[-1.0, 0.7419354838709679]
+  anisotropy             n=6  ρ=+0.143  τ=+0.067  IC95ρ=[-0.9999999999999999, 0.9393939393939392]
+[fig] docs/figures/logme_vs_f1.png
+
+
+=== D.3 corrélations géométrie↔F1 (n=9 frozen + n=12 + paliers top-8/6) | python3 scripts/compute_correlations.py --config configs/frozen_eval.yaml --probe-json results/with_rhol/probe_knn_cgrid.json --latent-json results/with_rhol/latent_metrics.json --probe-json-all results/with_rhol/probe_knn_cgrid.json --output results/correlations.json --n-bootstrap 1000 --fig docs/figures/logme_vs_f1.png ===
+[saved] results/figures_paper/significance_holm.png
+[saved] results/figures_paper/corr_forest.png
+[saved] results/figures_paper/geometry_extended_scatter.png
+[saved] results/figures_paper/controlled_pair.png
+[saved] results/figures_paper/headline_pair.png
+
+
+=== E.1 figures paper (significance_holm, corr_forest, geometry_extended_scatter, controlled_pair, headline_pair) | python3 scripts/make_paper_figures.py --sig results/significance_matrix.json --corrected results/significance_corrected.json --geom results/geometry_extended.json --sig12 results/significance_matrix_all12.json --outdir results/figures_paper ===
+12 modeles (9 frozen + 3 FT)
+[1/8] f1_ranking_12models.png
+[2/8] f1_barplot_12models.png
+[3/8] per_class_f1_12models.png
+[4/8] rankme_vs_f1_12models.png
+[5/8] anisotropy_vs_f1_12models.png
+[6/8] significance_matrix_12models.png
+[7/8] finetune_comparison_12models.png
+[8/8] geometry_metrics_12models.png
+
+Toutes les figures OK dans /home/erazal/Documents/Mémoire/docs/figures
+
+
+=== E.2 figures annexes (12 modèles, transfert, géométrie) | python3 scripts/regenerate_all_figures_12.py ===
+tab_spectrum.tex écrit.
+tab_correl.tex écrit.
+tab_palier.tex écrit.
+tab_logme.tex écrit.
+tab_paired.tex écrit.
+tab_f1.tex écrit.
+
+Tous les fragments LaTeX générés.
+
+
+=== F. tables LaTeX depuis les CSV/JSON canoniques | python3 scripts/gen_latex_tables.py ===
