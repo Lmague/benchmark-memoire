@@ -1,0 +1,49 @@
+# Évaluation benchmark complet (12 modèles) — passe nocturne 2
+#
+# Inclut les 9 frozen + 3 fine-tunés (resnet50_arctic, vitb16_arctic, vitb16_fulft_arctic).
+# Grille de C étendue ``C∈{1e-4..10}`` → ``best_C`` sélectionné sur val par
+# ``f1_macro_all`` (méthodo canonique). Source de vérité unique des F1 du rapport.
+#
+#   python probe.py    --config configs/benchmark_12models.yaml
+#   python analyze.py  --config configs/benchmark_12models.yaml
+#
+# IMPORTANT : ce config sert pour la sortie ``results/with_rhol/probe_knn_cgrid.json``
+# consommée par TOUT le pipeline (significance, transfer, correlations, figures).
+
+regime: none          # ignoré pour probe/analyse (aucun entraînement, aucun optimizer)
+
+# 12 modèles benchmarkés, dans l'ordre canonique du rapport :
+#   9 frozen (gfl gelés, sans entraînement sur TVC)
+#   3 fine-tunés (entraînés sur TVC — resnet50 MHSA, vitb16 MHSA, vitb16 full)
+models:
+  - resnet50_imagenet
+  - vitb16_imagenet
+  - dinov3_vitb16_lvd
+  - dinov3_vitl16_sat
+  - dinov3_vitl16_lvd
+  - simdinov2_vitb16
+  - simdinov2_vitl16
+  - satmae_vitl16
+  - scalemae_vitl16
+
+finetuned_models:
+  - resnet50_arctic
+  - vitb16_arctic
+  - vitb16_fulft_arctic
+
+features:
+  remap_v3: false       # embeddings ré-extraits en ordre v3 natif — pas de remap
+
+probe:
+  include_finetuned: true
+  # Grille ÉTENDUE — best_C sélectionné sur val f1_macro_all, JAMAIS C forcé en dur.
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
+  max_iter: 2000
+  knn_k: [5, 10, 20]
+  selection_metric: f1_macro_all
+
+latent:
+  rankme_split: test
+  anisotropy_split: test
+  n_pairs: 10000
+  rankme_subsample: 20000

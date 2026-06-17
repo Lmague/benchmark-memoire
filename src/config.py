@@ -177,6 +177,8 @@ def build_config(d: dict) -> Config:
     return Config(
         env=env,
         regime=d.get("regime", "full"),
+        models=d.get("models", list(_DEFAULT_MODELS)),
+        finetuned_models=d.get("finetuned_models", list(_DEFAULT_FINETUNED)),
         paths=Paths(**_only(Paths, resolved_paths)),
         data=DataCfg(**_only(DataCfg, d.get("data", {}))),
         model=ModelCfg(**_only(ModelCfg, d.get("model", {}))),
