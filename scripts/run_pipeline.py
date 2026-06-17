@@ -94,8 +94,20 @@ def task_B(args, log_file: Path) -> int:
 # ------------------------------------------------------------------ C. significance
 def task_C(args, log_file: Path) -> int:
     """Bootstrap apparié n=1000 (seed=42) sur les 12 modèles + 3 tests appariés
-    par tuile (ASO + bootstrap + permutation) sur les paires palier A."""
+    par tuile (ASO + bootstrap + permutation) sur les paires palier A.
+
+    Idempotent : si les artefacts existent déjà, skip (sauf si --force).
+    task_c_b_paired.py prend ~30 min et n'est utile qu'à régénérer."""
     n = int(getattr(args, "n_bootstrap", 1000))
+    sig_json = PROJ / "results" / "significance_matrix_all12.json"
+    paired_json = PROJ / "results" / "transfer" / "headline_pairs_paired_tests.json"
+    force = bool(getattr(args, "force", False))
+
+    if not force:
+        if sig_json.exists() and paired_json.exists():
+            print(f"[run_pipeline] C outputs déjà présents → SKIP (utiliser --force pour re-calculer).")
+            return 0
+
     rc = _run(f"C.1 bootstrap apparié n={n} — 12 modèles, f1_macro_pres",
               ["python3", "scripts/significance_matrix.py",
                "--probe-json", "results/with_rhol/probe_knn_cgrid.json",
@@ -172,6 +184,8 @@ def main() -> None:
                     help="saute ces tâches (ex: --skip E F)")
     ap.add_argument("--n-bootstrap", type=int, default=1000,
                     help="override du nombre de tirages bootstrap (défaut: 1000)")
+    ap.add_argument("--force", action="store_true",
+                    help="force le re-calcul de TOUTES les tâches (sans skip par défaut)")
     ap.add_argument("--log", default="results/transfer/pipeline_run.log",
                     help="fichier log de l'orchestration")
     args = ap.parse_args()
