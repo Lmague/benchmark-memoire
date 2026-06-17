@@ -1,0 +1,38 @@
+# Comparaison ciblée — effet du CORPUS de pré-entraînement de SimDINOv2 (ImageNet vs iNat21
+# Plantae), à recette/architecture identiques (DINOv2-with-registers, 4 reg., patch16).
+#
+# 4 modèles figés : {ViT-B, ViT-L} × {iNat21 Plantae, ImageNet-1k}. Probe linéaire + k-NN
+# sur les tuiles Arctic-TVC (split v3). NE remplace PAS benchmark_12models.yaml (source de
+# vérité figée du rapport) — config autonome pour l'expérience de comparaison.
+#
+# Pré-requis : embeddings extraits pour les 4 clés (iNat déjà en cache ; ImageNet à extraire) :
+#   python extract.py --config configs/frozen_simdinov2_vitb16_imagenet.yaml
+#   python extract.py --config configs/frozen_simdinov2_vitl16_imagenet.yaml
+# Puis :
+#   python probe.py   --config configs/compare_simdinov2_pretraining.yaml
+#   python analyze.py --config configs/compare_simdinov2_pretraining.yaml
+
+regime: none          # ignoré pour probe/analyse (aucun entraînement, aucun optimizer)
+
+models:
+  - simdinov2_vitb16            # iNat21 Plantae (sslplant) — norm simdino_inat
+  - simdinov2_vitb16_imagenet   # ImageNet-1k (officiel)    — norm imagenet
+  - simdinov2_vitl16            # iNat21 Plantae (sslplant) — norm simdino_inat
+  - simdinov2_vitl16_imagenet   # ImageNet-1k (officiel)    — norm imagenet
+
+features:
+  remap_v3: false       # embeddings ré-extraits en ordre v3 natif — pas de remap
+
+probe:
+  include_finetuned: false
+  # Même grille/méthodo que le benchmark canonique (best_C sur val f1_macro_all).
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
+  max_iter: 2000
+  knn_k: [5, 10, 20]
+  selection_metric: f1_macro_all
+
+latent:
+  rankme_split: test
+  anisotropy_split: test
+  n_pairs: 10000
+  rankme_subsample: 20000
