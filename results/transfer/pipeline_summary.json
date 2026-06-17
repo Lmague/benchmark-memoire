@@ -1,0 +1,13 @@
+{
+  "tasks_run": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F"
+  ],
+  "tasks_failed": [],
+  "elapsed_s": 168.2,
+  "log": "results/transfer/pipeline_run.log"
+}

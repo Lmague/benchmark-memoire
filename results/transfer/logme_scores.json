@@ -1,0 +1,106 @@
+{
+  "per_model": [
+    {
+      "model": "resnet50_imagenet",
+      "dim": 2048,
+      "n_train": 49433,
+      "logme": 0.5155822893579941,
+      "logme_time_s": 10.26,
+      "f1_macro_pres_test": 0.4080771534659235
+    },
+    {
+      "model": "vitb16_imagenet",
+      "dim": 768,
+      "n_train": 49433,
+      "logme": 0.5362607447733779,
+      "logme_time_s": 0.56,
+      "f1_macro_pres_test": 0.44998821147275353
+    },
+    {
+      "model": "dinov3_vitb16_lvd",
+      "dim": 768,
+      "n_train": 49433,
+      "logme": 0.5478512508057307,
+      "logme_time_s": 0.54,
+      "f1_macro_pres_test": 0.47150246507911503
+    },
+    {
+      "model": "dinov3_vitl16_sat",
+      "dim": 1024,
+      "n_train": 49433,
+      "logme": 0.5593099930734022,
+      "logme_time_s": 1.0,
+      "f1_macro_pres_test": 0.4619806850944929
+    },
+    {
+      "model": "dinov3_vitl16_lvd",
+      "dim": 1024,
+      "n_train": 49433,
+      "logme": 0.5549701175792192,
+      "logme_time_s": 0.97,
+      "f1_macro_pres_test": 0.47888501118017557
+    },
+    {
+      "model": "simdinov2_vitb16",
+      "dim": 768,
+      "n_train": 49433,
+      "logme": 0.5753260397289083,
+      "logme_time_s": 0.53,
+      "f1_macro_pres_test": 0.47164615919203107
+    },
+    {
+      "model": "simdinov2_vitl16",
+      "dim": 1024,
+      "n_train": 49433,
+      "logme": 0.5865789880677619,
+      "logme_time_s": 1.08,
+      "f1_macro_pres_test": 0.4760837892379522
+    },
+    {
+      "model": "satmae_vitl16",
+      "dim": 1024,
+      "n_train": 49433,
+      "logme": 0.5353263765811253,
+      "logme_time_s": 1.01,
+      "f1_macro_pres_test": 0.4093025471183788
+    },
+    {
+      "model": "scalemae_vitl16",
+      "dim": 1024,
+      "n_train": 49433,
+      "logme": 0.5467704020756752,
+      "logme_time_s": 1.09,
+      "f1_macro_pres_test": 0.44846574528346567
+    },
+    {
+      "model": "resnet50_arctic",
+      "dim": 2048,
+      "n_train": 49433,
+      "logme": 0.6138598559332459,
+      "logme_time_s": 5.93,
+      "f1_macro_pres_test": 0.46186817923660545
+    },
+    {
+      "model": "vitb16_arctic",
+      "dim": 768,
+      "n_train": 49433,
+      "logme": 0.6495169260412776,
+      "logme_time_s": 0.57,
+      "f1_macro_pres_test": 0.47575985910530977
+    },
+    {
+      "model": "vitb16_fulft_arctic",
+      "dim": 768,
+      "n_train": 49433,
+      "logme": 0.6344011744073227,
+      "logme_time_s": 0.55,
+      "f1_macro_pres_test": 0.4791156222790256
+    }
+  ],
+  "source_code": "src/_vendor/LogME.py (vendored thuml/LogME@master)",
+  "source_paper": "You et al. ICML 2021, JMLR 2022 (fixed-point formulation)",
+  "split": "train",
+  "labels_int": true,
+  "regression": false,
+  "f1_source": "results/with_rhol/probe_knn_cgrid.json (f1_macro_pres canonique)"
+}
