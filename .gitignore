@@ -41,6 +41,17 @@ __pycache__/
 !/scripts/sample_efficiency.py
 !/scripts/layerwise_probe.py
 !/scripts/make_paper_figures.py
+# Pipeline canonique A→F (passe nocturne 2) :
+!/scripts/task_a_spectrum.py
+!/scripts/task_b_logme.py
+!/scripts/task_c_aso.py
+!/scripts/task_c_b_paired.py
+!/scripts/task_d_f1_corrected.py
+!/scripts/gen_latex_tables.py
+!/scripts/geometry_extended_12models.py
+!/scripts/bootstrap_pair_only.py
+!/scripts/run_pipeline.py
+!/scripts/recompute_control_values.py
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/

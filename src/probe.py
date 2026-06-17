@@ -12,6 +12,8 @@ Réutilise les MÊMES features cachées que l'analyse latente. scikit-learn pare
 """
 from __future__ import annotations
 
+import os
+
 import numpy as np
 
 from .latent import l2norm
@@ -58,8 +60,15 @@ def linear_probe(feats: dict, n_classes: int, class_names: list[str],
         f1v = f1_score(yva, clf.predict(xva), average="macro", zero_division=0, labels=sel_labels)
         return c, f1v, clf
 
-    from joblib import Parallel, delayed
-    results = Parallel(n_jobs=-1)(delayed(_fit_one)(c) for c in C_grid)
+    # Grille de C petite (≤6 valeurs) + modèles 768-2048 dim × 49 433 train
+    # → joblib n'apporte rien (overhead > gain). Fit séquentiel, déterministe
+    # (les workers joblib peuvent réordonner les résultats de façon subtile).
+    # On garde la possibilité de paralleliser via env PROBE_PARALLEL=1 si besoin.
+    if os.environ.get("PROBE_PARALLEL", "0") == "1":
+        from joblib import Parallel, delayed
+        results = Parallel(n_jobs=-1)(delayed(_fit_one)(c) for c in C_grid)
+    else:
+        results = [_fit_one(c) for c in C_grid]
     best_c, best_f1, best = max(results, key=lambda x: x[1])
 
     ypte = best.predict(xte)
