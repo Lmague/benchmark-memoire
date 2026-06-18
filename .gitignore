@@ -56,6 +56,7 @@ __pycache__/
 !/scripts/bootstrap_pair_only.py
 !/scripts/run_pipeline.py
 !/scripts/recompute_control_values.py
+!/scripts/visualize_subsample.py
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/
