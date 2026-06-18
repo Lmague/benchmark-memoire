@@ -57,6 +57,10 @@ __pycache__/
 !/scripts/run_pipeline.py
 !/scripts/recompute_control_values.py
 !/scripts/visualize_subsample.py
+# Courbe de données Narval (Q5) :
+!/scripts/datacurve_one_run.py
+!/scripts/datacurve_aggregate.py
+!/scripts/slurm_datacurve.sh
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/
