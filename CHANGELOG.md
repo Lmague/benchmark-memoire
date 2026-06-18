@@ -222,3 +222,31 @@ seed=42 partout. Avec les artefacts pré-calculés : **168 s** end-to-end.
 - `scripts/task_c_aso.py` partie (b) per-tile bootstrap=1000 n'a pas été
   re-exécutée (timeout) ; `task_c_b_paired.py` (bootstrap=200) suffit pour
   valider le verdict des 13 paires palier A.
+---
+
+## 7. Visualisations sous-échantillonnées (17 juin 2026, après passe 2)
+
+Ajout d'un script de visualisation UMAP / PCA / heatmap k-NN sur un sous-ensemble
+stratifié des embeddings (par défaut 15 pts/classe pour les projections, 100 pts/classe
+pour la matrice de voisinage). Couvre les 11 classes utiles (RHOL exclue car
+absente du test et marginale en train, 152 tuiles).
+
+- **Script** : `scripts/visualize_subsample.py` (idempotent, --force, configurable)
+- **Sorties** : `figures/subsample_15pC/`
+  - 2 × PCA 2D (`<model>_pca.png`)
+  - 2 × UMAP 2D (`<model>_umap.png`)
+  - 2 × heatmap k-NN cosine k=10 (`<model>_knn_heatmat.png` + `.csv`)
+- **Modèles par défaut** : `vitb16_fulft_arctic` (FT, 768d) et `dinov3_vitl16_lvd`
+  (frozen, 1024d) — les deux modèles phares du benchmark.
+- **Split** : `train` (seul split qui contient les 11 classes).
+
+Résultats saillants (train, 165 pts pour UMAP/PCA, 1088 pts pour k-NN) :
+
+| Métrique              | ViT-B/16 FT   | DINOv3-L LVD  | Lecture |
+|-----------------------|---------------|---------------|---------|
+| PC1 + PC2 var. expl.  | 19.8 + 15.9 % | 16.7 + 10.6 % | FT plus structuré linéairement |
+| Pureté k-NN moyenne   | 62.0 %        | 41.9 %        | FT presque 1.5× plus pur en cosine |
+| Class. la + pure      | ARCA, DRYI 80 %| ARCA, RUBC 57 %| les 2 modèles s'accordent sur ARCA |
+| Class. la – pure      | SEDG 38 %, PETF 40 % | MOSS 26 %, WILL/LICH 30 % | SEDG/PETF toujours fragiles |
+| Confusion emblématique | BIRC ↔ DRYI 14 % symétrique | MOSS → SEDG 17 % | le FT conserve la confusion BIRC/DRYI connue |
+
