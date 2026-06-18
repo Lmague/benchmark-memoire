@@ -198,7 +198,6 @@ def _make_learning_curve(
     for key in BASELINE_MODELS:
         if key not in baselines:
             continue
-        val = baselines[key][f"f1_macro_{metric_col.replace('_', '_')}"]
         # Nommage cohérent
         val_key = "f1_macro_pres_test" if metric == "pres" else "f1_macro_8cls_test"
         val = baselines[key][val_key]
@@ -286,6 +285,16 @@ def _make_per_class_curve(
 # Gate de reproductibilité (100%)
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _load_gate_ref(probe_json: str = "results/with_rhol/probe_knn_cgrid.json",
+                   fallback: float = 0.4796) -> float:
+    try:
+        with open(probe_json) as f:
+            d = json.load(f)
+        return float(d["probe"]["vitb16_fulft_arctic"]["test"]["f1_macro_pres"])
+    except (FileNotFoundError, KeyError):
+        return fallback
+
+
 def _check_gate(rows: list[dict], ref: float = 0.4796, tol: float = 0.005) -> None:
     runs_100 = [r for r in rows if abs(r.get("fraction", 0) - 1.0) < 1e-6]
     if not runs_100:
@@ -334,7 +343,7 @@ def main() -> None:
         print("  → Exécutez d'abord les jobs SLURM sur Narval.", flush=True)
 
     # Gate 100%
-    _check_gate(rows)
+    _check_gate(rows, ref=_load_gate_ref())
 
     # ─── 2. Baselines gelées ─────────────────────────────────────────────────
     print("\n── Baselines gelées ──────────────────────────────────────────────")

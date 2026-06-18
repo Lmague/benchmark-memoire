@@ -13,7 +13,10 @@ tqdm
 einops                # backbones ViT (DINOv3 / sslplant)
 transformers>=4.56.0  # loader HF de dinov3_vitl16_lvd (AutoModel.from_pretrained)
 huggingface_hub       # login pour le repo gated facebook/dinov3-*-lvd1689m
-# seaborn, pandas     # uniquement pour les anciens scripts (legacy/)
+scipy                 # stats (kendalltau, spearmanr) — task_a, task_b, correlations
+pandas                # tables LaTeX — gen_latex_tables
+umap-learn            # visualisation UMAP — visualize_subsample (import umap)
+deepsig               # ASO / permutation tests — task_c_aso, task_c_b_paired
 
 # Backbones frozen externes (non pip-installables tels quels) :
 #   DINOv3   : torch.hub.load("facebookresearch/dinov3", ...)  (poids + accès requis)

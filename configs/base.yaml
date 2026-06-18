@@ -16,6 +16,16 @@ paths_local:
   ckpt_dir:    checkpoints
   results_dir: /home/erazal/Documents/Mémoire/results
 
+# --- Chemins Narval (Alliance Canada — variables d'env SLURM) ---
+paths_narval:
+  data_root:   ${HOME}/Memoire
+  tiles_dir:   ${SLURM_TMPDIR}/tiles
+  csv_dir:     ${HOME}/Memoire/splits
+  old_csv_dir: ${HOME}/Memoire/dataset_splits
+  emb_dir:     ${SCRATCH}/datacurve/embeddings
+  ckpt_dir:    ${SCRATCH}/datacurve/checkpoints
+  results_dir: ${SCRATCH}/datacurve/results
+
 # --- Chemins Colab (entraînement / extraction GPU) ---
 paths_colab:
   data_root:   /content/drive/MyDrive/Memoire

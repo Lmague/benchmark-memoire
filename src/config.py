@@ -21,7 +21,10 @@ BASE_CONFIG = os.path.join(CONFIGS_DIR, "base.yaml")
 
 def _resolve_path(p: str) -> str:
     """Résout un chemin relatif depuis la racine du projet (absolu = inchangé)."""
-    if not p or os.path.isabs(p):
+    if not p:
+        return p
+    p = os.path.expandvars(p)
+    if os.path.isabs(p):
         return p
     return os.path.join(_PROJECT_ROOT, p)
 
@@ -163,8 +166,12 @@ def load_config(path: str, base_path: str = BASE_CONFIG) -> Config:
 
 
 def _detect_env() -> str:
-    """Détecte l'environnement d'exécution : 'colab' si /content existe, sinon 'local'."""
-    return "colab" if os.path.exists("/content") else "local"
+    """Détecte l'environnement d'exécution : 'colab', 'narval' (CC_CLUSTER), ou 'local'."""
+    if os.path.exists("/content"):
+        return "colab"
+    if os.environ.get("CC_CLUSTER") == "narval":
+        return "narval"
+    return "local"
 
 
 def build_config(d: dict) -> Config:
