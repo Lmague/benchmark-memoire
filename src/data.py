@@ -86,11 +86,39 @@ def build_transforms(split: str, mean=None, std=None, image_size: int = 224):
     ])
 
 
-def make_loaders(cfg, splits=("train", "val", "test"), train_aug: bool = True) -> dict:
+class _SubsetWithLabelRemap:
+    """Sous-ensemble d'un Dataset avec remapping optionnel des labels.
+
+    Les indices hors remap (ex. RHOL=7 absent de LABEL_REMAP_12TO11) sont ignorés par
+    le remapping — l'appelant doit s'assurer que ces indices ne figurent pas dans subset.
+    """
+
+    def __init__(self, dataset, indices, label_remap: dict | None = None):
+        self.dataset = dataset
+        self.indices = indices
+        self.label_remap = label_remap
+
+    def __len__(self) -> int:
+        return len(self.indices)
+
+    def __getitem__(self, idx: int):
+        img, lb = self.dataset[int(self.indices[idx])]
+        if self.label_remap is not None:
+            lb = self.label_remap[int(lb)]
+        return img, lb
+
+
+def make_loaders(cfg, splits=("train", "val", "test"), train_aug: bool = True,
+                 indices: dict | None = None,
+                 label_remap: dict | None = None) -> dict:
     """Construit les DataLoaders. ``train_aug=False`` → transforms d'éval partout (extraction).
 
     Pas de WeightedRandomSampler : le déséquilibre est géré par la loss pondérée
     (cf. mémoire projet). Le train est mélangé via un Generator seedé + ``seed_worker``.
+
+    ``indices`` : dict optionnel {split: array d'indices} pour sous-ensembles par split.
+    ``label_remap`` : dict optionnel {old_label: new_label} appliqué à tous les splits
+                     (utilisé par Q5 datacurve pour le schéma 11-classes sans RHOL).
     """
     import torch
     mean, std = get_normalization(cfg.model.norm)
@@ -102,6 +130,12 @@ def make_loaders(cfg, splits=("train", "val", "test"), train_aug: bool = True) -
         tf = build_transforms("train" if is_train else "eval", mean, std, cfg.data.image_size)
         ds = ArcticTVCDataset(os.path.join(cfg.paths.csv_dir, f"{s}.csv"),
                               cfg.paths.tiles_dir, tf)
+        split_indices = indices.get(s) if indices is not None else None
+        if split_indices is not None or label_remap is not None:
+            import numpy as _np
+            if split_indices is None:
+                split_indices = _np.arange(len(ds))
+            ds = _SubsetWithLabelRemap(ds, split_indices, label_remap)
         loaders[s] = DataLoader(
             ds,
             batch_size=cfg.data.batch_size,

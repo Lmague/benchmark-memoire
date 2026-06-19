@@ -6,7 +6,7 @@
 regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
 
 # Chemin du checkpoint .pth `teacher` SimDINOv2 ViT-L/16 (ImageNet-1k).
-checkpoint: "/home/erazal/Documents/Mémoire/checkpoints/simdinov2_vitl_imagenet.pth"
+checkpoint: "simdinov2_vitl_imagenet.pth"
 
 model:
   name: simdinov2_vitl16_imagenet

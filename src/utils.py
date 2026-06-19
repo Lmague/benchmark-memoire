@@ -20,6 +20,13 @@ N_CLASSES: int = len(CLASS_NAMES)
 RHOL_IDX: int = CLASS_NAMES.index("RHOL")              # 7 — absente du split test
 CLASS_TO_IDX: dict[str, int] = {c: i for i, c in enumerate(CLASS_NAMES)}
 
+# --- Q5 datacurve (11 classes sans RHOL) ---
+CLASS_NAMES_11: list[str] = [c for c in CLASS_NAMES if c != "RHOL"]
+LABEL_REMAP_12TO11: dict[int, int] = (
+    {i: i for i in range(RHOL_IDX)} |
+    {i: i - 1 for i in range(RHOL_IDX + 1, N_CLASSES)}
+)
+
 # --- Normalisations d'entrée par famille de modèle ---
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
@@ -169,3 +176,22 @@ def make_canonical_lr(C: float, max_iter: int = 2000, random_state: int = 42) ->
     if _CANONICAL_LR_SUPPORTS_MULTICLASS:
         kwargs["multi_class"] = "multinomial"
     return LogisticRegression(**kwargs)
+
+
+def stratified_subsample(labels: "np.ndarray", fraction: float, seed: int) -> "np.ndarray":
+    """Sous-échantillonnage stratifié : maintient les proportions de classes.
+
+    Garantit au moins 1 exemple par classe présente.
+    ``fraction=1.0`` retourne tous les indices (pas de copie).
+    """
+    rng = np.random.RandomState(seed)
+    if fraction >= 1.0:
+        return np.arange(len(labels), dtype=np.int64)
+    indices_out: list[int] = []
+    for cls in np.unique(labels):
+        cls_idx = np.where(labels == cls)[0]
+        n_cls = max(1, int(round(len(cls_idx) * fraction)))
+        n_cls = min(n_cls, len(cls_idx))
+        chosen = rng.choice(cls_idx, size=n_cls, replace=False)
+        indices_out.extend(chosen.tolist())
+    return np.array(sorted(indices_out), dtype=np.int64)

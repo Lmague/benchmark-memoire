@@ -139,14 +139,15 @@ def _empty_history() -> dict:
 
 
 # -------------------------------------------------------------------------- fit
-def fit(cfg, model, groups: dict, loaders: dict, criterion, device, resume: str | None = None) -> dict:
+def fit(cfg, model, groups: dict, loaders: dict, criterion, device,
+        resume: str | None = None, tag_override: str | None = None) -> dict:
     """Entraîne, early-stoppe sur val F1-Macro, évalue le best sur le test, sauve résultats."""
     optimizer = build_optimizer(groups, cfg)
     scheduler = build_scheduler(optimizer, cfg)
     use_amp = cfg.train.amp and device.type == "cuda"
     scaler = torch.amp.GradScaler('cuda', enabled=use_amp)
 
-    tag = run_tag(cfg.model.name, cfg.regime)
+    tag = tag_override or run_tag(cfg.model.name, cfg.regime)
     ensure_dir(cfg.paths.ckpt_dir)
     ensure_dir(cfg.paths.results_dir)
     best_path = os.path.join(cfg.paths.ckpt_dir, f"{tag}_best.pth")

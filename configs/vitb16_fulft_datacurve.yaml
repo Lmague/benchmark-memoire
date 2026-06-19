@@ -1,0 +1,19 @@
+# Entraînement ViT-B/16 full fine-tuning — pipeline datacurve Q5 (11 classes, sans RHOL).
+# Utilisé par scripts/datacurve_one_run.py via slurm_datacurve.sh.
+#
+# Différences vs vitb16_full.yaml :
+#   - num_classes: 11 (RHOL exclue du train + schéma de labels remanié)
+#   - LR identiques (backbone=1e-5, head=1e-4) — recette canonique ViT-B full FT
+#   - Checkpoints gérés par datacurve_one_run.py (cfg.paths.ckpt_dir patché au runtime)
+model:
+  name: vitb16
+  num_classes: 11
+  norm: imagenet
+
+regime: full
+
+optim:
+  weight_decay: 0.05
+  lr:
+    backbone: 1.0e-5
+    head: 1.0e-4
