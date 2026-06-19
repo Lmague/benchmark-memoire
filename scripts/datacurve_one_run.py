@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Data curve — un run (proportion × seed) : train → extract → probe → métriques.
 
+Pipeline Q5 : schéma 11 classes (RHOL exclu du train, labels remappés 0-10).
 Utilisé directement par slurm_datacurve.sh. Peut aussi être appelé manuellement :
 
-    python scripts/datacurve_one_run.py \
-        --config configs/vitb16_fulft_datacurve.yaml \
-        --fraction 0.01 --seed 0 \
+    python scripts/datacurve_one_run.py \\
+        --config configs/vitb16_fulft_datacurve.yaml \\
+        --fraction 0.01 --seed 0 \\
         --out-dir outputs/datacurve
 
 Sorties (sous --out-dir) :
@@ -26,12 +27,28 @@ import time
 import numpy as np
 
 # ---------------------------------------------------------------------------
-# Classes exclues des deux métriques
-# CLASS_NAMES = ["ALDE","ARCA","BIRC","DRYI","LICH","MOSS","PETF","RHOL","RUBC","SEDG","TUSS","WILL"]
-# Indices :         0     1     2     3     4     5     6     7     8     9    10    11
-# f1_macro_pres (11 cls) : RHOL absente du test → exclue automatiquement par f1_macro_pres
-# f1_macro_8cls  (8 cls) : ARCA(1) DRYI(3) RHOL(7) RUBC(8) explicitement exclus
-LABELS_8CLS = [0, 2, 4, 5, 6, 9, 10, 11]  # ALDE BIRC LICH MOSS PETF SEDG TUSS WILL
+# Schéma 11 classes Q5 (RHOL exclue)
+# 12-class : ALDE(0) ARCA(1) BIRC(2) DRYI(3) LICH(4) MOSS(5) PETF(6) RHOL(7) RUBC(8) SEDG(9) TUSS(10) WILL(11)
+# 11-class : ALDE(0) ARCA(1) BIRC(2) DRYI(3) LICH(4) MOSS(5) PETF(6)         RUBC(7) SEDG(8) TUSS(9)  WILL(10)
+_RHOL_IDX = 7
+LABEL_REMAP_12TO11: dict[int, int] = {
+    **{i: i for i in range(_RHOL_IDX)},
+    **{i: i - 1 for i in range(_RHOL_IDX + 1, 12)},
+}
+CLASS_NAMES_11 = ["ALDE", "ARCA", "BIRC", "DRYI", "LICH", "MOSS", "PETF",
+                   "RUBC", "SEDG", "TUSS", "WILL"]
+
+# 8-class diagnostic (hors ARCA=1, DRYI=3, RUBC=7 en 11-class) — SEDG=8, TUSS=9, WILL=10
+LABELS_8CLS = [0, 2, 4, 5, 6, 8, 9, 10]   # ALDE BIRC LICH MOSS PETF SEDG TUSS WILL (11-class)
+
+
+def _apply_11cls_remap(E: np.ndarray, L: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Filtre RHOL (label 7) et remappe les labels restants vers le schéma 11-classes."""
+    mask = L != _RHOL_IDX
+    E_out = E[mask]
+    L_raw = L[mask]
+    L_out = np.array([LABEL_REMAP_12TO11[int(l)] for l in L_raw], dtype=np.int64)
+    return E_out, L_out
 
 
 def _frac_tag(fraction: float, seed: int) -> str:
@@ -42,7 +59,8 @@ def _frac_tag(fraction: float, seed: int) -> str:
 def _extract_backbone_embeddings(ckpt_path: str, cfg, splits=("val", "test")) -> dict:
     """Charge le backbone fine-tuné depuis ckpt_path, extrait les features pour splits.
 
-    Retourne {split: (embeddings float16, labels int64)}.
+    Retourne {split: (embeddings float16, labels int64)} — labels encore en 12-class ici.
+    Le remapping 11-class est appliqué en aval par _apply_11cls_remap.
     """
     import torch
     from src.models import _load_finetuned_backbone
@@ -81,12 +99,12 @@ def _run_probe_and_metrics(feats_val_test: dict, feats_train: tuple,
                            max_iter: int = 2000) -> dict:
     """Sonde linéaire lbfgs sur features fine-tunées ; retourne métriques sur test.
 
-    feats_val_test = {"val": (E, L), "test": (E, L)} (déjà extraits).
-    feats_train    = (E_train, L_train) — sous-ensemble effectif d'entraînement.
+    feats_val_test = {"val": (E, L), "test": (E, L)} — labels déjà en 11-class.
+    feats_train    = (E_train, L_train) — sous-ensemble effectif, labels 11-class.
     """
     from sklearn.preprocessing import StandardScaler
     from sklearn.metrics import f1_score, accuracy_score
-    from src.utils import make_canonical_lr, CLASS_NAMES
+    from src.utils import make_canonical_lr
 
     E_tr, L_tr = feats_train
     E_va, L_va = feats_val_test["val"]
@@ -97,13 +115,13 @@ def _run_probe_and_metrics(feats_val_test: dict, feats_train: tuple,
     X_va = sc.transform(E_va.astype(np.float32))
     X_te = sc.transform(E_te.astype(np.float32))
 
-    # Sélection du C sur val (f1_macro_all sur les 12 classes, convention benchmark)
+    # Sélection du C sur val (f1_macro_all sur les 11 classes Q5)
     best_c, best_f1v = C_grid[0], -1.0
     for c in C_grid:
         clf = make_canonical_lr(C=c, max_iter=max_iter)
         clf.fit(X_tr, L_tr)
         f1v = f1_score(L_va, clf.predict(X_va), average="macro",
-                       labels=list(range(12)), zero_division=0)
+                       labels=list(range(11)), zero_division=0)
         if f1v > best_f1v:
             best_c, best_f1v = c, f1v
 
@@ -123,7 +141,7 @@ def _run_probe_and_metrics(feats_val_test: dict, feats_train: tuple,
     f1_pres_te = float(f1_score(L_te, preds_te, average="macro",
                                 labels=present_te, zero_division=0))
 
-    # Métriques test secondaire : f1_macro_8cls
+    # Métriques test secondaire : f1_macro_8cls (8 classes fiables en 11-class)
     f1_8cls_te = float(f1_score(L_te, preds_te, average="macro",
                                 labels=LABELS_8CLS, zero_division=0))
 
@@ -131,8 +149,8 @@ def _run_probe_and_metrics(feats_val_test: dict, feats_train: tuple,
 
     # F1 par classe sur test (pour per_class_curve Tier 2)
     f1_all = f1_score(L_te, preds_te, average=None, zero_division=0,
-                      labels=list(range(12)))
-    f1_per_class = {CLASS_NAMES[i]: float(f1_all[i]) for i in range(12)}
+                      labels=list(range(11)))
+    f1_per_class = {CLASS_NAMES_11[i]: float(f1_all[i]) for i in range(11)}
 
     return {
         "best_C": best_c,
@@ -191,42 +209,60 @@ def main() -> None:
     best_ckpt = os.path.join(ckpt_dir, f"{ckpt_tag}_best.pth")
 
     # ── 1. ENTRAÎNEMENT ─────────────────────────────────────────────────────────
-    print("[datacurve] 1/3 — Entraînement", flush=True)
-    # On délègue à train.py pour réutiliser exactement la même recette.
-    # Les chemins de checkpoint sont redirigés via cfg.paths.ckpt_dir.
-    # On patche temporairement le ckpt_dir dans la config.
+    print("[datacurve] 1/3 — Entraînement (11 classes, RHOL exclue)", flush=True)
     cfg.paths.ckpt_dir = ckpt_dir
 
     utils.set_seed(cfg.train.seed)
     device = utils.get_device()
 
-    from train import stratified_subsample
+    from src.utils import stratified_subsample, read_split_csv
     from src.data import make_loaders
-    from src.losses import build_class_weights, build_criterion
+    from src.losses import build_criterion
     from src.models import build_model
     from src import engine
 
-    # Sous-échantillonnage stratifié
-    _, all_train_labels = utils.read_split_csv(
+    # ── Filtrage RHOL et remapping labels 12→11 ─────────────────────────────────
+    _, all_train_labels_12 = read_split_csv(
         os.path.join(cfg.paths.csv_dir, "train.csv"))
-    train_indices = stratified_subsample(all_train_labels, args.fraction, args.seed)
-    sub_labels = all_train_labels[train_indices]
-    n_train = len(train_indices)
+    non_rhol_orig_idx = np.where(all_train_labels_12 != _RHOL_IDX)[0]
+    all_train_labels_11 = np.array(
+        [LABEL_REMAP_12TO11[int(l)] for l in all_train_labels_12[non_rhol_orig_idx]],
+        dtype=np.int64)
 
-    print(f"  sous-échantillon : {n_train} tuiles ({args.fraction:.2%})", flush=True)
-    counts_str = {utils.CLASS_NAMES[c]: int((sub_labels == c).sum())
-                  for c in range(cfg.model.num_classes)}
+    # Sous-échantillonnage stratifié dans l'espace 11-classes
+    subsample_in_11 = stratified_subsample(all_train_labels_11, args.fraction, args.seed)
+    sub_labels = all_train_labels_11[subsample_in_11]
+
+    # Indices dans le CSV original (12-class) pour le sous-ensemble effectif
+    orig_train_sub_idx = non_rhol_orig_idx[subsample_in_11]
+
+    # Indices non-RHOL pour val et test (filtrage défensif)
+    _, val_labels_12 = read_split_csv(os.path.join(cfg.paths.csv_dir, "val.csv"))
+    val_nonrhol_idx = np.where(val_labels_12 != _RHOL_IDX)[0]
+    _, test_labels_12 = read_split_csv(os.path.join(cfg.paths.csv_dir, "test.csv"))
+    test_nonrhol_idx = np.where(test_labels_12 != _RHOL_IDX)[0]
+
+    n_train = len(orig_train_sub_idx)
+    print(f"  sous-échantillon : {n_train} tuiles ({args.fraction:.2%}) — 11 classes, RHOL exclue",
+          flush=True)
+    counts_str = {CLASS_NAMES_11[c]: int((sub_labels == c).sum()) for c in range(11)}
     print(f"  effectifs : {counts_str}", flush=True)
 
-    # Alerte classes rares à 1%
-    EXCL = {utils.CLASS_NAMES[c]: int((sub_labels == c).sum())
-            for c in [1, 3, 7, 8]}  # ARCA DRYI RHOL RUBC
-    print(f"  [Tier3] classes rares dans le sous-échantillon : {EXCL}", flush=True)
+    # Alerte classes rares à faible fraction (ARCA=1, DRYI=3, RUBC=7 en 11-class)
+    rare = {CLASS_NAMES_11[c]: int((sub_labels == c).sum()) for c in [1, 3, 7]}
+    print(f"  [Tier3] classes rares dans le sous-échantillon : {rare}", flush=True)
 
     model, groups = build_model(cfg.model.name, cfg.regime, cfg.model.num_classes)
     model = model.to(device)
     criterion = build_criterion(sub_labels, cfg.model.num_classes, device)
-    loaders = make_loaders(cfg, train_aug=True, train_indices=train_indices)
+
+    loaders = make_loaders(cfg, train_aug=True,
+                           indices={
+                               "train": orig_train_sub_idx,
+                               "val":   val_nonrhol_idx,
+                               "test":  test_nonrhol_idx,
+                           },
+                           label_remap=LABEL_REMAP_12TO11)
 
     results = engine.fit(cfg, model, groups, loaders, criterion, device,
                          tag_override=ckpt_tag)
@@ -237,7 +273,6 @@ def main() -> None:
 
     if not os.path.exists(best_ckpt):
         print(f"  [WARN] checkpoint best non trouvé : {best_ckpt}", flush=True)
-        # Utiliser last si best absent (run très court)
         last_ckpt = os.path.join(ckpt_dir, f"{ckpt_tag}_last.pth")
         best_ckpt = last_ckpt
 
@@ -249,28 +284,31 @@ def main() -> None:
     emb_dir_run = os.path.join(emb_base, emb_key)
     os.makedirs(emb_dir_run, exist_ok=True)
 
-    val_emb_path = os.path.join(emb_dir_run, "val.npy")
-    val_lbl_path = os.path.join(emb_dir_run, "val_labels.npy")
-    test_emb_path = os.path.join(emb_dir_run, "test.npy")
-    test_lbl_path = os.path.join(emb_dir_run, "test_labels.npy")
+    # Extraction val + test (labels 12-class depuis le CSV, remapping appliqué après)
+    feats_vt_12 = _extract_backbone_embeddings(best_ckpt, cfg, splits=("val", "test"))
 
-    feats_vt = _extract_backbone_embeddings(best_ckpt, cfg, splits=("val", "test"))
-    np.save(val_emb_path, feats_vt["val"][0])
-    np.save(val_lbl_path, feats_vt["val"][1])
-    np.save(test_emb_path, feats_vt["test"][0])
-    np.save(test_lbl_path, feats_vt["test"][1])
+    # Remapping 11-class pour val et test
+    feats_vt: dict = {}
+    for s, (E, L) in feats_vt_12.items():
+        feats_vt[s] = _apply_11cls_remap(E, L)
+
+    np.save(os.path.join(emb_dir_run, "val.npy"), feats_vt["val"][0])
+    np.save(os.path.join(emb_dir_run, "val_labels.npy"), feats_vt["val"][1])
+    np.save(os.path.join(emb_dir_run, "test.npy"), feats_vt["test"][0])
+    np.save(os.path.join(emb_dir_run, "test_labels.npy"), feats_vt["test"][1])
     print(f"  embeddings sauvés → {emb_dir_run}", flush=True)
 
-    # Embeddings d'entraînement (sous-ensemble) — nécessaires pour le fit de la sonde
+    # Extraction train (full) puis sous-sélection + remapping
     print("  extraction train (sous-ensemble)...", flush=True)
-    feats_tr = _extract_backbone_embeddings(best_ckpt, cfg, splits=("train",))
-    E_tr_full, L_tr_full = feats_tr["train"]
-    # On ne garde que le sous-ensemble utilisé pour l'entraînement
-    E_tr = E_tr_full[train_indices]
-    L_tr = L_tr_full[train_indices]
+    feats_tr_12 = _extract_backbone_embeddings(best_ckpt, cfg, splits=("train",))
+    E_tr_full_12, L_tr_full_12 = feats_tr_12["train"]
+    # Garder uniquement les indices du sous-ensemble (déjà non-RHOL)
+    E_tr_raw = E_tr_full_12[orig_train_sub_idx]
+    L_tr_raw = L_tr_full_12[orig_train_sub_idx]
+    E_tr, L_tr = _apply_11cls_remap(E_tr_raw, L_tr_raw)
 
     # ── 3. SONDE LINÉAIRE + MÉTRIQUES ───────────────────────────────────────────
-    print("\n[datacurve] 3/3 — Sonde linéaire (lbfgs)", flush=True)
+    print("\n[datacurve] 3/3 — Sonde linéaire (lbfgs, 11 classes)", flush=True)
     metrics = _run_probe_and_metrics(
         feats_val_test=feats_vt,
         feats_train=(E_tr, L_tr),
@@ -283,6 +321,7 @@ def main() -> None:
     metrics["seed"] = args.seed
     metrics["ckpt_tag"] = ckpt_tag
     metrics["emb_dir"] = emb_dir_run
+    metrics["schema"] = "11cls_no_rhol"
 
     print(f"\n  ✓ f1_macro_pres_test = {metrics['f1_macro_pres_test']:.4f}"
           f"  f1_macro_8cls_test = {metrics['f1_macro_8cls_test']:.4f}"
@@ -294,7 +333,6 @@ def main() -> None:
         json.dump(metrics, f, indent=2)
     print(f"  → {metrics_path}", flush=True)
 
-    # Sentinel de complétion
     with open(done_path, "w") as f:
         f.write(f"completed {time.strftime('%Y-%m-%dT%H:%M:%S')}\n")
 

@@ -26,8 +26,15 @@ import sys
 
 import numpy as np
 
-# Classes pour la métrique 8-cls (hors ARCA=1, DRYI=3, RHOL=7, RUBC=8)
-LABELS_8CLS = [0, 2, 4, 5, 6, 9, 10, 11]   # ALDE BIRC LICH MOSS PETF SEDG TUSS WILL
+_RHOL_IDX = 7   # index RHOL dans le schéma 12 classes
+LABEL_REMAP_12TO11: dict[int, int] = {
+    **{i: i for i in range(_RHOL_IDX)},
+    **{i: i - 1 for i in range(_RHOL_IDX + 1, 12)},
+}
+
+# Classes pour la métrique 8-cls dans le schéma 11-classes
+# (hors ARCA=1, DRYI=3, RUBC=7 en 11-class — classes à faible couverture spatiale)
+LABELS_8CLS = [0, 2, 4, 5, 6, 8, 9, 10]   # ALDE BIRC LICH MOSS PETF SEDG TUSS WILL
 
 # Baselines gelées à évaluer (lecture depuis embeddings/ local)
 BASELINE_MODELS = [
@@ -64,33 +71,52 @@ _BASELINE_LSTYLE = {
 # Helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _filter_remap_embeddings(E: np.ndarray, L: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Filtre RHOL (label 7 en 12-class) et remappe vers schéma 11-classes.
+
+    Les embeddings gelés stockés sur disque utilisent les labels 12-classes du CSV
+    original. Cette fonction les convertit vers le schéma 11-classes Q5 avant toute
+    évaluation — évite toute comparaison cross-schéma silencieuse.
+    """
+    mask = L != _RHOL_IDX
+    E_out = E[mask]
+    L_raw = L[mask].astype(np.int64)
+    L_out = np.array([LABEL_REMAP_12TO11[int(l)] for l in L_raw], dtype=np.int64)
+    return E_out, L_out
+
+
 def _probe_baseline(emb_dir: str, model_key: str,
                     C_grid=(0.001, 0.01, 0.1, 1.0, 10.0),
                     max_iter: int = 2000) -> dict:
-    """Charge les embeddings gelés (train/val/test) et retourne les deux métriques."""
+    """Charge les embeddings gelés (train/val/test), filtre RHOL, retourne les métriques 11-cls."""
     from sklearn.preprocessing import StandardScaler
     from sklearn.metrics import f1_score
     from src.utils import make_canonical_lr
 
-    E_tr = np.load(os.path.join(emb_dir, f"{model_key}_train.npy")).astype(np.float32)
-    L_tr = np.load(os.path.join(emb_dir, f"{model_key}_train_labels.npy")).astype(np.int64)
-    E_va = np.load(os.path.join(emb_dir, f"{model_key}_val.npy")).astype(np.float32)
-    L_va = np.load(os.path.join(emb_dir, f"{model_key}_val_labels.npy")).astype(np.int64)
-    E_te = np.load(os.path.join(emb_dir, f"{model_key}_test.npy")).astype(np.float32)
-    L_te = np.load(os.path.join(emb_dir, f"{model_key}_test_labels.npy")).astype(np.int64)
+    E_tr_raw = np.load(os.path.join(emb_dir, f"{model_key}_train.npy")).astype(np.float32)
+    L_tr_raw = np.load(os.path.join(emb_dir, f"{model_key}_train_labels.npy")).astype(np.int64)
+    E_va_raw = np.load(os.path.join(emb_dir, f"{model_key}_val.npy")).astype(np.float32)
+    L_va_raw = np.load(os.path.join(emb_dir, f"{model_key}_val_labels.npy")).astype(np.int64)
+    E_te_raw = np.load(os.path.join(emb_dir, f"{model_key}_test.npy")).astype(np.float32)
+    L_te_raw = np.load(os.path.join(emb_dir, f"{model_key}_test_labels.npy")).astype(np.int64)
+
+    # Remapping 12→11 classes (RHOL filtré) pour cohérence cross-schéma
+    E_tr, L_tr = _filter_remap_embeddings(E_tr_raw, L_tr_raw)
+    E_va, L_va = _filter_remap_embeddings(E_va_raw, L_va_raw)
+    E_te, L_te = _filter_remap_embeddings(E_te_raw, L_te_raw)
 
     sc = StandardScaler()
     X_tr = sc.fit_transform(E_tr)
     X_va = sc.transform(E_va)
     X_te = sc.transform(E_te)
 
-    # Sélection C sur val (f1_macro_all 12 classes, convention benchmark)
+    # Sélection C sur val (f1_macro 11 classes Q5 — schéma cohérent avec les runs)
     best_c, best_f1v = C_grid[0], -1.0
     for c in C_grid:
         clf = make_canonical_lr(C=c, max_iter=max_iter)
         clf.fit(X_tr, L_tr)
         f1v = f1_score(L_va, clf.predict(X_va), average="macro",
-                       labels=list(range(12)), zero_division=0)
+                       labels=list(range(11)), zero_division=0)
         if f1v > best_f1v:
             best_c, best_f1v = c, f1v
 
@@ -98,11 +124,9 @@ def _probe_baseline(emb_dir: str, model_key: str,
     clf_final.fit(X_tr, L_tr)
     preds_te = clf_final.predict(X_te)
 
-    # f1_macro_pres (11 cls) — RHOL absent du test → exclue naturellement
     present_te = sorted({int(v) for v in L_te})
     f1_pres = float(f1_score(L_te, preds_te, average="macro",
                              labels=present_te, zero_division=0))
-    # f1_macro_8cls
     f1_8cls = float(f1_score(L_te, preds_te, average="macro",
                              labels=LABELS_8CLS, zero_division=0))
 
@@ -282,34 +306,44 @@ def _make_per_class_curve(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Gate de reproductibilité (100%)
+# Gate de reproductibilité (100%) — optionnelle
 # ──────────────────────────────────────────────────────────────────────────────
+# NOTE : l'ancienne référence 12-classes (results/with_rhol/probe_knn_cgrid.json,
+# vitb16_fulft_arctic ≈ 0.4796) est calculée dans le schéma 12 classes et n'est
+# PAS comparable aux runs Q5 (11 classes). Toute comparaison cross-schéma est
+# silencieusement invalide. La gate est donc désactivée par défaut ; elle peut
+# être activée en fournissant --gate-ref <valeur_11cls> quand une référence 11-cls
+# est disponible (ex. après le premier run complet).
 
-def _load_gate_ref(probe_json: str = "results/with_rhol/probe_knn_cgrid.json",
-                   fallback: float = 0.4796) -> float:
-    try:
-        with open(probe_json) as f:
-            d = json.load(f)
-        return float(d["probe"]["vitb16_fulft_arctic"]["test"]["f1_macro_pres"])
-    except (FileNotFoundError, KeyError):
-        return fallback
-
-
-def _check_gate(rows: list[dict], ref: float = 0.4796, tol: float = 0.005) -> None:
+def _check_gate_optional(rows: list[dict], gate_ref: float | None,
+                         tol: float = 0.005) -> None:
+    """Gate reproductibilité 100% — comparaison dans le schéma 11-classes Q5."""
+    if gate_ref is None:
+        print("\n[Gate] DÉSACTIVÉE — passer --gate-ref <f1_11cls_ref> pour l'activer.",
+              flush=True)
+        return
     runs_100 = [r for r in rows if abs(r.get("fraction", 0) - 1.0) < 1e-6]
     if not runs_100:
         print("\n[Gate] SKIP — aucun run à 100% trouvé.", flush=True)
         return
+    # Vérifier cohérence schéma
+    wrong_schema = [r for r in runs_100 if r.get("schema", "") != "11cls_no_rhol"]
+    if wrong_schema:
+        print(f"\n[Gate] ERREUR — {len(wrong_schema)} run(s) n'ont pas schema='11cls_no_rhol'."
+              f" Comparaison annulée pour éviter cross-schéma.", flush=True)
+        return
     f1_values = [r["f1_macro_pres_test"] for r in runs_100]
-    f1_mean = np.mean(f1_values)
-    ecart = abs(f1_mean - ref)
+    f1_mean = float(np.mean(f1_values))
+    ecart = abs(f1_mean - gate_ref)
     status = "PASS" if ecart <= tol else "FAIL"
-    print(f"\n[Gate reproductibilité 100%]")
-    print(f"  vitb16_fulft_arctic ref = {ref:.4f}")
-    print(f"  run(s) 100%   mean f1_pres = {f1_mean:.4f}  (valeurs: {[round(v,4) for v in f1_values]})")
+    print(f"\n[Gate reproductibilité 100% — schéma 11cls Q5]")
+    print(f"  référence fournie (11cls) = {gate_ref:.4f}")
+    print(f"  run(s) 100%  mean f1_pres = {f1_mean:.4f}"
+          f"  (valeurs: {[round(v, 4) for v in f1_values]})")
     print(f"  Écart = {ecart:.4f}  tolérance = {tol:.4f}  → {status}")
     if status == "FAIL":
-        print("  [ATTENTION] Divergence de recette détectée — vérifier les hyperparamètres!", flush=True)
+        print("  [ATTENTION] Divergence de recette détectée — vérifier les hyperparamètres!",
+              flush=True)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -328,6 +362,9 @@ def main() -> None:
                     help="ne recompute pas les baselines (si déjà dans baselines.csv)")
     ap.add_argument("--no-perclass", action="store_true",
                     help="saute la figure per_class_curve (T2)")
+    ap.add_argument("--gate-ref", type=float, default=None,
+                    help="référence F1-macro 11-cls (schéma Q5) pour la gate 100%% "
+                         "(ne pas passer la valeur 12-classes ≈0.4796 — schéma différent)")
     args = ap.parse_args()
 
     code_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -342,8 +379,8 @@ def main() -> None:
         print("[WARN] Aucun run trouvé dans", args.runs_dir, flush=True)
         print("  → Exécutez d'abord les jobs SLURM sur Narval.", flush=True)
 
-    # Gate 100%
-    _check_gate(rows, ref=_load_gate_ref())
+    # Gate 100% (optionnelle — voir commentaire _check_gate_optional)
+    _check_gate_optional(rows, gate_ref=args.gate_ref)
 
     # ─── 2. Baselines gelées ─────────────────────────────────────────────────
     print("\n── Baselines gelées ──────────────────────────────────────────────")

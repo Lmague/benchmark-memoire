@@ -74,7 +74,7 @@ else
 fi
 
 # ── Archive RHOL (une seule fois si non existante) ────────────────────────────
-# RHOL est gardé dans l'entraînement (cohérence benchmark) ; archivé séparément.
+# RHOL est exclu de l'entraînement Q5 ; tuiles archivées ici pour référence.
 RHOL_ARCHIVE="$OUT_DIR/rhol_archive"
 if [[ ! -d "$RHOL_ARCHIVE" ]]; then
     echo "[slurm] Archivage des tuiles RHOL → $RHOL_ARCHIVE ..."

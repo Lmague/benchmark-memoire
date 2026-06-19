@@ -8,13 +8,13 @@
 
 # --- Chemins locaux (machine de développement / analyse CPU) ---
 paths_local:
-  data_root:   /home/erazal/Documents/Mémoire
-  tiles_dir:   /home/erazal/Documents/Mémoire/out/tiles
-  csv_dir:     /home/erazal/Documents/Mémoire/splits             # split v3 canonique
-  old_csv_dir: /home/erazal/Documents/Mémoire/out/dataset_splits # ordre des embeddings cachés
-  emb_dir:     /home/erazal/Documents/Mémoire/embeddings
+  data_root:   .
+  tiles_dir:   out/tiles
+  csv_dir:     splits             # split v3 canonique
+  old_csv_dir: out/dataset_splits # ordre des embeddings cachés
+  emb_dir:     embeddings
   ckpt_dir:    checkpoints
-  results_dir: /home/erazal/Documents/Mémoire/results
+  results_dir: results
 
 # --- Chemins Narval (Alliance Canada — variables d'env SLURM) ---
 paths_narval:
