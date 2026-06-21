@@ -2,7 +2,10 @@
 
 Logique canonique (notebooks + spec) :
 - AdamW, LR différentiels par groupe (depuis ``config.optim.lr``).
-- CosineAnnealingLR(eta_min=1e-7). Warmup linéaire + phase head-only = OPTIONNELS (défaut off).
+- CosineAnnealingLR(eta_min=1e-7), calé sur les STEPS de gradient (pas les epochs) —
+  garantit que deux runs avec des volumes de données différents (ex. courbe de
+  données Q5) suivent la MÊME trajectoire de LR par step, donc sont comparables.
+  Warmup linéaire + phase head-only = OPTIONNELS (défaut off).
 - AMP float16 sur CUDA. Early stopping sur **val F1-Macro (12 classes)**.
 - Anti-écrasement : checkpoints ``{model}_{regime}_best.pth`` / ``_last.pth`` ;
   résultats ``{model}_{regime}_results.json``.
@@ -38,18 +41,31 @@ def build_optimizer(groups: dict, cfg) -> AdamW:
     return AdamW(param_groups, weight_decay=cfg.optim.weight_decay)
 
 
-def build_scheduler(optimizer, cfg):
-    """CosineAnnealingLR(eta_min). Si ``warmup_epochs>0`` : LinearLR puis cosine."""
+def build_scheduler(optimizer, cfg, steps_per_epoch: int = 1):
+    """CosineAnnealingLR(eta_min), CALÉ SUR LES STEPS (pas sur les epochs).
+
+    ``T_max`` et les milestones de warmup sont exprimés en steps de gradient
+    (``steps_per_epoch × epochs``), pas en epochs. Avant ce fix, deux runs avec
+    des volumes de données différents (ex. courbe de données Q5 : 270 steps/epoch
+    à 70% vs 386 à 100%) recevaient le même nombre d'epochs mais un nombre de
+    steps différent pour la même position dans le cycle cosine — ce qui rendait
+    les runs incomparables et causait une instabilité accrue (et donc une chute
+    de F1 test) au volume de données le plus élevé malgré un meilleur état au
+    best_epoch en val. ``steps_per_epoch=1`` (défaut) reproduit l'ancien
+    comportement epoch-par-epoch si jamais appelé sans le paramètre.
+    """
     from torch.optim.lr_scheduler import (CosineAnnealingLR, LinearLR,
                                           SequentialLR)
     epochs = cfg.train.epochs
-    warmup = cfg.schedule.warmup_epochs
-    cosine = CosineAnnealingLR(optimizer, T_max=max(1, epochs - warmup),
+    warmup_epochs = cfg.schedule.warmup_epochs
+    warmup_steps = warmup_epochs * steps_per_epoch
+    total_steps = max(1, (epochs - warmup_epochs) * steps_per_epoch)
+    cosine = CosineAnnealingLR(optimizer, T_max=total_steps,
                                eta_min=cfg.schedule.eta_min)
-    if warmup and warmup > 0:
-        warm = LinearLR(optimizer, start_factor=1.0 / warmup, end_factor=1.0,
-                        total_iters=warmup)
-        return SequentialLR(optimizer, schedulers=[warm, cosine], milestones=[warmup])
+    if warmup_steps > 0:
+        warm = LinearLR(optimizer, start_factor=1.0 / warmup_steps, end_factor=1.0,
+                        total_iters=warmup_steps)
+        return SequentialLR(optimizer, schedulers=[warm, cosine], milestones=[warmup_steps])
     return cosine
 
 
@@ -67,7 +83,8 @@ def _maybe_head_only(model, cfg, epoch: int) -> bool:
 
 # --------------------------------------------------------------------- train / eval
 def train_one_epoch(model, loader, optimizer, scaler, criterion, device,
-                    use_amp: bool = True, log_every: int = 50) -> float:
+                    scheduler=None, use_amp: bool = True, log_every: int = 50) -> float:
+    """Entraîne une epoch. ``scheduler.step()`` appelé APRÈS CHAQUE BATCH (step-based)."""
     model.train()
     total, n = 0.0, 0
     t0 = time.time()
@@ -85,6 +102,8 @@ def train_one_epoch(model, loader, optimizer, scaler, criterion, device,
             loss = criterion(model(x), y)
             loss.backward()
             optimizer.step()
+        if scheduler is not None:
+            scheduler.step()
         total += loss.item()
         n += 1
         if log_every and i % log_every == 0:
@@ -143,7 +162,8 @@ def fit(cfg, model, groups: dict, loaders: dict, criterion, device,
         resume: str | None = None, tag_override: str | None = None) -> dict:
     """Entraîne, early-stoppe sur val F1-Macro, évalue le best sur le test, sauve résultats."""
     optimizer = build_optimizer(groups, cfg)
-    scheduler = build_scheduler(optimizer, cfg)
+    steps_per_epoch = len(loaders["train"])
+    scheduler = build_scheduler(optimizer, cfg, steps_per_epoch=steps_per_epoch)
     use_amp = cfg.train.amp and device.type == "cuda"
     scaler = torch.amp.GradScaler('cuda', enabled=use_amp)
 
@@ -165,10 +185,11 @@ def fit(cfg, model, groups: dict, loaders: dict, criterion, device,
         _maybe_head_only(model, cfg, epoch)
         lrs = [g["lr"] for g in optimizer.param_groups]
         train_loss = train_one_epoch(model, loaders["train"], optimizer, scaler,
-                                     criterion, device, use_amp)
+                                     criterion, device, scheduler=scheduler, use_amp=use_amp)
         preds, labels = predict(model, loaders["val"], device, use_amp)
         val = eval_classifier(labels, preds, cfg.model.num_classes)
-        scheduler.step()
+        # scheduler.step() retiré ici — désormais appelé PAR BATCH dans train_one_epoch
+        # (step-based cosine, cf. build_scheduler).
 
         history["train_loss"].append(train_loss)
         history["val_f1_macro"].append(val["f1_macro_all"])
