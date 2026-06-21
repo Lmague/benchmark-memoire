@@ -10,34 +10,34 @@
 # mémoire inter-run, dataset partagé déjà dans $SLURM_TMPDIR.
 # ═══════════════════════════════════════════════════════════════════════════════
 #SBATCH --job-name=datacurve_vitb16
-#SBATCH --array=0-5
+#SBATCH --array=0-6
 #SBATCH --gres=gpu:a100:1
 #SBATCH --mem=40G
 #SBATCH --cpus-per-task=4
 #SBATCH --time=10:00:00
 #SBATCH --output=logs/datacurve_%A_%a.out
 #SBATCH --error=logs/datacurve_%A_%a.err
-# SBATCH --account=def-SUPERVISOR   # décommenter et éditer : votre compte Narval
+#SBATCH --account=def-bouguess   # décommenter et éditer : votre compte Narval
 
 # ─── Configuration — À ÉDITER ─────────────────────────────────────────────────
-CODE_DIR="$HOME/Memoire"                          # Répertoire git clone sur Narval
-TILES_SRC="/project/def-supervisor/$USER/tiles"  # Source des tuiles Arctic-TVC sur Narval
-                                                   # (remplacer par votre chemin réel)
-VENV="$CODE_DIR/.venv/bin/activate"               # Venv Python du projet
 CONFIG="configs/vitb16_fulft_datacurve.yaml"
-OUT_DIR="$SCRATCH/datacurve"                       # Scratch persistant (défini par Narval)
+CODE_DIR="$HOME/benchmark-memoire"
+TILES_SRC="$SCRATCH/tiles"
+VENV="$HOME/ENV/bin/activate"
+OUT_DIR="$SCRATCH/datacurve"
 
 # Modèles HuggingFace pré-téléchargés (login node) — NE PAS télécharger sur nœud de calcul
-export HF_HUB_OFFLINE=1                           # Force le mode offline
 export HF_HOME="$HOME/.cache/huggingface"         # Cache HF (pré-rempli sur login node)
 export TRANSFORMERS_OFFLINE=1
+export HF_HOME="$SCRATCH/hf_cache"
+export TORCH_HOME="$SCRATCH/torch_cache"
 
 # Exposer CODE_DIR aux scripts Python (expansion des chemins Narval dans la config)
 export CODE_DIR
 # ──────────────────────────────────────────────────────────────────────────────
 
 # Mapping index SLURM → fraction du train
-FRACS=(0.01 0.05 0.10 0.50 0.70 1.00)
+FRACS=(0.01 0.05 0.10 0.25 0.50 0.70 1.00)
 FRAC="${FRACS[$SLURM_ARRAY_TASK_ID]}"
 PCT=$(python3 -c "print(int(round(${FRAC}*100)))")
 
@@ -62,15 +62,13 @@ source "$VENV"
 cd "$CODE_DIR"
 
 # ── Copie des tuiles vers $SLURM_TMPDIR (fast local SSD) ─────────────────────
-echo "[slurm] Copie des tuiles → $SLURM_TMPDIR/tiles ..."
-mkdir -p "$SLURM_TMPDIR/tiles"
-if [[ -d "$TILES_SRC" ]]; then
-    rsync -a --info=progress2 "$TILES_SRC/" "$SLURM_TMPDIR/tiles/"
-    echo "[slurm] Copie terminée."
+echo "[slurm] Extraction des tuiles → $SLURM_TMPDIR ..."
+if [[ -f "$SCRATCH/tiles.zip" ]]; then
+    unzip -q "$SCRATCH/tiles.zip" -d "$SLURM_TMPDIR/"
+    echo "[slurm] Extraction terminée : $(find $SLURM_TMPDIR/tiles -name '*.png' | wc -l) tuiles."
 else
-    echo "[WARN] TILES_SRC non trouvé : $TILES_SRC — le dataset sera chargé depuis le réseau." >&2
-    # Fallback : utiliser TILES_SRC directement
-    export SLURM_TMPDIR_TILES_OVERRIDE="$TILES_SRC"
+    echo "[ERROR] $SCRATCH/tiles.zip introuvable" >&2
+    exit 1
 fi
 
 # ── Archive RHOL (une seule fois si non existante) ────────────────────────────
