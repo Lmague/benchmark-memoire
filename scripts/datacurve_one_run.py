@@ -212,7 +212,7 @@ def main() -> None:
     print("[datacurve] 1/3 — Entraînement (11 classes, RHOL exclue)", flush=True)
     cfg.paths.ckpt_dir = ckpt_dir
 
-    utils.set_seed(cfg.train.seed)
+    utils.set_seed(args.seed)
     device = utils.get_device()
 
     from src.utils import stratified_subsample, read_split_csv

@@ -18,13 +18,14 @@ paths_local:
 
 # --- Chemins Narval (Alliance Canada — variables d'env SLURM) ---
 paths_narval:
-  data_root:   ${HOME}/Memoire
+  data_root:   ${SCRATCH}
   tiles_dir:   ${SLURM_TMPDIR}/tiles
-  csv_dir:     ${HOME}/Memoire/splits
-  old_csv_dir: ${HOME}/Memoire/dataset_splits
-  emb_dir:     ${SCRATCH}/datacurve/embeddings
-  ckpt_dir:    ${SCRATCH}/datacurve/checkpoints
+  csv_dir:     ${SCRATCH}/splits
+  old_csv_dir: ${SCRATCH}/splits
+  emb_dir:     ${SCRATCH}/embeddings
+  ckpt_dir:    ${SCRATCH}/checkpoints
   results_dir: ${SCRATCH}/datacurve/results
+
 
 # --- Chemins Colab (entraînement / extraction GPU) ---
 paths_colab:
