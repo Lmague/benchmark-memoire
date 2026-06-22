@@ -17,3 +17,6 @@ optim:
   lr:
     backbone: 1.0e-5
     head: 1.0e-4
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
