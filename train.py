@@ -54,7 +54,8 @@ def main() -> None:
 
     if args.dry_run:
         optimizer = engine.build_optimizer(groups, cfg)
-        scheduler = engine.build_scheduler(optimizer, cfg)
+        scheduler = engine.build_scheduler(optimizer, cfg,
+                                           steps_per_epoch=len(loaders["train"]))
         print(f"[dry-run] optimizer={type(optimizer).__name__} "
               f"({len(optimizer.param_groups)} groupes) | scheduler={type(scheduler).__name__}")
         print("[dry-run] OK — tout construit, entraînement NON lancé.")
