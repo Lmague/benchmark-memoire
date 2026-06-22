@@ -27,9 +27,9 @@ VENV="$HOME/ENV/bin/activate"
 OUT_DIR="$SCRATCH/datacurve"
 
 # Modèles HuggingFace pré-téléchargés (login node) — NE PAS télécharger sur nœud de calcul
-export HF_HOME="$HOME/.cache/huggingface"         # Cache HF (pré-rempli sur login node)
-export TRANSFORMERS_OFFLINE=1
 export HF_HOME="$SCRATCH/hf_cache"
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
 export TORCH_HOME="$SCRATCH/torch_cache"
 
 # Exposer CODE_DIR aux scripts Python (expansion des chemins Narval dans la config)
