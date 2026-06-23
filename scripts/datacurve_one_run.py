@@ -316,6 +316,9 @@ def main() -> None:
     E_tr_raw = E_tr_full_12[orig_train_sub_idx]
     L_tr_raw = L_tr_full_12[orig_train_sub_idx]
     E_tr, L_tr = _apply_11cls_remap(E_tr_raw, L_tr_raw)
+    np.save(os.path.join(emb_dir_run, "train.npy"),        E_tr)
+    np.save(os.path.join(emb_dir_run, "train_labels.npy"), L_tr)
+    print(f"  embeddings train sauvés → {emb_dir_run}", flush=True)
 
     # ── 3. SONDE LINÉAIRE + MÉTRIQUES ───────────────────────────────────────────
     print("\n[datacurve] 3/3 — Sonde linéaire (lbfgs, 11 classes)", flush=True)
