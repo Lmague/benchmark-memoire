@@ -189,7 +189,20 @@ def fit(cfg, model, groups: dict, loaders: dict, criterion, device,
     """Entraîne, early-stoppe sur val F1-Macro, évalue le best sur le test, sauve résultats."""
     optimizer = build_optimizer(groups, cfg)
     steps_per_epoch = len(loaders["train"])
-    scheduler = build_scheduler(optimizer, cfg, steps_per_epoch=steps_per_epoch)
+    hoe = cfg.train.head_only_epochs or 0
+    # Sauvegarde des LR initiaux AVANT tout step scheduler (nécessaire pour le reset LP-FT).
+    _initial_lrs = [float(g["lr"]) for g in optimizer.param_groups]
+    if hoe == 0:
+        # Chemin standard — STRICTEMENT IDENTIQUE à avant (aucun risque de régression).
+        scheduler = build_scheduler(optimizer, cfg, steps_per_epoch=steps_per_epoch)
+        _sched_built = True
+    else:
+        # LP-FT (Option C) : pas de scheduler pendant head_only → LR constant = initial.
+        # Le scheduler est reconstruit à epoch==hoe, T_max recalibré sur les epochs restantes.
+        # Limitation : --resume depuis un checkpoint mid-head_only non géré (scheduler=None
+        # restera None si start_epoch > 0 et start_epoch < hoe).
+        scheduler = None
+        _sched_built = False
     use_amp = cfg.train.amp and device.type == "cuda"
     # bfloat16 (A100) : pas de GradScaler (pas d'overflow) ; float16 : GradScaler actif.
     amp_dtype = torch.bfloat16 if cfg.train.amp_dtype == "bfloat16" else torch.float16
@@ -213,6 +226,26 @@ def fit(cfg, model, groups: dict, loaders: dict, criterion, device,
 
     epoch = start_epoch - 1
     for epoch in range(start_epoch, cfg.train.epochs):
+        # LP-FT : à la transition (epoch == hoe), reset LR + reconstruire le scheduler.
+        if hoe > 0 and epoch == hoe and not _sched_built:
+            for g, lr0 in zip(optimizer.param_groups, _initial_lrs):
+                g["lr"] = lr0
+            from torch.optim.lr_scheduler import (CosineAnnealingLR, LinearLR,
+                                                   SequentialLR)
+            epochs_rem = cfg.train.epochs - hoe
+            warm_ep = cfg.schedule.warmup_epochs
+            warm_s = warm_ep * steps_per_epoch
+            total_s = max(1, (epochs_rem - warm_ep) * steps_per_epoch)
+            cosine_r = CosineAnnealingLR(optimizer, T_max=total_s,
+                                         eta_min=cfg.schedule.eta_min)
+            if warm_s > 0:
+                warm_r = LinearLR(optimizer, start_factor=1.0 / max(1, warm_s),
+                                  end_factor=1.0, total_iters=warm_s)
+                scheduler = SequentialLR(optimizer, schedulers=[warm_r, cosine_r],
+                                         milestones=[warm_s])
+            else:
+                scheduler = cosine_r
+            _sched_built = True
         _maybe_head_only(model, cfg, epoch)
         lrs = [g["lr"] for g in optimizer.param_groups]
         train_loss = train_one_epoch(model, loaders["train"], optimizer, scaler,
