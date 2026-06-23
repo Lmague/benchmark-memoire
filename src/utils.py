@@ -46,14 +46,24 @@ def get_normalization(name: str) -> tuple[tuple[float, ...], tuple[float, ...]]:
     return NORMALIZATIONS[name]
 
 
-def set_seed(seed: int = 42) -> None:
-    """Fixe random/numpy/torch/cuda et active cudnn.benchmark."""
+def set_seed(seed: int = 42, deterministic: bool = False) -> None:
+    """Fixe random/numpy/torch/cuda.
+
+    ``deterministic=False`` (défaut, comportement historique) : ``cudnn.benchmark=True``
+    (perf maximale, résultats non bit-pour-bit reproductibles entre runs/GPU).
+    ``deterministic=True`` : ``cudnn.deterministic=True`` + ``benchmark=False`` (reproductible
+    mais ~20 % plus lent ; ne PAS activer par défaut en production).
+    """
     import torch
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.benchmark = True
+    if deterministic:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    else:
+        torch.backends.cudnn.benchmark = True
 
 
 def seed_worker(worker_id: int) -> None:  # noqa: ARG001 (signature imposée par DataLoader)

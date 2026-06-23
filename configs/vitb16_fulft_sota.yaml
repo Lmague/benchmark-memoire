@@ -1,0 +1,31 @@
+# ViT-B/16 ImageNet — FULL fine-tuning AMÉLIORÉ (recette T1), baseline SoTA Arctic-TVC.
+# Régime screening 1/4. Calqué sur vitb16_fulft_datacurve.yaml + améliorations Tier 1 :
+#   warmup 3 ep · bf16 (sans GradScaler) · grad_clip 1.0 · early-stop f1_macro_pres
+#   · LP-FT (head_only 2 ep). 11 classes (RHOL exclu), labels 0-10.
+# NB : warmup_epochs vit sous `schedule:` (lu par engine.build_scheduler), pas `train:`.
+model:
+  name: vitb16
+  num_classes: 11
+  norm: imagenet
+
+regime: full
+
+optim:
+  weight_decay: 0.05
+  lr:
+    backbone: 1.0e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 2
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]

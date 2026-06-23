@@ -1,0 +1,31 @@
+# ViT-B/16 — FROM SCRATCH (init ALÉATOIRE, pretrained=False). Régime screening 4/4.
+# BORNE INFÉRIEURE, pas un SoTA : un ViT-B sans pré-entraînement sur ~50k tuiles
+# devrait plafonner autour de F1 ≈ 0.20-0.35. Sert à mesurer l'apport d'ImageNet.
+# Recette T1 + warmup PLUS LONG (5 ep) et PLUS d'epochs (100) pour l'init aléatoire.
+# Normalisation imagenet conservée (comparabilité). 11 classes (RHOL exclu).
+# NB : warmup_epochs sous `schedule:` (lu par engine.build_scheduler).
+model:
+  name: vitb16
+  num_classes: 11
+  norm: imagenet
+
+regime: scratch
+
+optim:
+  weight_decay: 0.05
+  lr:
+    all: 1.0e-3   # LR uniforme élevé (pas de pré-entraînement à préserver)
+
+schedule:
+  warmup_epochs: 5
+
+train:
+  epochs: 100
+  patience: 15
+  head_only_epochs: 0
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]

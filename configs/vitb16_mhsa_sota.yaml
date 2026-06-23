@@ -1,0 +1,31 @@
+# ViT-B/16 ImageNet — MHSA-only (attention + head dégelés, FFN gelé ; Touvron 2022).
+# Régime screening 2/4. Recette T1 : warmup 3 ep · bf16 · grad_clip 1.0 · early-stop
+# f1_macro_pres. Pas de LP-FT (head_only=0) : MHSA est déjà un fine-tuning partiel.
+# 11 classes (RHOL exclu). LR SoTA : attn=1e-5, head=1e-4 (≠ notebook 4e-5/2e-4).
+# NB : warmup_epochs sous `schedule:` (lu par engine.build_scheduler).
+model:
+  name: vitb16
+  num_classes: 11
+  norm: imagenet
+
+regime: mhsa
+
+optim:
+  weight_decay: 0.05
+  lr:
+    attn: 1.0e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]

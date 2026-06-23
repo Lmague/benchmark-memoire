@@ -74,8 +74,12 @@ class ScheduleCfg:
 class TrainCfg:
     epochs: int = 50
     patience: int = 10
-    head_only_epochs: int = 0  # optionnel (0 = désactivé) — gèle le backbone N epochs
+    head_only_epochs: int = 0  # optionnel (0 = désactivé) — gèle le backbone N epochs (LP-FT)
     amp: bool = True
+    amp_dtype: str = "float16"      # "float16" (GradScaler) | "bfloat16" (sans scaler, A100)
+    grad_clip: float = 0.0          # 0.0 = désactivé ; sinon clip_grad_norm_ global
+    early_stop_metric: str = "f1_macro_all"  # métrique de sélection du best ckpt / early-stop
+    deterministic: bool = False     # True -> cudnn.deterministic + benchmark off (~20 % plus lent)
     seed: int = 42
     save_every: int = 10
 
@@ -105,6 +109,23 @@ class FeaturesCfg:
     layerwise: bool = False
 
 
+@dataclass
+class LoraCfg:
+    """Régime ``explora_like`` (variante supervisée inspirée d'ExPLoRA, arXiv:2406.10973).
+
+    LoRA injecté sur les projections Q/V des blocs PRÉCOCES ; les ``n_full_ft_blocks``
+    derniers blocs sont full-FT ; toutes les LayerNorm + la head sont dégelées.
+    Le papier (SSL) teste r∈{8,32,64} (meilleur r64), LoRA sur Q,V uniquement, α non
+    spécifié → ici r=16/α=16 (scaling=1.0) adapté au FT supervisé ViT-B sur Arctic-TVC.
+    Ignoré par tous les autres régimes.
+    """
+    r: int = 16
+    alpha: float = 16.0
+    target_modules: list[str] = field(default_factory=lambda: ["q", "v"])
+    n_full_ft_blocks: int = 2
+    dropout: float = 0.0
+
+
 # Modèles frozen évalués par défaut (probe / k-NN / latent), et fine-tunés optionnels.
 # satmae_vitl16 / scalemae_vitl16 = RS-FM satellite (extraction GPU requise au préalable).
 _DEFAULT_MODELS = ["resnet50_imagenet", "vitb16_imagenet", "dinov3_vitb16_lvd",
@@ -129,6 +150,7 @@ class Config:
     probe: ProbeCfg = field(default_factory=ProbeCfg)
     latent: LatentCfg = field(default_factory=LatentCfg)
     features: FeaturesCfg = field(default_factory=FeaturesCfg)
+    lora: LoraCfg = field(default_factory=LoraCfg)
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -195,5 +217,6 @@ def build_config(d: dict) -> Config:
         probe=ProbeCfg(**_only(ProbeCfg, d.get("probe", {}))),
         latent=LatentCfg(**_only(LatentCfg, d.get("latent", {}))),
         features=FeaturesCfg(**_only(FeaturesCfg, d.get("features", {}))),
+        lora=LoraCfg(**_only(LoraCfg, d.get("lora", {}))),
         raw=d,
     )

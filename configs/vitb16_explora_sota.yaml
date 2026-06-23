@@ -1,0 +1,50 @@
+# ViT-B/16 ImageNet — ExPLoRA-like SUPERVISÉ (variante inspirée de Khanna 2024,
+# arXiv:2406.10973 ; le papier original est du SSL non-supervisé). Régime screening 3/4.
+#
+# Architecture (cf. src.models._explora_groups) :
+#   - blocs 0..9  : qkv wrappé LoRA sur Q,V (K intact) ; reste du bloc GELÉ (init ImageNet)
+#   - blocs 10,11 : full fine-tuning (groupe 'full_late')
+#   - toutes les LayerNorm (partout + norm finale) : dégelées (groupe 'norm')
+#   - head : dégelée. pos_embed / cls_token / patch_embed : GELÉS.
+# Le delta LoRA est fusionné dans qkv.weight à l'extraction (merge_lora_state_dict),
+# donc le checkpoint redevient un ViT timm standard → datacurve agnostique au régime.
+#
+# Fidélité papier : LoRA Q,V uniquement (✓). Le papier teste r∈{8,32,64} (meilleur r64) sur
+# ViT-L en SSL et ne spécifie PAS alpha ; ici r=16/alpha=16 (scaling=1.0) — capacité adaptée
+# au FT SUPERVISÉ d'un ViT-B sur ~50k tuiles (r est le principal levier, ajustable ici).
+# NB : warmup_epochs sous `schedule:` (lu par engine.build_scheduler).
+model:
+  name: vitb16
+  num_classes: 11
+  norm: imagenet
+
+regime: explora_like
+
+lora:
+  r: 16
+  alpha: 16.0
+  target_modules: [q, v]   # Q,V du qkv fusionné (fidèle au papier ; K laissé intact)
+  n_full_ft_blocks: 2      # 2 derniers blocs full-FT (papier : U={L} ou {1,L})
+  dropout: 0.0
+
+optim:
+  weight_decay: 0.05
+  lr:
+    lora: 1.0e-4
+    full_late: 5.0e-5
+    norm: 1.0e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]

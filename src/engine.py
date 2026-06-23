@@ -5,8 +5,10 @@ Logique canonique (notebooks + spec) :
 - CosineAnnealingLR(eta_min=1e-7), calé sur les STEPS de gradient (pas les epochs) —
   garantit que deux runs avec des volumes de données différents (ex. courbe de
   données Q5) suivent la MÊME trajectoire de LR par step, donc sont comparables.
-  Warmup linéaire + phase head-only = OPTIONNELS (défaut off).
-- AMP float16 sur CUDA. Early stopping sur **val F1-Macro (12 classes)**.
+  Warmup linéaire + phase head-only (LP-FT) = OPTIONNELS (défaut off).
+- AMP configurable : float16 (GradScaler) ou bfloat16 (sans scaler, A100), + grad_clip optionnel.
+- Early stopping / sélection du best ckpt sur ``cfg.train.early_stop_metric``
+  (défaut ``f1_macro_all`` = 12 classes ; ``f1_macro_pres`` pour s'aligner sur la métrique reportée).
 - Anti-écrasement : checkpoints ``{model}_{regime}_best.pth`` / ``_last.pth`` ;
   résultats ``{model}_{regime}_results.json``.
 
@@ -83,8 +85,18 @@ def _maybe_head_only(model, cfg, epoch: int) -> bool:
 
 # --------------------------------------------------------------------- train / eval
 def train_one_epoch(model, loader, optimizer, scaler, criterion, device,
-                    scheduler=None, use_amp: bool = True, log_every: int = 50) -> float:
-    """Entraîne une epoch. ``scheduler.step()`` appelé APRÈS CHAQUE BATCH (step-based)."""
+                    scheduler=None, use_amp: bool = True,
+                    amp_dtype=None, grad_clip: float = 0.0, log_every: int = 50) -> float:
+    """Entraîne une epoch. ``scheduler.step()`` appelé APRÈS CHAQUE BATCH (step-based).
+
+    AMP : ``amp_dtype`` (défaut float16) choisit le dtype d'autocast. Le GradScaler n'est
+    actif QU'EN float16 (``scaler.is_enabled()``) ; en bfloat16 on backward/step directement
+    (pas d'overflow sur A100). ``grad_clip>0`` applique ``clip_grad_norm_`` sur les grads
+    NON-scalés dans les deux cas (unscale_ préalable en float16).
+    """
+    if amp_dtype is None:
+        amp_dtype = torch.float16
+    use_scaler = scaler is not None and scaler.is_enabled()
     model.train()
     total, n = 0.0, 0
     t0 = time.time()
@@ -93,14 +105,25 @@ def train_one_epoch(model, loader, optimizer, scaler, criterion, device,
         y = y.to(device, non_blocking=True)
         optimizer.zero_grad(set_to_none=True)
         if use_amp:
-            with torch.autocast(device_type="cuda", dtype=torch.float16):
+            with torch.autocast(device_type="cuda", dtype=amp_dtype):
                 loss = criterion(model(x), y)
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+            if use_scaler:                       # float16 : GradScaler actif
+                scaler.scale(loss).backward()
+                if grad_clip > 0:
+                    scaler.unscale_(optimizer)
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+                scaler.step(optimizer)
+                scaler.update()
+            else:                                # bfloat16 : pas de scaler
+                loss.backward()
+                if grad_clip > 0:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+                optimizer.step()
         else:
             loss = criterion(model(x), y)
             loss.backward()
+            if grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             optimizer.step()
         if scheduler is not None:
             scheduler.step()
@@ -113,14 +136,16 @@ def train_one_epoch(model, loader, optimizer, scaler, criterion, device,
 
 
 @torch.no_grad()
-def predict(model, loader, device, use_amp: bool = True) -> tuple[np.ndarray, np.ndarray]:
+def predict(model, loader, device, use_amp: bool = True, amp_dtype=None) -> tuple[np.ndarray, np.ndarray]:
     """Retourne (preds, labels) sur tout le loader."""
+    if amp_dtype is None:
+        amp_dtype = torch.float16
     model.eval()
     preds, labels = [], []
     amp = use_amp and device.type == "cuda"
     for x, y in loader:
         x = x.to(device, non_blocking=True)
-        with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=amp):
+        with torch.autocast(device_type="cuda", dtype=amp_dtype, enabled=amp):
             out = model(x)
         preds.append(out.argmax(1).cpu().numpy())
         labels.append(y.numpy())
@@ -154,7 +179,8 @@ def _load_ckpt(path, model, optimizer=None, scaler=None) -> tuple[int, float, di
 
 
 def _empty_history() -> dict:
-    return {"train_loss": [], "val_f1_macro": [], "val_f1_weighted": [], "val_acc": [], "lr": []}
+    return {"train_loss": [], "val_f1_macro": [], "val_f1_select": [],
+            "val_f1_weighted": [], "val_acc": [], "lr": []}
 
 
 # -------------------------------------------------------------------------- fit
@@ -165,7 +191,12 @@ def fit(cfg, model, groups: dict, loaders: dict, criterion, device,
     steps_per_epoch = len(loaders["train"])
     scheduler = build_scheduler(optimizer, cfg, steps_per_epoch=steps_per_epoch)
     use_amp = cfg.train.amp and device.type == "cuda"
-    scaler = torch.amp.GradScaler('cuda', enabled=use_amp)
+    # bfloat16 (A100) : pas de GradScaler (pas d'overflow) ; float16 : GradScaler actif.
+    amp_dtype = torch.bfloat16 if cfg.train.amp_dtype == "bfloat16" else torch.float16
+    use_scaler = use_amp and amp_dtype == torch.float16
+    scaler = torch.amp.GradScaler('cuda', enabled=use_scaler)
+    grad_clip = float(cfg.train.grad_clip)
+    metric = cfg.train.early_stop_metric  # ex. f1_macro_all | f1_macro_pres
 
     tag = tag_override or run_tag(cfg.model.name, cfg.regime)
     ensure_dir(cfg.paths.ckpt_dir)
@@ -185,25 +216,31 @@ def fit(cfg, model, groups: dict, loaders: dict, criterion, device,
         _maybe_head_only(model, cfg, epoch)
         lrs = [g["lr"] for g in optimizer.param_groups]
         train_loss = train_one_epoch(model, loaders["train"], optimizer, scaler,
-                                     criterion, device, scheduler=scheduler, use_amp=use_amp)
-        preds, labels = predict(model, loaders["val"], device, use_amp)
+                                     criterion, device, scheduler=scheduler, use_amp=use_amp,
+                                     amp_dtype=amp_dtype, grad_clip=grad_clip)
+        preds, labels = predict(model, loaders["val"], device, use_amp, amp_dtype=amp_dtype)
         val = eval_classifier(labels, preds, cfg.model.num_classes)
+        if metric not in val:
+            raise KeyError(f"early_stop_metric='{metric}' absent de eval_classifier "
+                           f"(dispo: {sorted(val)}).")
         # scheduler.step() retiré ici — désormais appelé PAR BATCH dans train_one_epoch
         # (step-based cosine, cf. build_scheduler).
 
         history["train_loss"].append(train_loss)
         history["val_f1_macro"].append(val["f1_macro_all"])
+        history["val_f1_select"].append(val[metric])
         history["val_f1_weighted"].append(val["f1_weighted"])
         history["val_acc"].append(val["accuracy"])
         history["lr"].append(lrs)
 
-        improved = val["f1_macro_all"] > best_f1
+        # Sélection du best ckpt + early-stop sur la métrique reportée (cfg.train.early_stop_metric).
+        improved = val[metric] > best_f1
         print(f"[{tag}] epoch {epoch + 1}/{cfg.train.epochs} loss={train_loss:.4f} "
-              f"valF1m={val['f1_macro_all']:.4f} valF1w={val['f1_weighted']:.4f} "
-              f"acc={val['accuracy']:.4f}" + ("  *best*" if improved else ""), flush=True)
+              f"valF1m={val['f1_macro_all']:.4f} valF1pres={val['f1_macro_pres']:.4f} "
+              f"[sel={metric}:{val[metric]:.4f}]" + ("  *best*" if improved else ""), flush=True)
 
         if improved:
-            best_f1 = val["f1_macro_all"]
+            best_f1 = val[metric]
             patience_left = cfg.train.patience
             _save_ckpt(best_path, model, optimizer, scaler, epoch, best_f1, history)
         else:
@@ -212,7 +249,7 @@ def fit(cfg, model, groups: dict, loaders: dict, criterion, device,
             _save_ckpt(last_path, model, optimizer, scaler, epoch, best_f1, history)
         if patience_left <= 0:
             print(f"[{tag}] early stopping à l'epoch {epoch + 1} "
-                  f"(val F1-Macro stagnante depuis {cfg.train.patience} epochs)")
+                  f"(val[{metric}] stagnante depuis {cfg.train.patience} epochs)")
             break
 
     _save_ckpt(last_path, model, optimizer, scaler, epoch, best_f1, history)
@@ -220,7 +257,7 @@ def fit(cfg, model, groups: dict, loaders: dict, criterion, device,
     # --- évaluation test sur le meilleur checkpoint ---
     if os.path.exists(best_path):
         _load_ckpt(best_path, model)
-    test_preds, test_labels = predict(model, loaders["test"], device, use_amp)
+    test_preds, test_labels = predict(model, loaders["test"], device, use_amp, amp_dtype=amp_dtype)
     test = eval_classifier(test_labels, test_preds, cfg.model.num_classes)
     results = {
         "model": cfg.model.name,
@@ -235,8 +272,13 @@ def fit(cfg, model, groups: dict, loaders: dict, criterion, device,
             "eta_min": cfg.schedule.eta_min,
             "warmup_epochs": cfg.schedule.warmup_epochs,
             "head_only_epochs": cfg.train.head_only_epochs,
+            "amp_dtype": cfg.train.amp_dtype,
+            "grad_clip": grad_clip,
+            "early_stop_metric": metric,
             "augmentation": "notebook_moummad",
         },
+        "early_stop_metric": metric,
+        "best_val_select": best_f1,
         "best_val_f1_macro": best_f1,
         "test": {**test,
                  "f1_per_class": per_class_f1(test_labels, test_preds),
