@@ -41,6 +41,11 @@ CLASS_NAMES_11 = ["ALDE", "ARCA", "BIRC", "DRYI", "LICH", "MOSS", "PETF",
 # 8-class diagnostic (hors ARCA=1, DRYI=3, RUBC=7 en 11-class) — SEDG=8, TUSS=9, WILL=10
 LABELS_8CLS = [0, 2, 4, 5, 6, 8, 9, 10]   # ALDE BIRC LICH MOSS PETF SEDG TUSS WILL (11-class)
 
+# Tag court par régime → injecté dans ckpt_tag / emb_key pour éviter toute collision entre
+# régimes sous un même out-dir (sota_screening : full/mhsa/explora/scratch). 'full' inchangé
+# (rétro-compat datacurve Q5). Régime inconnu → son nom brut.
+_REGIME_TAG = {"full": "full", "mhsa": "mhsa", "explora_like": "explora", "scratch": "scratch"}
+
 
 def _apply_11cls_remap(E: np.ndarray, L: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Filtre RHOL (label 7) et remappe les labels restants vers le schéma 11-classes."""
@@ -205,14 +210,15 @@ def main() -> None:
     ckpt_dir = os.path.join(args.out_dir, "checkpoints")
     os.makedirs(ckpt_dir, exist_ok=True)
     pct = int(round(args.fraction * 100))
-    ckpt_tag = f"vitb16_full_frac{pct:03d}_seed{args.seed}"
+    regime_tag = _REGIME_TAG.get(cfg.regime, cfg.regime)
+    ckpt_tag = f"vitb16_{regime_tag}_frac{pct:03d}_seed{args.seed}"
     best_ckpt = os.path.join(ckpt_dir, f"{ckpt_tag}_best.pth")
 
     # ── 1. ENTRAÎNEMENT ─────────────────────────────────────────────────────────
     print("[datacurve] 1/3 — Entraînement (11 classes, RHOL exclue)", flush=True)
     cfg.paths.ckpt_dir = ckpt_dir
 
-    utils.set_seed(args.seed)
+    utils.set_seed(args.seed, deterministic=cfg.train.deterministic)
     device = utils.get_device()
 
     from src.utils import stratified_subsample, read_split_csv
@@ -252,7 +258,8 @@ def main() -> None:
     rare = {CLASS_NAMES_11[c]: int((sub_labels == c).sum()) for c in [1, 3, 7]}
     print(f"  [Tier3] classes rares dans le sous-échantillon : {rare}", flush=True)
 
-    model, groups = build_model(cfg.model.name, cfg.regime, cfg.model.num_classes)
+    model, groups = build_model(cfg.model.name, cfg.regime, cfg.model.num_classes,
+                                lora=cfg.lora)
     model = model.to(device)
     criterion = build_criterion(sub_labels, cfg.model.num_classes, device)
 
@@ -267,9 +274,12 @@ def main() -> None:
     results = engine.fit(cfg, model, groups, loaders, criterion, device,
                          tag_override=ckpt_tag)
 
-    best_epoch = int(np.argmax(results["history"]["val_f1_macro"])) + 1
-    best_val_f1 = float(max(results["history"]["val_f1_macro"]))
-    print(f"  best_epoch={best_epoch}  val_f1_macro={best_val_f1:.4f}", flush=True)
+    # best_epoch aligné sur la métrique de sélection réelle (val_f1_select si présent,
+    # sinon val_f1_macro = ancien comportement) — cohérent avec le best ckpt sauvé.
+    sel_hist = results["history"].get("val_f1_select") or results["history"]["val_f1_macro"]
+    best_epoch = int(np.argmax(sel_hist)) + 1
+    best_val_f1 = float(max(sel_hist))
+    print(f"  best_epoch={best_epoch}  val_select={best_val_f1:.4f}", flush=True)
 
     if not os.path.exists(best_ckpt):
         print(f"  [WARN] checkpoint best non trouvé : {best_ckpt}", flush=True)
@@ -280,7 +290,7 @@ def main() -> None:
     print("\n[datacurve] 2/3 — Extraction des embeddings", flush=True)
 
     emb_base = args.emb_dir or cfg.paths.emb_dir
-    emb_key = f"vitb16_fulft_frac{pct:03d}_seed{args.seed}"
+    emb_key = f"vitb16_{regime_tag}_frac{pct:03d}_seed{args.seed}"
     emb_dir_run = os.path.join(emb_base, emb_key)
     os.makedirs(emb_dir_run, exist_ok=True)
 

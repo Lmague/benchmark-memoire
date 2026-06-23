@@ -61,6 +61,8 @@ __pycache__/
 !/scripts/datacurve_one_run.py
 !/scripts/datacurve_aggregate.py
 !/scripts/slurm_datacurve.sh
+# SoTA screening baseline FT (4 régimes × 3 seeds) :
+!/scripts/slurm_sota_screening.sh
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/

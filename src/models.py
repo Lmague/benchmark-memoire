@@ -32,8 +32,10 @@ def _validate_regime(name: str, regime: str) -> None:
         if regime not in ("frozen", "full"):
             raise ValueError(f"régime '{regime}' inconnu pour '{name}' (attendu: frozen|full).")
     elif name in VIT_NAMES:
-        if regime not in ("frozen", "mhsa", "full"):
-            raise ValueError(f"régime '{regime}' inconnu pour '{name}' (attendu: frozen|mhsa|full).")
+        if regime not in ("frozen", "mhsa", "full", "explora_like", "scratch"):
+            raise ValueError(
+                f"régime '{regime}' inconnu pour '{name}' "
+                f"(attendu: frozen|mhsa|full|explora_like|scratch).")
     else:
         raise ValueError(f"modèle de fine-tuning inconnu : '{name}'.")
 
@@ -63,6 +65,165 @@ def _vit_groups(model, regime: str) -> dict:
     }
 
 
+# ----------------------------------------------------- LoRA (régime explora_like)
+# LoRA minimal maison (peft non requis) : low-rank A·B sur des SLICES du qkv FUSIONNÉ
+# de timm. Le papier ExPLoRA (arXiv:2406.10973) applique LoRA sur Q,V uniquement ; comme
+# timm fusionne Q,K,V dans une seule Linear (attn.qkv : dim -> 3·dim), on adapte chaque
+# slice ciblée indépendamment (K laissé intact si non ciblé) — fidèle au Q,V-only du papier.
+# Le delta est FUSIONNÉ dans qkv.weight à l'extraction (merge_lora_state_dict) : le checkpoint
+# redevient un ViT timm standard, donc datacurve_one_run reste agnostique au régime.
+_LORA_CLASS = None
+_QKV_SLICE = {"q": 0, "k": 1, "v": 2}  # ordre de fusion timm : [Q | K | V]
+
+
+def _get_lora_class():
+    """Définit/retourne la classe ``LoRAFusedQKV`` (lazy : préserve ``import src.models`` sans torch)."""
+    global _LORA_CLASS
+    if _LORA_CLASS is not None:
+        return _LORA_CLASS
+    import math
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+
+    class LoRAFusedQKV(nn.Module):
+        """Wrappe un ``nn.Linear`` qkv fusionné (timm ViT) + adaptateurs LoRA par slice.
+
+        Base (``weight``/``bias``) GELÉE ; seuls ``lora_A[t]``/``lora_B[t]`` (t ∈ targets)
+        s'entraînent. ``scaling = alpha/r`` stocké en buffer pour la fusion hors-ligne.
+        Init standard LoRA : A ~ kaiming_uniform, B = 0 (delta nul au départ → init ImageNet
+        préservée). Forward identique en shape à la Linear d'origine → drop-in pour timm.
+        """
+
+        def __init__(self, base, r, alpha, targets=("q", "v"), dropout=0.0):
+            super().__init__()
+            self.in_features = base.in_features
+            self.out_features = base.out_features        # 3·dim
+            self.dim = self.out_features // 3
+            self.r = int(r)
+            self.scaling = float(alpha) / float(r)
+            self.targets = tuple(t.lower() for t in targets)
+            self.weight = nn.Parameter(base.weight.detach().clone(), requires_grad=False)
+            if base.bias is not None:
+                self.bias = nn.Parameter(base.bias.detach().clone(), requires_grad=False)
+            else:
+                self.register_parameter("bias", None)
+            self.drop = nn.Dropout(dropout) if dropout and dropout > 0 else nn.Identity()
+            self.lora_A = nn.ParameterDict()
+            self.lora_B = nn.ParameterDict()
+            for t in self.targets:
+                if t not in _QKV_SLICE:
+                    raise ValueError(f"target LoRA inconnue '{t}' (attendu: q|k|v).")
+                A = nn.Parameter(torch.empty(self.r, self.in_features))
+                B = nn.Parameter(torch.zeros(self.dim, self.r))
+                nn.init.kaiming_uniform_(A, a=math.sqrt(5))
+                self.lora_A[t] = A
+                self.lora_B[t] = B
+            self.register_buffer("scaling_buf", torch.tensor(self.scaling, dtype=torch.float32))
+
+        def forward(self, x):
+            out = F.linear(x, self.weight, self.bias)    # [..., 3·dim]
+            xd = self.drop(x)
+            for t in self.targets:
+                s = _QKV_SLICE[t]
+                lo, hi = s * self.dim, (s + 1) * self.dim
+                d = self.scaling * F.linear(F.linear(xd, self.lora_A[t]), self.lora_B[t])
+                out = out + F.pad(d, (lo, self.out_features - hi))   # fonctionnel (pas d'in-place)
+            return out
+
+    _LORA_CLASS = LoRAFusedQKV
+    return _LORA_CLASS
+
+
+def merge_lora_state_dict(state: dict) -> dict:
+    """Fusionne tout adaptateur LoRA d'un ``state_dict`` dans le ``weight`` qkv correspondant.
+
+    Pour chaque préfixe ``P`` portant des clés ``P.lora_A.<t>``/``P.lora_B.<t>`` : applique
+    ``W[slice_t] += scaling · (B·A)`` sur ``P.weight`` (slice q/k/v déduite de ``<t>``,
+    scaling lu dans ``P.scaling_buf``) puis SUPPRIME les clés LoRA et le buffer. Le state_dict
+    résultant est celui d'un ViT timm standard. No-op si aucune clé LoRA (checkpoints full/mhsa/
+    scratch ou backbones fine-tunés legacy) → sûr à appeler inconditionnellement à l'extraction.
+    """
+    prefixes = sorted({k.split(".lora_A.")[0] for k in state if ".lora_A." in k})
+    if not prefixes:
+        return state
+    out = dict(state)
+    for p in prefixes:
+        wkey = f"{p}.weight"
+        if wkey not in out:
+            continue
+        W = out[wkey].clone()
+        dim = W.shape[0] // 3
+        skey = f"{p}.scaling_buf"
+        scaling = float(out[skey]) if skey in out else 1.0
+        for t, s in _QKV_SLICE.items():
+            ka, kb = f"{p}.lora_A.{t}", f"{p}.lora_B.{t}"
+            if ka in out and kb in out:
+                A = out[ka].to(W.dtype)
+                B = out[kb].to(W.dtype)
+                W[s * dim:(s + 1) * dim, :] += scaling * (B @ A)
+        out[wkey] = W
+        for kk in list(out):
+            if kk.startswith(f"{p}.lora_A.") or kk.startswith(f"{p}.lora_B.") or kk == skey:
+                del out[kk]
+    return out
+
+
+def _explora_groups(model, lora) -> dict:
+    """Régime ``explora_like`` : injecte LoRA sur les blocs précoces, full-FT sur les derniers.
+
+    - Blocs ``0 .. N-n_full_ft_blocks-1`` : qkv wrappé LoRA (Q/V), reste du bloc GELÉ.
+    - Blocs ``N-n_full_ft_blocks .. N-1`` : full-FT (sauf leurs LayerNorm → groupe 'norm').
+    - Toutes les LayerNorm (partout, + norm finale) : dégelées → groupe 'norm'.
+    - Head : dégelée → groupe 'head'. pos_embed/cls_token/patch_embed : GELÉS (init ImageNet).
+    Groupes retournés : 'lora' | 'full_late' | 'norm' | 'head' (LR fournis par cfg.optim.lr).
+    """
+    import torch.nn as nn
+    if lora is None:
+        raise ValueError("régime 'explora_like' : configuration LoRA absente (cfg.lora).")
+    if not hasattr(model, "blocks"):
+        raise ValueError("régime 'explora_like' : modèle sans attribut 'blocks' (ViT timm requis).")
+    blocks = model.blocks
+    n_blocks = len(blocks)
+    n_late = int(lora.n_full_ft_blocks)
+    if not 0 <= n_late < n_blocks:
+        raise ValueError(f"n_full_ft_blocks={n_late} invalide pour {n_blocks} blocs.")
+    late_start = n_blocks - n_late
+    lora_cls = _get_lora_class()
+    targets = tuple(t.lower() for t in lora.target_modules)
+
+    # 1. Injection LoRA sur le qkv des blocs PRÉCOCES (les derniers restent full-FT)
+    for i in range(late_start):
+        attn = blocks[i].attn
+        if not hasattr(attn, "qkv"):
+            raise ValueError(f"bloc {i} : attn sans 'qkv' fusionné (arch ViT timm attendue).")
+        attn.qkv = lora_cls(attn.qkv, r=lora.r, alpha=lora.alpha,
+                            targets=targets, dropout=lora.dropout)
+
+    # 2. Noms exacts des paramètres de LayerNorm (robuste : par type de module)
+    norm_param_names = set()
+    for mname, m in model.named_modules():
+        if isinstance(m, nn.LayerNorm):
+            for pn, _ in m.named_parameters(recurse=False):
+                norm_param_names.add(f"{mname}.{pn}" if mname else pn)
+    late_prefixes = tuple(f"blocks.{i}." for i in range(late_start, n_blocks))
+
+    # 3. Attribution exclusive des groupes + requires_grad
+    groups = {"lora": [], "full_late": [], "norm": [], "head": []}
+    for n, p in model.named_parameters():
+        if "head" in n:
+            p.requires_grad_(True); groups["head"].append(p)
+        elif (".lora_A." in n) or (".lora_B." in n):
+            p.requires_grad_(True); groups["lora"].append(p)
+        elif n in norm_param_names:
+            p.requires_grad_(True); groups["norm"].append(p)
+        elif n.startswith(late_prefixes):
+            p.requires_grad_(True); groups["full_late"].append(p)
+        else:
+            p.requires_grad_(False)
+    return groups
+
+
 def _resnet_groups(model, regime: str) -> dict:
     """Applique le régime sur un ResNet timm (head = ``fc``)."""
     named = list(model.named_parameters())
@@ -78,11 +239,14 @@ def _resnet_groups(model, regime: str) -> dict:
     }
 
 
-def build_model(name: str, regime: str, num_classes: int, drop_path_rate: float = 0.1):
+def build_model(name: str, regime: str, num_classes: int, drop_path_rate: float = 0.1,
+                lora=None):
     """Construit (model, param_groups) pour le fine-tuning.
 
     ``param_groups`` : dict ``{nom_groupe: [Parameters]}`` ; les LR sont appliqués par
     :func:`engine.build_optimizer` à partir de ``config.optim.lr`` (mêmes noms de groupes).
+    ``regime='scratch'`` : init ALÉATOIRE (``pretrained=False``), 1 seul groupe 'all'.
+    ``regime='explora_like'`` : LoRA précoce + full-FT tardif (requiert ``lora`` = cfg.lora).
     """
     name = name.lower()
     _validate_regime(name, regime)  # peut lever AVANT tout import lourd
@@ -92,9 +256,15 @@ def build_model(name: str, regime: str, num_classes: int, drop_path_rate: float 
         model = timm.create_model(_TIMM_ID[name], pretrained=True, num_classes=num_classes)
         return model, _resnet_groups(model, regime)
 
-    # ViT (timm)
-    model = timm.create_model(_TIMM_ID[name], pretrained=True, num_classes=num_classes,
+    # ViT (timm) — scratch = init aléatoire (borne inférieure), sinon poids ImageNet
+    pretrained = regime != "scratch"
+    model = timm.create_model(_TIMM_ID[name], pretrained=pretrained, num_classes=num_classes,
                               drop_path_rate=drop_path_rate)
+    if regime == "scratch":
+        _set_requires_grad(model, lambda n: True)
+        return model, {"all": [p for _, p in model.named_parameters()]}
+    if regime == "explora_like":
+        return model, _explora_groups(model, lora)
     return model, _vit_groups(model, regime)
 
 
@@ -404,6 +574,9 @@ def _load_finetuned_backbone(arch: str, checkpoint: str, expected_dim: int):
                          ckpt.get("model", ckpt.get("state_dict", ckpt)))
     else:
         state = ckpt
+    # Régime explora_like : fusionne les adaptateurs LoRA dans qkv.weight (no-op sinon)
+    # → l'extraction redevient agnostique au régime (ViT timm standard).
+    state = merge_lora_state_dict(state)
     cleaned = {}
     for k, v in state.items():
         nk = k

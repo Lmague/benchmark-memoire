@@ -26,13 +26,14 @@ def main() -> None:
     args = ap.parse_args()
 
     cfg = load_config(args.config)
-    utils.set_seed(cfg.train.seed)
+    utils.set_seed(cfg.train.seed, deterministic=cfg.train.deterministic)
     utils.maybe_mount_drive(cfg.env)
     device = utils.get_device()
     print(f"[train] model={cfg.model.name} regime={cfg.regime} env={cfg.env} device={device}")
 
     # --- modèle + groupes de params (valide le régime, ex. mhsa interdit sur CNN) ---
-    model, groups = build_model(cfg.model.name, cfg.regime, cfg.model.num_classes)
+    model, groups = build_model(cfg.model.name, cfg.regime, cfg.model.num_classes,
+                                lora=cfg.lora)
     model = model.to(device)
     n_total = sum(p.numel() for p in model.parameters())
     n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)

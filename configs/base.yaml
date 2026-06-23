@@ -64,8 +64,12 @@ schedule:
 train:
   epochs: 50
   patience: 10
-  head_only_epochs: 0   # 0 = pas de phase head-only (comportement notebook)
+  head_only_epochs: 0   # 0 = pas de phase head-only (LP-FT) — comportement notebook
   amp: true
+  amp_dtype: float16    # float16 (GradScaler) | bfloat16 (sans scaler, A100) — défaut inchangé
+  grad_clip: 0.0        # 0.0 = désactivé ; sinon clip_grad_norm_ global (ex. 1.0)
+  early_stop_metric: f1_macro_all  # sélection best ckpt / early-stop ; f1_macro_pres = métrique reportée
+  deterministic: false  # true = cudnn.deterministic + benchmark off (~20% plus lent) — ne PAS activer par défaut
   seed: 42
   save_every: 10
 
