@@ -40,12 +40,17 @@ def main() -> None:
     keys = _model_keys(cfg)
     rk_split, an_split = cfg.latent.rankme_split, cfg.latent.anisotropy_split
 
-    for tag, drop, names in utils.rhol_passes():
+    # Modèles canoniques uniquement (12cls) → source_schema homogène "12cls".
+    # ``drops`` est une liste décroissante de labels à retirer en cascade ([] = rien),
+    # ou None si la passe n'est pas applicable (jamais le cas ici, source 12cls).
+    for tag, drops, names in utils.rhol_passes():
+        if drops is None:
+            continue
         res = {}
         for key in keys:
             feats = load_features(cfg, key)
-            if drop is not None:
-                feats = {s: drop_class(*feats[s], drop) for s in feats}
+            for d in drops:  # cascade décroissante
+                feats = {s: drop_class(*feats[s], d) for s in feats}
             res[key] = metrics_on(feats[rk_split][0], feats[an_split][0],
                                   n_pairs=cfg.latent.n_pairs,
                                   subsample_n=cfg.latent.rankme_subsample)

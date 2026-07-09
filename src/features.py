@@ -14,7 +14,7 @@ import os
 
 import numpy as np
 
-from .utils import ensure_dir, read_split_csv
+from .utils import ensure_dir, is_sota_key, read_split_csv, sota_regime
 
 SPLITS = ("train", "val", "test")
 
@@ -321,8 +321,38 @@ def remap_to_v3(cfg, model_key: str, splits=SPLITS) -> dict:
     return out
 
 
+def _sota_run_dir(cfg, model_key: str) -> str:
+    """Dossier d'embeddings d'un run SOTA : ``{sota_dir}/{regime}/embeddings/{key}``."""
+    return os.path.join(cfg.paths.sota_dir, sota_regime(model_key), "embeddings", model_key)
+
+
+def load_sota_features(cfg, model_key: str, splits=SPLITS) -> dict:
+    """Charge les features d'un run SOTA (fichiers NUS ``{split}.npy`` / ``{split}_labels.npy``).
+
+    Convention de nommage DIFFÉRENTE des canoniques : un dossier par run
+    (``{sota_dir}/{regime}/embeddings/vitb16_{regime}_frac{XXX}_seed{N}/``) contenant
+    ``train.npy``/``val.npy``/``test.npy`` + labels, SANS préfixe modèle. Labels déjà en
+    schéma 11cls_no_rhol (0–10). Aucun remap v3 (extraits directement en ordre v3).
+    """
+    run_dir = _sota_run_dir(cfg, model_key)
+    out = {}
+    for s in splits:
+        ep = os.path.join(run_dir, f"{s}.npy")
+        lp = os.path.join(run_dir, f"{s}_labels.npy")
+        E = np.load(ep).astype(np.float32)
+        L = np.load(lp).astype(np.int64)
+        out[s] = (E, L)
+    return out
+
+
 def load_features(cfg, model_key: str, splits=SPLITS) -> dict:
-    """Charge les features d'un modèle, remappées v3 si ``cfg.features.remap_v3`` sinon directes."""
+    """Charge les features d'un modèle.
+
+    - Runs SOTA (``is_sota_key``) : dossier-par-run, fichiers nus (schéma 11cls).
+    - Canoniques : remappés v3 si ``cfg.features.remap_v3`` sinon directs (schéma 12cls).
+    """
+    if is_sota_key(model_key):
+        return load_sota_features(cfg, model_key, splits)
     if cfg.features.remap_v3:
         return remap_to_v3(cfg, model_key, splits)
     out = {}
