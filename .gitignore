@@ -63,6 +63,8 @@ __pycache__/
 !/scripts/slurm_datacurve.sh
 # SoTA screening baseline FT (4 régimes × 3 seeds) :
 !/scripts/slurm_sota_screening.sh
+# Probe corpus élargi (12 canoniques + 84 SOTA × 3 passes, CPU) :
+!/scripts/slurm_probe_all.sh
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/

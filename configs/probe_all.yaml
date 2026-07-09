@@ -1,0 +1,39 @@
+# Probe linéaire + k-NN sur le CORPUS ÉLARGI (probe.py) :
+#   - 12 modèles canoniques (9 frozen + 3 fine-tunés)  → schéma 12cls
+#   - 84 runs SOTA (4 régimes × 7 fractions × 3 seeds)  → schéma 11cls_no_rhol
+# en 3 passes de classes : with_rhol (12cls), without_rhol (11cls), 8cls (8cls).
+#
+#   python probe.py --config configs/probe_all.yaml --include-sota
+#
+# Sortie : results_dir/{with_rhol,without_rhol,8cls}/probe_knn.json
+# (with_rhol ne contient QUE les modèles canoniques : RHOL absent des runs SOTA).
+
+regime: none            # ignoré (aucun entraînement)
+
+features:
+  remap_v3: false        # embeddings ré-extraits en ordre v3 natif — pas de remap
+
+# 12 modèles canoniques (mêmes clés que le benchmark historique).
+models:
+  - resnet50_imagenet
+  - vitb16_imagenet
+  - dinov3_vitb16_lvd
+  - dinov3_vitl16_sat
+  - dinov3_vitl16_lvd
+  - simdinov2_vitb16
+  - simdinov2_vitl16
+  - satmae_vitl16
+  - scalemae_vitl16
+finetuned_models:
+  - resnet50_arctic
+  - vitb16_arctic
+  - vitb16_fulft_arctic
+
+probe:
+  include_finetuned: true
+  include_sota: true
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
+  selection_metric: f1_macro_all
+  sota_regimes: [full, mhsa, explora, scratch]
+  sota_fractions: ["001", "005", "010", "025", "050", "070", "100"]
+  sota_seeds: [0, 1, 2]

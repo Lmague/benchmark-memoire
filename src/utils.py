@@ -10,6 +10,7 @@ import csv
 import json
 import os
 import random
+import re
 
 import numpy as np
 
@@ -22,10 +23,19 @@ CLASS_TO_IDX: dict[str, int] = {c: i for i, c in enumerate(CLASS_NAMES)}
 
 # --- Q5 datacurve (11 classes sans RHOL) ---
 CLASS_NAMES_11: list[str] = [c for c in CLASS_NAMES if c != "RHOL"]
+CLASS_TO_IDX_11: dict[str, int] = {c: i for i, c in enumerate(CLASS_NAMES_11)}
 LABEL_REMAP_12TO11: dict[int, int] = (
     {i: i for i in range(RHOL_IDX)} |
     {i: i - 1 for i in range(RHOL_IDX + 1, N_CLASSES)}
 )
+
+# --- Schéma 8 classes diagnostique (11cls moins ARCA/DRYI/RUBC) ---
+# Les 3 classes retirées sont celles jamais évaluables de façon fiable (F1≈0 en
+# probe/FT : ARCA, DRYI, RUBC). Identique à ``datacurve_one_run.LABELS_8CLS`` :
+#   11-class : ALDE(0) ARCA(1) BIRC(2) DRYI(3) LICH(4) MOSS(5) PETF(6) RUBC(7) SEDG(8) TUSS(9) WILL(10)
+#   8-class  : ALDE BIRC LICH MOSS PETF SEDG TUSS WILL  (labels 11-class [0,2,4,5,6,8,9,10])
+_DROP_8CLS_NAMES: tuple[str, ...] = ("ARCA", "DRYI", "RUBC")
+CLASS_NAMES_8: list[str] = [c for c in CLASS_NAMES_11 if c not in _DROP_8CLS_NAMES]
 
 # --- Normalisations d'entrée par famille de modèle ---
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
@@ -118,16 +128,98 @@ def run_tag(model: str, regime: str) -> str:
     return f"{model}_{regime}"
 
 
-def rhol_passes() -> list[tuple[str, int | None, list[str]]]:
-    """Les deux passes d'évaluation : (tag, label_à_retirer, noms_de_classes).
+# --- Schémas de labels par SOURCE d'embeddings -----------------------------
+# Deux conventions coexistent dans le corpus élargi :
+#   "12cls" : embeddings CANONIQUES (dinov3_*, simdino_*, satmae_*, *_arctic, ...).
+#             Labels 0–11 (RHOL=7 présent au train ; absent du val/test mais la
+#             numérotation reste 0–11).
+#   "11cls" : runs SOTA (``vitb16_{regime}_frac{XXX}_seed{N}``). RHOL retiré À
+#             L'EXTRACTION → labels 0–10 (``schema: 11cls_no_rhol``), indices > 7
+#             déjà comblés (RUBC=7, SEDG=8, TUSS=9, WILL=10).
+# Preuve (valeurs uniques des test_labels) documentée dans le rapport de tâche.
+_SOTA_KEY_RE = re.compile(r"^vitb16_(full|mhsa|explora|scratch)_frac\d{3}_seed\d+$")
 
-    - ``with_rhol``    : 12 classes, RHOL comptée 0 (convention).
-    - ``without_rhol`` : 11 classes, RHOL (idx 7) retirée et indices comblés.
+# Noms de classes restants par passe (indépendant de la source).
+_PASS_NAMES: dict[str, list[str]] = {
+    "with_rhol": list(CLASS_NAMES),      # 12
+    "without_rhol": list(CLASS_NAMES_11),  # 11
+    "8cls": list(CLASS_NAMES_8),          # 8
+}
+PROBE_PASS_TAGS: tuple[str, ...] = ("with_rhol", "without_rhol", "8cls")
+
+
+def is_sota_key(key: str) -> bool:
+    """True si ``key`` est un run SOTA (``vitb16_{regime}_frac{XXX}_seed{N}``)."""
+    return bool(_SOTA_KEY_RE.match(key))
+
+
+def sota_regime(key: str) -> str:
+    """Régime (full|mhsa|explora|scratch) d'une clé SOTA (ValueError sinon)."""
+    m = _SOTA_KEY_RE.match(key)
+    if not m:
+        raise ValueError(f"clé SOTA invalide : {key!r}")
+    return m.group(1)
+
+
+def source_schema(key: str) -> str:
+    """Schéma de labels bruts d'un modèle : '11cls' (SOTA no-rhol) sinon '12cls'."""
+    return "11cls" if is_sota_key(key) else "12cls"
+
+
+def pass_drops(tag: str, source_schema: str = "12cls") -> list[int] | None:
+    """Labels à retirer (ordre DÉCROISSANT, pour cascade ``drop_class``) pour la
+    passe ``tag`` depuis une source ``source_schema`` ('12cls' | '11cls').
+
+    Retourne ``None`` si la passe n'est PAS applicable à cette source (à sauter) :
+    c'est le cas de ``with_rhol`` sur une source SOTA 11cls (RHOL déjà absent).
+    L'ordre décroissant est OBLIGATOIRE : ``drop_class`` décale les labels > drop de
+    -1, donc retirer du plus grand indice au plus petit évite tout désalignement
+    (vérifié par test unitaire ; l'ordre croissant retire les mauvaises classes).
     """
-    return [
-        ("with_rhol", None, list(CLASS_NAMES)),
-        ("without_rhol", RHOL_IDX, [c for c in CLASS_NAMES if c != "RHOL"]),
-    ]
+    if source_schema == "12cls":
+        table: dict[str, list[int] | None] = {
+            "with_rhol": [],                       # tel quel (12cls)
+            "without_rhol": [CLASS_TO_IDX["RHOL"]],  # [7]
+            "8cls": sorted((CLASS_TO_IDX[c] for c in ("RHOL", *_DROP_8CLS_NAMES)),
+                           reverse=True),           # [8, 7, 3, 1]
+        }
+    elif source_schema == "11cls":
+        table = {
+            "with_rhol": None,                     # RHOL déjà absent → non applicable
+            "without_rhol": [],                    # déjà 11cls, rien à retirer
+            "8cls": sorted((CLASS_TO_IDX_11[c] for c in _DROP_8CLS_NAMES),
+                           reverse=True),           # [7, 3, 1]
+        }
+    else:
+        raise ValueError(f"source_schema inconnu : {source_schema!r} (12cls | 11cls)")
+    if tag not in table:
+        raise ValueError(f"passe inconnue : {tag!r} (dispo: {sorted(table)})")
+    return table[tag]
+
+
+def probe_passes() -> list[tuple[str, list[str]]]:
+    """Les 3 passes d'évaluation : ``[(tag, noms_de_classes_restants), ...]``.
+
+    Les labels à retirer par passe dépendent de la SOURCE de chaque modèle et sont
+    obtenus via :func:`pass_drops` (par-modèle dans ``probe.py``), car les modèles
+    canoniques (12cls) et SOTA (11cls) ne partagent pas le même référentiel d'indices.
+    """
+    return [(t, list(_PASS_NAMES[t])) for t in PROBE_PASS_TAGS]
+
+
+def rhol_passes(source_schema: str = "12cls") -> list[tuple[str, list[int] | None, list[str]]]:
+    """Passes pour une source HOMOGÈNE : ``[(tag, drops, noms), ...]``.
+
+    - ``with_rhol``    : 12 classes (source 12cls) / non applicable (source 11cls).
+    - ``without_rhol`` : 11 classes (RHOL retiré si 12cls, tel quel si 11cls).
+    - ``8cls``         : 8 classes (11cls moins ARCA/DRYI/RUBC).
+
+    ``drops`` est une liste DÉCROISSANTE de labels à retirer en cascade (``[]`` = rien
+    à retirer), ou ``None`` si la passe n'est pas applicable à la source. Conservé pour
+    ``analyze.py`` et les usages homogènes ; ``probe.py`` mélange les sources et utilise
+    :func:`probe_passes` + :func:`pass_drops` par modèle.
+    """
+    return [(t, pass_drops(t, source_schema), names) for t, names in probe_passes()]
 
 
 def maybe_mount_drive(env: str) -> None:

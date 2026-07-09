@@ -39,6 +39,7 @@ class Paths:
     emb_dir: str = ""          # cache features fp16 .npy
     ckpt_dir: str = ""
     results_dir: str = ""
+    sota_dir: str = ""         # racine sota_screening/ (runs FT SOTA, schéma 11cls)
 
 
 @dataclass
@@ -92,6 +93,12 @@ class ProbeCfg:
     include_finetuned: bool = False
     # Métrique de sélection du C (sur val), alignée par défaut sur la métrique reportée.
     selection_metric: str = "f1_macro_all"   # f1_macro_all | f1_macro_present
+    # --- Corpus SOTA (runs FT vitb16_{regime}_frac{XXX}_seed{N}, schéma 11cls) ---
+    include_sota: bool = False               # énumère les runs SOTA sous paths.sota_dir
+    sota_regimes: list[str] = field(default_factory=lambda: ["full", "mhsa", "explora", "scratch"])
+    sota_fractions: list[str] = field(
+        default_factory=lambda: ["001", "005", "010", "025", "050", "070", "100"])
+    sota_seeds: list[int] = field(default_factory=lambda: [0, 1, 2])
 
 
 @dataclass
