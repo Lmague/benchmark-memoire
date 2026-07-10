@@ -14,6 +14,7 @@ Dépendances : numpy + sklearn + json + argparse (PAS de scipy).
 
   python scripts/bootstrap_ci.py --config configs/frozen_eval.yaml --n-bootstrap 1000
   python scripts/bootstrap_ci.py --include-finetuned --n-bootstrap 10   # dry-run
+  python scripts/bootstrap_ci.py --all-from-probe --probe-json <path> --n-bootstrap 1000
 """
 from __future__ import annotations
 
@@ -32,7 +33,7 @@ if _ROOT not in sys.path:
 from src.config import load_config
 from src.features import load_features
 from src.probe import _standardize
-from src.utils import make_canonical_lr
+from src.utils import make_canonical_lr, is_sota_key, sota_regime
 
 # Pour P(gelé > fine-tuné) : f1_macro_pres est l'index 1 (cf. _bootstrap_metrics).
 N_CLASSES = 12
@@ -115,21 +116,29 @@ def _observed_f1(y_true, y_pred, n_classes: int = N_CLASSES) -> tuple[float, flo
 
 def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
         seed: int = 42, force_c: float | None = None,
-        pairs: list[tuple[str, str]] | None = None) -> dict:
+        pairs: list[tuple[str, str]] | None = None,
+        all_from_probe: bool = False) -> dict:
     """Bootstrappe tous les modèles disponibles et construit le dict de résultats.
 
-    ``force_c`` : si fourni, ce C est utilisé pour TOUS les modèles (bypass de la
-    lecture des best_C dans ``probe_json`` et du skip "aucun best_C").
-    ``pairs``   : liste de (model_a, model_b) à comparer via ``_compare_pair_generic``.
+    ``force_c``       : si fourni, ce C est utilisé pour TOUS les modèles (bypass de la
+                         lecture des best_C dans ``probe_json`` et du skip "aucun best_C").
+    ``pairs``          : liste de (model_a, model_b) à comparer via ``_compare_pair_generic``.
+    ``all_from_probe`` : si True, la liste de modèles à bootstrap vient directement des
+                         clés présentes dans ``probe_json`` (ignore cfg.models /
+                         cfg.finetuned_models). Utile pour couvrir le corpus SOTA complet
+                         (12 canoniques + 84 runs SOTA) qui n'a pas de config dédiée.
     """
     best_C = {} if force_c is not None else _load_best_C(probe_json)
 
     def _get_c(model_key: str):
         return force_c if force_c is not None else best_C.get(model_key)
 
-    wanted = list(cfg.models)
-    if include_finetuned:
-        wanted += list(cfg.finetuned_models)
+    if all_from_probe:
+        wanted = list(best_C.keys())
+    else:
+        wanted = list(cfg.models)
+        if include_finetuned:
+            wanted += list(cfg.finetuned_models)
     # Les deux modèles de la paire clé sont toujours tentés (pour la comparaison).
     for m in (PAIR_FROZEN, PAIR_FINETUNED):
         if m not in wanted:
@@ -151,7 +160,11 @@ def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
         if c is None:
             print(f"[skip] {model_key}: aucun best_C dans {os.path.basename(probe_json)}")
             continue
-        test_emb = os.path.join(emb_dir, f"{model_key}_test.npy")
+        if is_sota_key(model_key):
+            test_emb = os.path.join(cfg.paths.sota_dir, sota_regime(model_key),
+                                    "embeddings", model_key, "test.npy")
+        else:
+            test_emb = os.path.join(emb_dir, f"{model_key}_test.npy")
         if not os.path.exists(test_emb):
             print(f"[skip] {model_key}: embeddings absents ({test_emb})")
             continue
@@ -303,6 +316,10 @@ def main() -> None:
                     help="paire à comparer A:B sur f1_macro_pres (répétable)")
     ap.add_argument("--pairs-output", default="results/bootstrap_pairs.json",
                     help="sortie JSON pour --pairs (défaut: results/bootstrap_pairs.json)")
+    ap.add_argument("--all-from-probe", action="store_true",
+                    help="bootstrap tous les modèles présents dans probe_json "
+                         "(ignore cfg.models/finetuned_models) — utile pour couvrir "
+                         "le corpus SOTA complet (96 modèles) sans config dédiée")
     args = ap.parse_args()
 
     parsed_pairs: list[tuple[str, str]] = []
@@ -316,7 +333,8 @@ def main() -> None:
     probe_json = args.probe_json or os.path.join(cfg.paths.results_dir,
                                                  "with_rhol", "probe_knn_cgrid.json")
     out = run(cfg, probe_json, args.n_bootstrap, args.include_finetuned,
-              force_c=args.force_c, pairs=parsed_pairs if parsed_pairs else None)
+              force_c=args.force_c, pairs=parsed_pairs if parsed_pairs else None,
+              all_from_probe=args.all_from_probe)
 
     _print_table(out["models"])
     _print_comparison(out["comparison"])
