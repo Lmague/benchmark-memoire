@@ -26,6 +26,7 @@ sur ``range(8)`` = les MAUVAISES classes (ALDE,ARCA,BIRC,DRYI,LICH,MOSS,PETF,RHO
   python scripts/bootstrap_ci.py --config configs/probe_all.yaml --pass 8cls \\
       --probe-json /scratch/lmague/datacurve/results/8cls/probe_knn.json --n-bootstrap 1000
   python scripts/bootstrap_ci.py --include-finetuned --n-bootstrap 10   # dry-run
+  python scripts/bootstrap_ci.py --all-from-probe --probe-json <path> --n-bootstrap 1000
 """
 from __future__ import annotations
 
@@ -138,16 +139,21 @@ def _observed_f1(y_true, y_pred, n_classes: int = N_CLASSES) -> tuple[float, flo
 def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
         seed: int = 42, force_c: float | None = None,
         pairs: list[tuple[str, str]] | None = None,
-        pass_tag: str = DEFAULT_PASS) -> dict:
+        pass_tag: str = DEFAULT_PASS,
+        all_from_probe: bool = False) -> dict:
     """Bootstrappe tous les modèles disponibles et construit le dict de résultats.
 
-    ``force_c``  : si fourni, ce C est utilisé pour TOUS les modèles (bypass de la
-    lecture des best_C dans ``probe_json`` et du skip "aucun best_C").
-    ``pairs``    : liste de (model_a, model_b) à comparer via ``_compare_pair_generic``.
-    ``pass_tag`` : passe de classes (``with_rhol`` | ``without_rhol`` | ``8cls``). Chaque
-    modèle est réduit selon SA source (12cls canonique / 11cls SOTA) via
-    :func:`src.utils.pass_drops`, exactement comme ``probe.py`` (with_rhol non applicable
-    aux runs SOTA → SKIP). ``n_classes`` est dérivé de la passe.
+    ``force_c``        : si fourni, ce C est utilisé pour TOUS les modèles (bypass de la
+                         lecture des best_C dans ``probe_json`` et du skip "aucun best_C").
+    ``pairs``          : liste de (model_a, model_b) à comparer via ``_compare_pair_generic``.
+    ``pass_tag``       : passe de classes (``with_rhol`` | ``without_rhol`` | ``8cls``). Chaque
+                         modèle est réduit selon SA source (12cls canonique / 11cls SOTA) via
+                         :func:`src.utils.pass_drops`, exactement comme ``probe.py`` (with_rhol
+                         non applicable aux runs SOTA → SKIP). ``n_classes`` dérivé de la passe.
+    ``all_from_probe`` : si True, la liste de modèles à bootstrap vient directement des
+                         clés présentes dans ``probe_json`` (ignore cfg.models /
+                         cfg.finetuned_models). Utile pour couvrir le corpus SOTA complet
+                         (12 canoniques + 84 runs SOTA) qui n'a pas de config dédiée.
     """
     if pass_tag not in _PASS_NAMES:
         raise ValueError(f"--pass inconnu : {pass_tag!r} (dispo: {sorted(_PASS_NAMES)})")
@@ -157,9 +163,12 @@ def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
     def _get_c(model_key: str):
         return force_c if force_c is not None else best_C.get(model_key)
 
-    wanted = list(cfg.models)
-    if include_finetuned:
-        wanted += list(cfg.finetuned_models)
+    if all_from_probe:
+        wanted = list(best_C.keys())
+    else:
+        wanted = list(cfg.models)
+        if include_finetuned:
+            wanted += list(cfg.finetuned_models)
     # Les deux modèles de la paire clé sont toujours tentés (pour la comparaison).
     for m in (PAIR_FROZEN, PAIR_FINETUNED):
         if m not in wanted:
@@ -358,6 +367,10 @@ def main() -> None:
                     help="paire à comparer A:B sur f1_macro_pres (répétable)")
     ap.add_argument("--pairs-output", default="results/bootstrap_pairs.json",
                     help="sortie JSON pour --pairs (défaut: results/bootstrap_pairs.json)")
+    ap.add_argument("--all-from-probe", action="store_true",
+                    help="bootstrap tous les modèles présents dans probe_json "
+                         "(ignore cfg.models/finetuned_models) — utile pour couvrir "
+                         "le corpus SOTA complet (96 modèles) sans config dédiée")
     args = ap.parse_args()
 
     parsed_pairs: list[tuple[str, str]] = []
@@ -372,7 +385,8 @@ def main() -> None:
                                                  "with_rhol", "probe_knn_cgrid.json")
     out = run(cfg, probe_json, args.n_bootstrap, args.include_finetuned,
               force_c=args.force_c, pairs=parsed_pairs if parsed_pairs else None,
-              pass_tag=args.pass_tag)
+              pass_tag=args.pass_tag,
+              all_from_probe=args.all_from_probe)
 
     print(f"[pass] {out['pass']} ({out['n_classes']} classes) — source {probe_json}")
     _print_table(out["models"])
