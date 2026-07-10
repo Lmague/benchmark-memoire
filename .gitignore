@@ -65,6 +65,8 @@ __pycache__/
 !/scripts/slurm_sota_screening.sh
 # Probe corpus élargi (12 canoniques + 84 SOTA × 3 passes, CPU) :
 !/scripts/slurm_probe_all.sh
+# Bootstrap CI schéma 8cls (CPU) :
+!/scripts/slurm_bootstrap_8cls.sh
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/
@@ -101,3 +103,4 @@ __pycache__/
 #!/scripts/make_reconciliation.py
 !/CHANGELOG.md
 !/RECONCILIATION.md
+!/known_issues.md

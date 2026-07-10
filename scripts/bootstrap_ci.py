@@ -6,13 +6,25 @@ probe UNE fois par modèle avec le ``best_C`` déjà sélectionné (pas de re-gr
 récupère ``(y_pred, y_true)`` sur le test, puis on bootstrappe le test set :
 
   - N tirages avec remise de ``len(y_true)`` indices (seed=42, reproductible) ;
-  - recalcul de ``f1_macro_all`` (12 classes) et ``f1_macro_pres`` (classes présentes
-    dans le tirage) à chaque itération ;
+  - recalcul de ``f1_macro_all`` (labels=range(n_classes) de la passe) et
+    ``f1_macro_pres`` (classes présentes dans le tirage) à chaque itération ;
   - IC à 95 % par percentiles bootstrap (2.5 / 97.5), pas par formule normale.
 
-Dépendances : numpy + sklearn + json + argparse (PAS de scipy).
+PASSE DE CLASSES (``--pass``) : le re-fit doit reproduire EXACTEMENT la réduction de
+classes appliquée par ``probe.py`` pour la passe visée. Les embeddings sur disque sont
+en schéma SOURCE (12cls pour les canoniques, 11cls pour les runs SOTA) ; les passes
+``without_rhol`` (11cls) et ``8cls`` (8cls) sont obtenues en RETIRANT des classes via
+``src.latent.drop_class`` (cascade décroissante ``src.utils.pass_drops``), ce qui
+COMPACTE les indices restants (ex. 8cls → labels 0..7). Sans cette cascade, un simple
+``--n-classes 8`` fitterait un classifieur 11/12 classes et calculerait ``f1_macro_all``
+sur ``range(8)`` = les MAUVAISES classes (ALDE,ARCA,BIRC,DRYI,LICH,MOSS,PETF,RHOL en
+12cls). ``--pass`` remplace donc ``--n-classes`` (voir known_issues.md).
 
+  # schéma A (défaut, rétro-compatible) : passe with_rhol, 12 classes, aucun drop
   python scripts/bootstrap_ci.py --config configs/frozen_eval.yaml --n-bootstrap 1000
+  # schéma 8cls (source /scratch/.../8cls/probe_knn.json)
+  python scripts/bootstrap_ci.py --config configs/probe_all.yaml --pass 8cls \\
+      --probe-json /scratch/lmague/datacurve/results/8cls/probe_knn.json --n-bootstrap 1000
   python scripts/bootstrap_ci.py --include-finetuned --n-bootstrap 10   # dry-run
 """
 from __future__ import annotations
@@ -30,12 +42,17 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 from src.config import load_config
-from src.features import load_features
+from src.features import _sota_run_dir, load_features
+from src.latent import drop_class
 from src.probe import _standardize
-from src.utils import make_canonical_lr
+from src.utils import is_sota_key, make_canonical_lr, pass_drops, probe_passes, source_schema
 
-# Pour P(gelé > fine-tuné) : f1_macro_pres est l'index 1 (cf. _bootstrap_metrics).
+# Passe par défaut = with_rhol (12 classes, AUCUN drop) — comportement schéma A
+# historique. NE PAS changer sans casser les runs existants (with_rhol/probe_knn*.json).
 N_CLASSES = 12
+DEFAULT_PASS = "with_rhol"
+# {tag: liste des noms de classes de la passe} → n_classes = len(names).
+_PASS_NAMES: dict[str, list[str]] = {tag: names for tag, names in probe_passes()}
 # Paire clé du mémoire : représentation gelée vs backbone fine-tuné.
 PAIR_FROZEN = "dinov3_vitl16_lvd"
 PAIR_FINETUNED = "vitb16_fulft_arctic"
@@ -49,12 +66,17 @@ def _load_best_C(probe_json: str) -> dict[str, float]:
     return {m: float(d["best_C"]) for m, d in probe.items() if "best_C" in d}
 
 
-def _refit_predict(cfg, model_key: str, best_C: float, seed: int = 42):
+def _refit_predict(cfg, model_key: str, best_C: float, drops=(), seed: int = 42):
     """Re-fitte LogisticRegression (best_C fixé) et renvoie ``(y_true, y_pred)`` sur le test.
 
     StandardScaler fit sur train (via :func:`src.probe._standardize`), C non re-griddé.
+    ``drops`` : cascade DÉCROISSANTE de labels à retirer AVANT le fit (identique à
+    ``probe.py`` : réduit le schéma source vers la passe visée et compacte les indices).
+    Passer ``()`` (défaut) = aucune réduction = passe with_rhol / schéma A.
     """
     feats = load_features(cfg, model_key)
+    for d in drops:  # cascade décroissante (ordre imposé par utils.pass_drops)
+        feats = {s: drop_class(*feats[s], d) for s in feats}
     ytr = np.asarray(feats["train"][1])
     yte = np.asarray(feats["test"][1])
     xtr, _xva, xte = _standardize(feats)
@@ -115,13 +137,21 @@ def _observed_f1(y_true, y_pred, n_classes: int = N_CLASSES) -> tuple[float, flo
 
 def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
         seed: int = 42, force_c: float | None = None,
-        pairs: list[tuple[str, str]] | None = None) -> dict:
+        pairs: list[tuple[str, str]] | None = None,
+        pass_tag: str = DEFAULT_PASS) -> dict:
     """Bootstrappe tous les modèles disponibles et construit le dict de résultats.
 
-    ``force_c`` : si fourni, ce C est utilisé pour TOUS les modèles (bypass de la
+    ``force_c``  : si fourni, ce C est utilisé pour TOUS les modèles (bypass de la
     lecture des best_C dans ``probe_json`` et du skip "aucun best_C").
-    ``pairs``   : liste de (model_a, model_b) à comparer via ``_compare_pair_generic``.
+    ``pairs``    : liste de (model_a, model_b) à comparer via ``_compare_pair_generic``.
+    ``pass_tag`` : passe de classes (``with_rhol`` | ``without_rhol`` | ``8cls``). Chaque
+    modèle est réduit selon SA source (12cls canonique / 11cls SOTA) via
+    :func:`src.utils.pass_drops`, exactement comme ``probe.py`` (with_rhol non applicable
+    aux runs SOTA → SKIP). ``n_classes`` est dérivé de la passe.
     """
+    if pass_tag not in _PASS_NAMES:
+        raise ValueError(f"--pass inconnu : {pass_tag!r} (dispo: {sorted(_PASS_NAMES)})")
+    n_classes = len(_PASS_NAMES[pass_tag])
     best_C = {} if force_c is not None else _load_best_C(probe_json)
 
     def _get_c(model_key: str):
@@ -151,14 +181,30 @@ def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
         if c is None:
             print(f"[skip] {model_key}: aucun best_C dans {os.path.basename(probe_json)}")
             continue
-        test_emb = os.path.join(emb_dir, f"{model_key}_test.npy")
+        # Résolution du chemin test SOURCE-AWARE : les runs SOTA (is_sota_key) vivent
+        # dans sota_dir/{regime}/embeddings/{key}/test.npy (convention nue), pas dans
+        # emb_dir/{key}_test.npy — sans ce branchement, ils seraient RE-SKIPPÉS ici avant
+        # même que load_features (déjà SOTA-aware) ne soit appelé.
+        if is_sota_key(model_key):
+            test_emb = os.path.join(_sota_run_dir(cfg, model_key), "test.npy")
+        else:
+            test_emb = os.path.join(emb_dir, f"{model_key}_test.npy")
         if not os.path.exists(test_emb):
             print(f"[skip] {model_key}: embeddings absents ({test_emb})")
             continue
-        print(f"[bootstrap] {model_key}: re-fit (C={c}) + {n_boot} tirages")
-        y_true, y_pred = _refit_predict(cfg, model_key, c, seed=seed)
-        obs_all, obs_pres = _observed_f1(y_true, y_pred)
-        f1_all, f1_pres = _bootstrap_metrics(y_true, y_pred, n_boot, seed=seed)
+        # Réduction de classes source-aware (identique à probe.py) : None = passe non
+        # applicable à cette source (ex. with_rhol sur un run SOTA 11cls) → SKIP.
+        schema = source_schema(model_key)
+        drops = pass_drops(pass_tag, schema)
+        if drops is None:
+            print(f"[skip] {model_key}: passe {pass_tag} non applicable (source {schema})")
+            continue
+        print(f"[bootstrap] {model_key}: re-fit (C={c}, pass={pass_tag}, "
+              f"drops={drops}) + {n_boot} tirages")
+        y_true, y_pred = _refit_predict(cfg, model_key, c, drops=drops, seed=seed)
+        obs_all, obs_pres = _observed_f1(y_true, y_pred, n_classes=n_classes)
+        f1_all, f1_pres = _bootstrap_metrics(y_true, y_pred, n_boot,
+                                             n_classes=n_classes, seed=seed)
         pres_samples[model_key] = f1_pres
         results[model_key] = {
             "best_C": c,
@@ -172,6 +218,8 @@ def run(cfg, probe_json: str, n_boot: int, include_finetuned: bool,
         "config_models": wanted,
         "n_bootstrap": n_boot,
         "seed": seed,
+        "pass": pass_tag,
+        "n_classes": n_classes,
         "probe_source": probe_json,
         "remap_v3": cfg.features.remap_v3,
         "models": results,
@@ -286,6 +334,13 @@ def main() -> None:
                     help="config YAML (défaut: configs/frozen_eval.yaml)")
     ap.add_argument("--n-bootstrap", type=int, default=1000,
                     help="nombre de tirages bootstrap (défaut: 1000)")
+    ap.add_argument("--pass", dest="pass_tag", default=DEFAULT_PASS,
+                    choices=sorted(_PASS_NAMES),
+                    help="passe de classes (défaut: with_rhol = schéma A, 12cls, aucun "
+                         "drop). '8cls' exige --probe-json .../8cls/probe_knn.json. "
+                         "REMPLACE --n-classes : le re-fit applique la MÊME cascade de "
+                         "drops source-aware que probe.py (sinon f1_macro_all ET "
+                         "f1_macro_pres seraient faux hors with_rhol).")
     ap.add_argument("--include-finetuned", action="store_true",
                     help="inclure les modèles fine-tunés (resnet50_arctic, etc.)")
     ap.add_argument("--probe-json", default=None,
@@ -316,8 +371,10 @@ def main() -> None:
     probe_json = args.probe_json or os.path.join(cfg.paths.results_dir,
                                                  "with_rhol", "probe_knn_cgrid.json")
     out = run(cfg, probe_json, args.n_bootstrap, args.include_finetuned,
-              force_c=args.force_c, pairs=parsed_pairs if parsed_pairs else None)
+              force_c=args.force_c, pairs=parsed_pairs if parsed_pairs else None,
+              pass_tag=args.pass_tag)
 
+    print(f"[pass] {out['pass']} ({out['n_classes']} classes) — source {probe_json}")
     _print_table(out["models"])
     _print_comparison(out["comparison"])
 
