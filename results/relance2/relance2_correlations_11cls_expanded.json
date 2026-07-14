@@ -1,0 +1,497 @@
+{
+  "scheme": "Scheme (11 classes)",
+  "f1_source": "Linear probe (logistic regression, sym C-grid)",
+  "C_grid": [
+    0.0001,
+    0.001,
+    0.01,
+    0.1,
+    1.0,
+    10.0
+  ],
+  "modelset": "expanded",
+  "n_models": 16,
+  "f1_values": {
+    "resnet50_imagenet": 0.40762026192794515,
+    "vitb16_imagenet": 0.4499673184267636,
+    "dinov3_vitb16_lvd": 0.47121235368306935,
+    "dinov3_vitl16_sat": 0.46204819824639976,
+    "dinov3_vitl16_lvd": 0.4792139302399709,
+    "simdinov2_vitb16": 0.47225573315523817,
+    "simdinov2_vitl16": 0.47600071743326294,
+    "satmae_vitl16": 0.4091129384679247,
+    "scalemae_vitl16": 0.44804610126842087,
+    "resnet50_arctic": 0.46188327197638884,
+    "vitb16_arctic": 0.47594375510977405,
+    "vitb16_fulft_arctic": 0.4796229796373906,
+    "vitb16_full_sota_mean": 0.47078365708818987,
+    "vitb16_explora_sota_mean": 0.4668004385269178,
+    "vitb16_scratch_sota_mean": 0.3561240179544176,
+    "vitb16_mhsa_sota_mean": 0.46887154938359094
+  },
+  "correlations": [
+    {
+      "name": "silhouette_score",
+      "n": 16,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_mean",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_mean",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_mean",
+        "vitb16_scratch_sota_mean"
+      ],
+      "spearman_rho": 0.7294117647058823,
+      "spearman_p": 0.0013430786823836695,
+      "pearson_r": 0.8695718708747595,
+      "pearson_p": 1.2112059578689554e-05,
+      "spearman_rho_loo_range": [
+        0.6714285714285713,
+        0.7928571428571427
+      ],
+      "pearson_r_loo_range": [
+        0.8635871226887035,
+        0.9203864211173184
+      ],
+      "outlier_warning": {
+        "rho_without_worst": 0.6749999999999999,
+        "r_without_worst": 0.9203864211173184,
+        "worst_outlier_model": "resnet50_imagenet",
+        "is_carried_by_single_outlier": false
+      }
+    },
+    {
+      "name": "davies_bouldin_index",
+      "n": 16,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_mean",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_mean",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_mean",
+        "vitb16_scratch_sota_mean"
+      ],
+      "spearman_rho": -0.38823529411764707,
+      "spearman_p": 0.1372816236727813,
+      "pearson_r": -0.48112070302408605,
+      "pearson_p": 0.05920008128851251,
+      "spearman_rho_loo_range": [
+        -0.575,
+        -0.2678571428571428
+      ],
+      "pearson_r_loo_range": [
+        -0.6778871914933373,
+        -0.37363777193843867
+      ],
+      "outlier_warning": {
+        "rho_without_worst": -0.34642857142857136,
+        "r_without_worst": -0.6778871914933373,
+        "worst_outlier_model": "vitb16_scratch_sota_mean",
+        "is_carried_by_single_outlier": false
+      }
+    },
+    {
+      "name": "calinski_harabasz_index",
+      "n": 16,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_mean",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_mean",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_mean",
+        "vitb16_scratch_sota_mean"
+      ],
+      "spearman_rho": -0.011764705882352941,
+      "spearman_p": 0.9655081698956275,
+      "pearson_r": -0.20257943997261427,
+      "pearson_p": 0.4517858651903299,
+      "spearman_rho_loo_range": [
+        -0.175,
+        0.19999999999999998
+      ],
+      "pearson_r_loo_range": [
+        -0.4895029390690163,
+        0.5638343637588016
+      ],
+      "outlier_warning": {
+        "rho_without_worst": 0.19999999999999998,
+        "r_without_worst": 0.5638343637588016,
+        "worst_outlier_model": "vitb16_scratch_sota_mean",
+        "is_carried_by_single_outlier": true
+      }
+    },
+    {
+      "name": "nc1",
+      "n": 16,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_mean",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_mean",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_mean",
+        "vitb16_scratch_sota_mean"
+      ],
+      "spearman_rho": 0.28529411764705886,
+      "spearman_p": 0.284138740159563,
+      "pearson_r": 0.41772466945477976,
+      "pearson_p": 0.10740203493036989,
+      "spearman_rho_loo_range": [
+        0.13214285714285715,
+        0.46071428571428563
+      ],
+      "pearson_r_loo_range": [
+        0.1359479958347667,
+        0.5158883300952041
+      ],
+      "outlier_warning": {
+        "rho_without_worst": 0.13214285714285715,
+        "r_without_worst": 0.1359479958347667,
+        "worst_outlier_model": "vitb16_scratch_sota_mean",
+        "is_carried_by_single_outlier": false
+      }
+    },
+    {
+      "name": "nc2_deviation_etf",
+      "n": 16,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_mean",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_mean",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_mean",
+        "vitb16_scratch_sota_mean"
+      ],
+      "spearman_rho": -0.4294117647058823,
+      "spearman_p": 0.09693648522272376,
+      "pearson_r": -0.5034968393311658,
+      "pearson_p": 0.046780528638441905,
+      "spearman_rho_loo_range": [
+        -0.5214285714285714,
+        -0.33928571428571425
+      ],
+      "pearson_r_loo_range": [
+        -0.5511431544515563,
+        -0.43770512455243843
+      ],
+      "outlier_warning": {
+        "rho_without_worst": -0.34642857142857136,
+        "r_without_worst": -0.43770512455243843,
+        "worst_outlier_model": "satmae_vitl16",
+        "is_carried_by_single_outlier": false
+      }
+    },
+    {
+      "name": "dim_mle_mean",
+      "n": 16,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_mean",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_mean",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_mean",
+        "vitb16_scratch_sota_mean"
+      ],
+      "spearman_rho": -0.032352941176470584,
+      "spearman_p": 0.9053195187918449,
+      "pearson_r": 0.5172698082237933,
+      "pearson_p": 0.04017232053872467,
+      "spearman_rho_loo_range": [
+        -0.25357142857142856,
+        0.06785714285714285
+      ],
+      "pearson_r_loo_range": [
+        -0.009084053969296867,
+        0.5979224005100572
+      ],
+      "outlier_warning": {
+        "rho_without_worst": -0.25357142857142856,
+        "r_without_worst": -0.009084053969296867,
+        "worst_outlier_model": "vitb16_scratch_sota_mean",
+        "is_carried_by_single_outlier": true
+      }
+    },
+    {
+      "name": "dim_mle_median",
+      "n": 16,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_mean",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_mean",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_mean",
+        "vitb16_scratch_sota_mean"
+      ],
+      "spearman_rho": -0.03823529411764706,
+      "spearman_p": 0.8881976539853075,
+      "pearson_r": 0.44949263352983454,
+      "pearson_p": 0.08067918507600726,
+      "spearman_rho_loo_range": [
+        -0.2607142857142857,
+        0.04642857142857142
+      ],
+      "pearson_r_loo_range": [
+        -0.07150187001729934,
+        0.5375770033129007
+      ],
+      "outlier_warning": {
+        "rho_without_worst": -0.2607142857142857,
+        "r_without_worst": -0.07150187001729934,
+        "worst_outlier_model": "vitb16_scratch_sota_mean",
+        "is_carried_by_single_outlier": true
+      }
+    },
+    {
+      "name": "global_effective_rank",
+      "n": 16,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_mean",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_mean",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_mean",
+        "vitb16_scratch_sota_mean"
+      ],
+      "spearman_rho": 0.2088235294117647,
+      "spearman_p": 0.4376585109498007,
+      "pearson_r": -0.2326434249337367,
+      "pearson_p": 0.3859010104881405,
+      "spearman_rho_loo_range": [
+        0.039285714285714285,
+        0.4142857142857142
+      ],
+      "pearson_r_loo_range": [
+        -0.5736397357195869,
+        0.5930091570521584
+      ],
+      "outlier_warning": {
+        "rho_without_worst": 0.4142857142857142,
+        "r_without_worst": 0.5930091570521584,
+        "worst_outlier_model": "resnet50_imagenet",
+        "is_carried_by_single_outlier": true
+      }
+    },
+    {
+      "name": "global_stable_rank",
+      "n": 16,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_mean",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_mean",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_mean",
+        "vitb16_scratch_sota_mean"
+      ],
+      "spearman_rho": 0.3205882352941176,
+      "spearman_p": 0.22604542220798232,
+      "pearson_r": -0.023679119403404614,
+      "pearson_p": 0.9306360141160304,
+      "spearman_rho_loo_range": [
+        0.175,
+        0.5499999999999999
+      ],
+      "pearson_r_loo_range": [
+        -0.47163794908775486,
+        0.7529199477522351
+      ],
+      "outlier_warning": {
+        "rho_without_worst": 0.5499999999999999,
+        "r_without_worst": 0.7529199477522351,
+        "worst_outlier_model": "resnet50_imagenet",
+        "is_carried_by_single_outlier": true
+      }
+    },
+    {
+      "name": "global_participation_ratio",
+      "n": 16,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_mean",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_mean",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_mean",
+        "vitb16_scratch_sota_mean"
+      ],
+      "spearman_rho": 0.27941176470588236,
+      "spearman_p": 0.2946176535684143,
+      "pearson_r": -0.20612973617226465,
+      "pearson_p": 0.44372536566152937,
+      "spearman_rho_loo_range": [
+        0.125,
+        0.5
+      ],
+      "pearson_r_loo_range": [
+        -0.5609195137278512,
+        0.6654786554376616
+      ],
+      "outlier_warning": {
+        "rho_without_worst": 0.5,
+        "r_without_worst": 0.6654786554376616,
+        "worst_outlier_model": "resnet50_imagenet",
+        "is_carried_by_single_outlier": true
+      }
+    },
+    {
+      "name": "global_alpha",
+      "n": 16,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_mean",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_mean",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_mean",
+        "vitb16_scratch_sota_mean"
+      ],
+      "spearman_rho": -0.19117647058823528,
+      "spearman_p": 0.47816401281702847,
+      "pearson_r": -0.33931949651144744,
+      "pearson_p": 0.19853552083790438,
+      "spearman_rho_loo_range": [
+        -0.3928571428571428,
+        -0.017857142857142853
+      ],
+      "pearson_r_loo_range": [
+        -0.7641200503964798,
+        0.25795729235805687
+      ],
+      "outlier_warning": {
+        "rho_without_worst": -0.017857142857142853,
+        "r_without_worst": 0.25795729235805687,
+        "worst_outlier_model": "vitb16_scratch_sota_mean",
+        "is_carried_by_single_outlier": true
+      }
+    }
+  ],
+  "outlier_threshold": "|rho| or |r| change > 0.3 on LOO",
+  "sota_scatter": {
+    "full": {
+      "0": 0.4616848110728125,
+      "1": 0.4763819117543463,
+      "2": 0.47428424843741085
+    },
+    "explora": {
+      "0": 0.4508628882831456,
+      "1": 0.47613666090220136,
+      "2": 0.47340176639540665
+    },
+    "scratch": {
+      "0": 0.37045214770680546,
+      "1": 0.34428967347365275,
+      "2": 0.35363023268279475
+    },
+    "mhsa": {
+      "0": 0.4662102762919279,
+      "1": 0.4746209293386631,
+      "2": 0.4657834425201818
+    }
+  }
+}

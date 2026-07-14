@@ -1,0 +1,153 @@
+{
+  "description": "Multiple comparison correction Holm FWER + BH FDR",
+  "alpha": 0.05,
+  "method": "p-value approximative via Spearman rho -> t(df=n-2), two-sided",
+  "note": "n=9 est faible; p-values indicatives. Holm/BH valides car rang-based.",
+  "global_n9": {
+    "raw_pvalues": {
+      "rankme": 0.03577,
+      "rankme_normalized": 0.029818,
+      "stable_rank": 0.007225,
+      "participation_ratio": 0.007225,
+      "alpha_spectral": 0.009628,
+      "anisotropy": 0.049867,
+      "intrinsic_dim_twonn": 0.286105,
+      "fisher_ratio": 0.831214,
+      "knn_purity": 0.058073
+    },
+    "holm": {
+      "stable_rank": {
+        "p": 0.007225,
+        "holm_threshold": 0.005556,
+        "reject_holm": false
+      },
+      "participation_ratio": {
+        "p": 0.007225,
+        "holm_threshold": 0.00625,
+        "reject_holm": false
+      },
+      "alpha_spectral": {
+        "p": 0.009628,
+        "holm_threshold": 0.007143,
+        "reject_holm": false
+      },
+      "rankme_normalized": {
+        "p": 0.029818,
+        "holm_threshold": 0.008333,
+        "reject_holm": false
+      },
+      "rankme": {
+        "p": 0.03577,
+        "holm_threshold": 0.01,
+        "reject_holm": false
+      },
+      "anisotropy": {
+        "p": 0.049867,
+        "holm_threshold": 0.0125,
+        "reject_holm": false
+      },
+      "knn_purity": {
+        "p": 0.058073,
+        "holm_threshold": 0.016667,
+        "reject_holm": false
+      },
+      "intrinsic_dim_twonn": {
+        "p": 0.286105,
+        "holm_threshold": 0.025,
+        "reject_holm": false
+      },
+      "fisher_ratio": {
+        "p": 0.831214,
+        "holm_threshold": 0.05,
+        "reject_holm": false
+      }
+    },
+    "benjamini_hochberg": {
+      "stable_rank": {
+        "p": 0.007225,
+        "bh_threshold": 0.005556,
+        "reject_bh": true
+      },
+      "participation_ratio": {
+        "p": 0.007225,
+        "bh_threshold": 0.011111,
+        "reject_bh": true
+      },
+      "alpha_spectral": {
+        "p": 0.009628,
+        "bh_threshold": 0.016667,
+        "reject_bh": true
+      },
+      "rankme_normalized": {
+        "p": 0.029818,
+        "bh_threshold": 0.022222,
+        "reject_bh": false
+      },
+      "rankme": {
+        "p": 0.03577,
+        "bh_threshold": 0.027778,
+        "reject_bh": false
+      },
+      "anisotropy": {
+        "p": 0.049867,
+        "bh_threshold": 0.033333,
+        "reject_bh": false
+      },
+      "knn_purity": {
+        "p": 0.058073,
+        "bh_threshold": 0.038889,
+        "reject_bh": false
+      },
+      "intrinsic_dim_twonn": {
+        "p": 0.286105,
+        "bh_threshold": 0.044444,
+        "reject_bh": false
+      },
+      "fisher_ratio": {
+        "p": 0.831214,
+        "bh_threshold": 0.05,
+        "reject_bh": false
+      }
+    }
+  },
+  "vit_l_n5": {
+    "raw_pvalues": {
+      "rankme": 0.104088,
+      "anisotropy": 0.104088
+    },
+    "holm": {
+      "rankme": {
+        "p": 0.104088,
+        "holm_threshold": 0.025,
+        "reject_holm": false
+      },
+      "anisotropy": {
+        "p": 0.104088,
+        "holm_threshold": 0.05,
+        "reject_holm": false
+      }
+    },
+    "benjamini_hochberg": {
+      "rankme": {
+        "p": 0.104088,
+        "bh_threshold": 0.025,
+        "reject_bh": false
+      },
+      "anisotropy": {
+        "p": 0.104088,
+        "bh_threshold": 0.05,
+        "reject_bh": false
+      }
+    }
+  },
+  "summary": {
+    "global_holm_survive": [],
+    "global_bh_survive": [
+      "alpha_spectral",
+      "participation_ratio",
+      "stable_rank"
+    ],
+    "vitl_holm_survive": [],
+    "vitl_bh_survive": []
+  }
+}

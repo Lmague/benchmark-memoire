@@ -1,0 +1,131 @@
+{
+  "metric": "f1_macro_pres",
+  "selection_metric": "f1_macro_all",
+  "models": {
+    "vitb16_imagenet": {
+      "n_layers": 12,
+      "layers": {
+        "0": {
+          "f1_macro_pres": 0.31454053670207255,
+          "f1_macro_all": 0.2883288253102332,
+          "best_C": 1.0,
+          "rankme": 5.616616725921631,
+          "rankme_normalized": 0.00731330302854379,
+          "anisotropy": 0.9976818561553955,
+          "dim": 768
+        },
+        "1": {
+          "f1_macro_pres": 0.3706791574600101,
+          "f1_macro_all": 0.3397892276716759,
+          "best_C": 10.0,
+          "rankme": 12.639827728271484,
+          "rankme_normalized": 0.01645810902118683,
+          "anisotropy": 0.9941028356552124,
+          "dim": 768
+        },
+        "2": {
+          "f1_macro_pres": 0.3966934718505988,
+          "f1_macro_all": 0.36363568252971556,
+          "best_C": 10.0,
+          "rankme": 18.63062858581543,
+          "rankme_normalized": 0.024258630971113842,
+          "anisotropy": 0.9926855564117432,
+          "dim": 768
+        },
+        "3": {
+          "f1_macro_pres": 0.42298664756292814,
+          "f1_macro_all": 0.3877377602660175,
+          "best_C": 0.1,
+          "rankme": 31.11163902282715,
+          "rankme_normalized": 0.04050994664430618,
+          "anisotropy": 0.9894634485244751,
+          "dim": 768
+        },
+        "4": {
+          "f1_macro_pres": 0.4331903899018094,
+          "f1_macro_all": 0.3970911907433253,
+          "best_C": 0.01,
+          "rankme": 53.0427360534668,
+          "rankme_normalized": 0.06906606256961823,
+          "anisotropy": 0.9865868091583252,
+          "dim": 768
+        },
+        "5": {
+          "f1_macro_pres": 0.44234053335830564,
+          "f1_macro_all": 0.4054788222451135,
+          "best_C": 0.01,
+          "rankme": 85.00839233398438,
+          "rankme_normalized": 0.11068801085154216,
+          "anisotropy": 0.9812673926353455,
+          "dim": 768
+        },
+        "6": {
+          "f1_macro_pres": 0.44194704483746183,
+          "f1_macro_all": 0.40511812443434003,
+          "best_C": 0.01,
+          "rankme": 144.3650665283203,
+          "rankme_normalized": 0.18797534704208374,
+          "anisotropy": 0.9667101502418518,
+          "dim": 768
+        },
+        "7": {
+          "f1_macro_pres": 0.45475691385560546,
+          "f1_macro_all": 0.41686050436763833,
+          "best_C": 0.001,
+          "rankme": 261.4244689941406,
+          "rankme_normalized": 0.3403964440027873,
+          "anisotropy": 0.900924801826477,
+          "dim": 768
+        },
+        "8": {
+          "f1_macro_pres": 0.45220307836973156,
+          "f1_macro_all": 0.41451948850558723,
+          "best_C": 0.001,
+          "rankme": 367.4760437011719,
+          "rankme_normalized": 0.47848443190256756,
+          "anisotropy": 0.7408171892166138,
+          "dim": 768
+        },
+        "9": {
+          "f1_macro_pres": 0.4549082387510982,
+          "f1_macro_all": 0.4169992188551734,
+          "best_C": 0.001,
+          "rankme": 372.69775390625,
+          "rankme_normalized": 0.4852835337320964,
+          "anisotropy": 0.6343609094619751,
+          "dim": 768
+        },
+        "10": {
+          "f1_macro_pres": 0.44107695258474294,
+          "f1_macro_all": 0.4043205398693477,
+          "best_C": 0.01,
+          "rankme": 374.79840087890625,
+          "rankme_normalized": 0.4880187511444092,
+          "anisotropy": 0.6838934421539307,
+          "dim": 768
+        },
+        "11": {
+          "f1_macro_pres": 0.45065829108469146,
+          "f1_macro_all": 0.4131034334943005,
+          "best_C": 0.01,
+          "rankme": 352.1916198730469,
+          "rankme_normalized": 0.4585828383763631,
+          "anisotropy": 0.6349678635597229,
+          "dim": 768
+        }
+      },
+      "within_model_correlation": {
+        "n_layers": 12,
+        "spearman_rankme_norm_vs_f1": 0.8251748251748254,
+        "spearman_anisotropy_vs_f1": -0.8811188811188813
+      }
+    }
+  },
+  "pooled_correlation": {
+    "n_points": 12,
+    "spearman_rankme_norm_vs_f1": 0.8251748251748254,
+    "kendall_rankme_norm_vs_f1": 0.7272727272727272,
+    "spearman_anisotropy_vs_f1": -0.8811188811188813,
+    "kendall_anisotropy_vs_f1": -0.7575757575757575
+  }
+}
