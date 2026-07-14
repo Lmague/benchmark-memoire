@@ -1,0 +1,572 @@
+{
+  "scheme": "Scheme (11 classes)",
+  "f1_source": "Linear probe (logistic regression, sym C-grid)",
+  "C_grid": [
+    0.0001,
+    0.001,
+    0.01,
+    0.1,
+    1.0,
+    10.0
+  ],
+  "modelset": "allseeds",
+  "n_models": 24,
+  "f1_values": {
+    "resnet50_imagenet": 0.40762026192794515,
+    "vitb16_imagenet": 0.4499673184267636,
+    "dinov3_vitb16_lvd": 0.47121235368306935,
+    "dinov3_vitl16_sat": 0.46204819824639976,
+    "dinov3_vitl16_lvd": 0.4792139302399709,
+    "simdinov2_vitb16": 0.47225573315523817,
+    "simdinov2_vitl16": 0.47600071743326294,
+    "satmae_vitl16": 0.4091129384679247,
+    "scalemae_vitl16": 0.44804610126842087,
+    "resnet50_arctic": 0.46188327197638884,
+    "vitb16_arctic": 0.47594375510977405,
+    "vitb16_fulft_arctic": 0.4796229796373906,
+    "vitb16_explora_sota_seed0": 0.4508628882831456,
+    "vitb16_explora_sota_seed1": 0.47613666090220136,
+    "vitb16_explora_sota_seed2": 0.47340176639540665,
+    "vitb16_full_sota_seed0": 0.4616848110728125,
+    "vitb16_full_sota_seed1": 0.4763819117543463,
+    "vitb16_full_sota_seed2": 0.47428424843741085,
+    "vitb16_mhsa_sota_seed0": 0.4662102762919279,
+    "vitb16_mhsa_sota_seed1": 0.4746209293386631,
+    "vitb16_mhsa_sota_seed2": 0.4657834425201818,
+    "vitb16_scratch_sota_seed0": 0.37045214770680546,
+    "vitb16_scratch_sota_seed1": 0.34428967347365275,
+    "vitb16_scratch_sota_seed2": 0.35363023268279475
+  },
+  "correlations": [
+    {
+      "name": "silhouette_score",
+      "n": 24,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_seed0",
+        "vitb16_explora_sota_seed1",
+        "vitb16_explora_sota_seed2",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_seed0",
+        "vitb16_full_sota_seed1",
+        "vitb16_full_sota_seed2",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_seed0",
+        "vitb16_mhsa_sota_seed1",
+        "vitb16_mhsa_sota_seed2",
+        "vitb16_scratch_sota_seed0",
+        "vitb16_scratch_sota_seed1",
+        "vitb16_scratch_sota_seed2"
+      ],
+      "spearman_rho": 0.8104347826086956,
+      "spearman_p": 1.5812776523696217e-06,
+      "pearson_r": 0.9076228429056621,
+      "pearson_p": 9.348083367891628e-10,
+      "spearman_rho_loo_range": [
+        0.7845849802371542,
+        0.8577075098814229
+      ],
+      "pearson_r_loo_range": [
+        0.8796468174181149,
+        0.9569153004546876
+      ],
+      "outlier_warning": {
+        "rho_without_worst": 0.790513833992095,
+        "r_without_worst": 0.9569153004546876,
+        "worst_outlier_model": "resnet50_imagenet",
+        "is_carried_by_single_outlier": false
+      }
+    },
+    {
+      "name": "davies_bouldin_index",
+      "n": 24,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_seed0",
+        "vitb16_explora_sota_seed1",
+        "vitb16_explora_sota_seed2",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_seed0",
+        "vitb16_full_sota_seed1",
+        "vitb16_full_sota_seed2",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_seed0",
+        "vitb16_mhsa_sota_seed1",
+        "vitb16_mhsa_sota_seed2",
+        "vitb16_scratch_sota_seed0",
+        "vitb16_scratch_sota_seed1",
+        "vitb16_scratch_sota_seed2"
+      ],
+      "spearman_rho": -0.6069565217391303,
+      "spearman_p": 0.0016613144755187742,
+      "pearson_r": -0.46429375414445734,
+      "pearson_p": 0.022277497638264563,
+      "spearman_rho_loo_range": [
+        -0.7351778656126482,
+        -0.5602766798418972
+      ],
+      "pearson_r_loo_range": [
+        -0.5278826231504342,
+        -0.4476821281561488
+      ],
+      "outlier_warning": {
+        "rho_without_worst": -0.567193675889328,
+        "r_without_worst": -0.5278826231504342,
+        "worst_outlier_model": "resnet50_imagenet",
+        "is_carried_by_single_outlier": false
+      }
+    },
+    {
+      "name": "calinski_harabasz_index",
+      "n": 24,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_seed0",
+        "vitb16_explora_sota_seed1",
+        "vitb16_explora_sota_seed2",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_seed0",
+        "vitb16_full_sota_seed1",
+        "vitb16_full_sota_seed2",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_seed0",
+        "vitb16_mhsa_sota_seed1",
+        "vitb16_mhsa_sota_seed2",
+        "vitb16_scratch_sota_seed0",
+        "vitb16_scratch_sota_seed1",
+        "vitb16_scratch_sota_seed2"
+      ],
+      "spearman_rho": -0.003478260869565217,
+      "spearman_p": 0.9871304734643621,
+      "pearson_r": -0.453305222047483,
+      "pearson_p": 0.02610491522439258,
+      "spearman_rho_loo_range": [
+        -0.07509881422924902,
+        0.13043478260869565
+      ],
+      "pearson_r_loo_range": [
+        -0.6227267259782293,
+        -0.28741104635145637
+      ],
+      "outlier_warning": {
+        "rho_without_worst": -0.07509881422924902,
+        "r_without_worst": -0.6227267259782293,
+        "worst_outlier_model": "resnet50_imagenet",
+        "is_carried_by_single_outlier": false
+      }
+    },
+    {
+      "name": "nc1",
+      "n": 24,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_seed0",
+        "vitb16_explora_sota_seed1",
+        "vitb16_explora_sota_seed2",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_seed0",
+        "vitb16_full_sota_seed1",
+        "vitb16_full_sota_seed2",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_seed0",
+        "vitb16_mhsa_sota_seed1",
+        "vitb16_mhsa_sota_seed2",
+        "vitb16_scratch_sota_seed0",
+        "vitb16_scratch_sota_seed1",
+        "vitb16_scratch_sota_seed2"
+      ],
+      "spearman_rho": 0.19217391304347822,
+      "spearman_p": 0.3683204887556275,
+      "pearson_r": 0.502049834638103,
+      "pearson_p": 0.012424098535040852,
+      "spearman_rho_loo_range": [
+        0.08399209486166008,
+        0.2707509881422925
+      ],
+      "pearson_r_loo_range": [
+        0.4087676656113614,
+        0.5551996238552448
+      ],
+      "outlier_warning": {
+        "rho_without_worst": 0.08498023715415019,
+        "r_without_worst": 0.4087676656113614,
+        "worst_outlier_model": "vitb16_scratch_sota_seed0",
+        "is_carried_by_single_outlier": false
+      }
+    },
+    {
+      "name": "nc2_deviation_etf",
+      "n": 24,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_seed0",
+        "vitb16_explora_sota_seed1",
+        "vitb16_explora_sota_seed2",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_seed0",
+        "vitb16_full_sota_seed1",
+        "vitb16_full_sota_seed2",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_seed0",
+        "vitb16_mhsa_sota_seed1",
+        "vitb16_mhsa_sota_seed2",
+        "vitb16_scratch_sota_seed0",
+        "vitb16_scratch_sota_seed1",
+        "vitb16_scratch_sota_seed2"
+      ],
+      "spearman_rho": -0.4278260869565217,
+      "spearman_p": 0.03702422793856043,
+      "pearson_r": -0.584445481870352,
+      "pearson_p": 0.0027076697940242624,
+      "spearman_rho_loo_range": [
+        -0.4881422924901186,
+        -0.358695652173913
+      ],
+      "pearson_r_loo_range": [
+        -0.627954001426059,
+        -0.5375450662704173
+      ],
+      "outlier_warning": {
+        "rho_without_worst": -0.358695652173913,
+        "r_without_worst": -0.5375450662704173,
+        "worst_outlier_model": "vitb16_scratch_sota_seed1",
+        "is_carried_by_single_outlier": false
+      }
+    },
+    {
+      "name": "dim_mle_mean",
+      "n": 24,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_seed0",
+        "vitb16_explora_sota_seed1",
+        "vitb16_explora_sota_seed2",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_seed0",
+        "vitb16_full_sota_seed1",
+        "vitb16_full_sota_seed2",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_seed0",
+        "vitb16_mhsa_sota_seed1",
+        "vitb16_mhsa_sota_seed2",
+        "vitb16_scratch_sota_seed0",
+        "vitb16_scratch_sota_seed1",
+        "vitb16_scratch_sota_seed2"
+      ],
+      "spearman_rho": 0.07391304347826086,
+      "spearman_p": 0.7314191793924035,
+      "pearson_r": 0.6992591253992917,
+      "pearson_p": 0.00014348700049214718,
+      "spearman_rho_loo_range": [
+        -0.05039525691699605,
+        0.13043478260869565
+      ],
+      "pearson_r_loo_range": [
+        0.6053073727130507,
+        0.7488658816309628
+      ],
+      "outlier_warning": {
+        "rho_without_worst": -0.05039525691699605,
+        "r_without_worst": 0.6053073727130507,
+        "worst_outlier_model": "vitb16_scratch_sota_seed2",
+        "is_carried_by_single_outlier": false
+      }
+    },
+    {
+      "name": "dim_mle_median",
+      "n": 24,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_seed0",
+        "vitb16_explora_sota_seed1",
+        "vitb16_explora_sota_seed2",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_seed0",
+        "vitb16_full_sota_seed1",
+        "vitb16_full_sota_seed2",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_seed0",
+        "vitb16_mhsa_sota_seed1",
+        "vitb16_mhsa_sota_seed2",
+        "vitb16_scratch_sota_seed0",
+        "vitb16_scratch_sota_seed1",
+        "vitb16_scratch_sota_seed2"
+      ],
+      "spearman_rho": 0.08695652173913042,
+      "spearman_p": 0.6861953252985288,
+      "pearson_r": 0.654699141324154,
+      "pearson_p": 0.0005178632595444058,
+      "spearman_rho_loo_range": [
+        -0.03557312252964427,
+        0.13636363636363635
+      ],
+      "pearson_r_loo_range": [
+        0.5527684984726905,
+        0.7104321795342098
+      ],
+      "outlier_warning": {
+        "rho_without_worst": -0.03557312252964427,
+        "r_without_worst": 0.5527684984726905,
+        "worst_outlier_model": "vitb16_scratch_sota_seed2",
+        "is_carried_by_single_outlier": false
+      }
+    },
+    {
+      "name": "global_effective_rank",
+      "n": 24,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_seed0",
+        "vitb16_explora_sota_seed1",
+        "vitb16_explora_sota_seed2",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_seed0",
+        "vitb16_full_sota_seed1",
+        "vitb16_full_sota_seed2",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_seed0",
+        "vitb16_mhsa_sota_seed1",
+        "vitb16_mhsa_sota_seed2",
+        "vitb16_scratch_sota_seed0",
+        "vitb16_scratch_sota_seed1",
+        "vitb16_scratch_sota_seed2"
+      ],
+      "spearman_rho": 0.1826086956521739,
+      "spearman_p": 0.39307499311229416,
+      "pearson_r": -0.03970553612462488,
+      "pearson_p": 0.8538528147032283,
+      "spearman_rho_loo_range": [
+        0.07411067193675888,
+        0.27865612648221344
+      ],
+      "pearson_r_loo_range": [
+        -0.13970794822604596,
+        0.658037209177511
+      ],
+      "outlier_warning": {
+        "rho_without_worst": 0.27865612648221344,
+        "r_without_worst": 0.658037209177511,
+        "worst_outlier_model": "resnet50_imagenet",
+        "is_carried_by_single_outlier": true
+      }
+    },
+    {
+      "name": "global_stable_rank",
+      "n": 24,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_seed0",
+        "vitb16_explora_sota_seed1",
+        "vitb16_explora_sota_seed2",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_seed0",
+        "vitb16_full_sota_seed1",
+        "vitb16_full_sota_seed2",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_seed0",
+        "vitb16_mhsa_sota_seed1",
+        "vitb16_mhsa_sota_seed2",
+        "vitb16_scratch_sota_seed0",
+        "vitb16_scratch_sota_seed1",
+        "vitb16_scratch_sota_seed2"
+      ],
+      "spearman_rho": 0.2817391304347826,
+      "spearman_p": 0.1822827700109572,
+      "pearson_r": 0.23928735365303666,
+      "pearson_p": 0.2601058354178214,
+      "spearman_rho_loo_range": [
+        0.18577075098814227,
+        0.391304347826087
+      ],
+      "pearson_r_loo_range": [
+        0.11425737808522819,
+        0.7655666574650805
+      ],
+      "outlier_warning": {
+        "rho_without_worst": 0.391304347826087,
+        "r_without_worst": 0.7655666574650805,
+        "worst_outlier_model": "resnet50_imagenet",
+        "is_carried_by_single_outlier": true
+      }
+    },
+    {
+      "name": "global_participation_ratio",
+      "n": 24,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_seed0",
+        "vitb16_explora_sota_seed1",
+        "vitb16_explora_sota_seed2",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_seed0",
+        "vitb16_full_sota_seed1",
+        "vitb16_full_sota_seed2",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_seed0",
+        "vitb16_mhsa_sota_seed1",
+        "vitb16_mhsa_sota_seed2",
+        "vitb16_scratch_sota_seed0",
+        "vitb16_scratch_sota_seed1",
+        "vitb16_scratch_sota_seed2"
+      ],
+      "spearman_rho": 0.18956521739130433,
+      "spearman_p": 0.374980391143915,
+      "pearson_r": -0.0033229257666504836,
+      "pearson_p": 0.9877051683219922,
+      "spearman_rho_loo_range": [
+        0.08102766798418974,
+        0.2865612648221344
+      ],
+      "pearson_r_loo_range": [
+        -0.10782656790980168,
+        0.7047909343973836
+      ],
+      "outlier_warning": {
+        "rho_without_worst": 0.2865612648221344,
+        "r_without_worst": 0.7047909343973836,
+        "worst_outlier_model": "resnet50_imagenet",
+        "is_carried_by_single_outlier": true
+      }
+    },
+    {
+      "name": "global_alpha",
+      "n": 24,
+      "models": [
+        "dinov3_vitb16_lvd",
+        "dinov3_vitl16_lvd",
+        "dinov3_vitl16_sat",
+        "resnet50_arctic",
+        "resnet50_imagenet",
+        "satmae_vitl16",
+        "scalemae_vitl16",
+        "simdinov2_vitb16",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "vitb16_explora_sota_seed0",
+        "vitb16_explora_sota_seed1",
+        "vitb16_explora_sota_seed2",
+        "vitb16_fulft_arctic",
+        "vitb16_full_sota_seed0",
+        "vitb16_full_sota_seed1",
+        "vitb16_full_sota_seed2",
+        "vitb16_imagenet",
+        "vitb16_mhsa_sota_seed0",
+        "vitb16_mhsa_sota_seed1",
+        "vitb16_mhsa_sota_seed2",
+        "vitb16_scratch_sota_seed0",
+        "vitb16_scratch_sota_seed1",
+        "vitb16_scratch_sota_seed2"
+      ],
+      "spearman_rho": -0.21739130434782608,
+      "spearman_p": 0.30753321054890714,
+      "pearson_r": -0.606602553099729,
+      "pearson_p": 0.0016745917037458067,
+      "spearman_rho_loo_range": [
+        -0.3181818181818182,
+        -0.11264822134387352
+      ],
+      "pearson_r_loo_range": [
+        -0.8299643799228184,
+        -0.4964626160905205
+      ],
+      "outlier_warning": {
+        "rho_without_worst": -0.3181818181818182,
+        "r_without_worst": -0.8299643799228184,
+        "worst_outlier_model": "resnet50_imagenet",
+        "is_carried_by_single_outlier": false
+      }
+    }
+  ],
+  "outlier_threshold": "|rho| or |r| change > 0.3 on LOO",
+  "sota_scatter": {}
+}

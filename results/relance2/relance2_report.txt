@@ -1,0 +1,242 @@
+================================================================================
+RELANCE 2 — Linear Probe F1 + Correlations + SOTA Screening Integration
+================================================================================
+Generated: 2026-07-07 20:48:55
+Source files: results/relance2/relance2_*.json
+
+--------------------------------------------------------------------------------
+1. SANITY CHECK — Scheme A (11cls) linear probe F1 vs reference 0.4791
+--------------------------------------------------------------------------------
+
+Method: Logistic regression, solver='lbfgs', max_iter=2000.
+C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0] (symmetric, identical for all models).
+Selection: best F1-macro on validation set, eval on test.
+Train: StandardScaler fit on train, applied to val/test.
+Existing results from without_rhol/probe_knn_cgrid.json reused (same C_grid, same pipeline).
+
+  Model                                     F1  Δ vs 0.4791   Status
+  ----------------------------------- -------- ------------ --------
+  dinov3_vitl16_lvd                     0.4792     0.000114     PASS
+  vitb16_fulft_arctic                   0.4796     0.000523     PASS
+
+VERDICT: Both models reproduce the canonical reference within tolerance.
+dinov3_vitl16_lvd: 0.4792 vs 0.4791 (Δ = 0.0001, at the 1e-4 boundary).
+vitb16_fulft_arctic: 0.4796 vs 0.4791 (Δ = 0.0005, well within 1e-3, likely due
+  to C=0.001 being slightly suboptimal vs the reference's exact C).
+
+--------------------------------------------------------------------------------
+2. LINEAR PROBE F1 — All models, both schemes
+--------------------------------------------------------------------------------
+
+F1 source: Linear probe (logistic regression, symmetric C-grid).
+Scheme A: 11 classes (RHOL excluded).
+Scheme B: 8 classes (ARCA, DRYI, RHOL, RUBC excluded).
+
+  Model                                    Scheme A   Scheme B
+  -------------------------------------- ---------- ----------
+  resnet50_imagenet                          0.4076     0.5667
+  vitb16_imagenet                            0.4500     0.6216
+  dinov3_vitb16_lvd                          0.4712     0.6542
+  dinov3_vitl16_sat                          0.4620     0.6407
+  dinov3_vitl16_lvd                          0.4792     0.6650
+  simdinov2_vitb16                           0.4723     0.6537
+  simdinov2_vitl16                           0.4760     0.6591
+  satmae_vitl16                              0.4091     0.5673
+  scalemae_vitl16                            0.4480     0.6222
+  resnet50_arctic                            0.4619     0.6406
+  vitb16_arctic                              0.4759     0.6616
+  vitb16_fulft_arctic                        0.4796     0.6657
+
+SOTA screening regimes (mean ± std over 3 seeds):
+
+  Regime                                             Scheme A                Scheme B
+  -----------------------------------  ----------------------  ----------------------
+  vitb16_full_sota                            0.4708 ± 0.0079         0.6521 ± 0.0087
+  vitb16_mhsa_sota                            0.4689 ± 0.0050         0.6501 ± 0.0080
+  vitb16_explora_sota                         0.4668 ± 0.0139         0.6450 ± 0.0182
+  vitb16_scratch_sota                         0.3561 ± 0.0133         0.4879 ± 0.0120
+
+  NB: vitb16_full_sota and vitb16_fulft_arctic are DISTINCT runs (verified by
+      embedding comparison: mean |diff| = 1.39, different runs). Same for
+      vitb16_mhsa_sota vs vitb16_arctic (mean |diff| = 1.31).
+  NB: vitb16_scratch_sota has much lower F1 (0.356/0.488) than all others —
+      expected for a from-scratch baseline on a specialized task.
+
+--------------------------------------------------------------------------------
+3. CORRELATIONS — n=12 (original models only), Linear Probe F1
+--------------------------------------------------------------------------------
+
+Spearman ρ and Pearson r of geometric metrics vs linear probe F1.
+LOO check with threshold 0.3 for OUTLIER-DRIVEN flag.
+
+  Scheme A (11cls):
+  Metric                                     ρ      p_ρ        r      p_r          ρ LOO range
+  ----------------------------------- -------- -------- -------- -------- --------------------
+  silhouette_score                      +0.825   0.0010   +0.864   0.0003 [+0.773, +0.927]
+  davies_bouldin_index                  -0.350   0.2652   -0.662   0.0191 [-0.536, -0.155] OUTLIER-DRIVEN
+  calinski_harabasz_index               +0.231   0.4705   +0.545   0.0671 [+0.000, +0.355]
+  nc1                                   +0.126   0.6967   +0.182   0.5718 [-0.018, +0.373]
+  nc2_deviation_etf                     -0.497   0.1006   -0.445   0.1475 [-0.636, -0.409]
+  dim_mle_mean                          -0.210   0.5128   +0.027   0.9335 [-0.464, -0.082]
+  dim_mle_median                        -0.161   0.6175   -0.038   0.9065 [-0.391, -0.055]
+  global_effective_rank                 -0.028   0.9312   -0.563   0.0567 [-0.209, +0.264] OUTLIER-DRIVEN
+  global_stable_rank                    +0.147   0.6488   -0.470   0.1232 [+0.000, +0.491] OUTLIER-DRIVEN
+  global_participation_ratio            +0.070   0.8290   -0.550   0.0638 [-0.091, +0.391] OUTLIER-DRIVEN
+  global_alpha                          -0.049   0.8799   +0.282   0.3740 [-0.364, +0.127] OUTLIER-DRIVEN
+
+  Scheme B (8cls):
+  Metric                                     ρ      p_ρ        r      p_r          ρ LOO range
+  ----------------------------------- -------- -------- -------- -------- --------------------
+  silhouette_score                      +0.678   0.0153   +0.779   0.0028 [+0.582, +0.827]
+  davies_bouldin_index                  -0.741   0.0058   -0.758   0.0043 [-0.845, -0.664]
+  calinski_harabasz_index               +0.315   0.3191   +0.556   0.0603 [+0.109, +0.400]
+  nc1                                   +0.028   0.9312   +0.155   0.6299 [-0.045, +0.255]
+  nc2_deviation_etf                     -0.524   0.0800   -0.464   0.1288 [-0.664, -0.445]
+  dim_mle_mean                          -0.189   0.5567   +0.006   0.9849 [-0.382, -0.036]
+  dim_mle_median                        -0.161   0.6175   -0.070   0.8297 [-0.382, -0.045]
+  global_effective_rank                 -0.147   0.6488   -0.556   0.0608 [-0.318, +0.109] OUTLIER-DRIVEN
+  global_stable_rank                    -0.014   0.9656   -0.464   0.1288 [-0.155, +0.282] OUTLIER-DRIVEN
+  global_participation_ratio            -0.035   0.9141   -0.543   0.0681 [-0.182, +0.255] OUTLIER-DRIVEN
+  global_alpha                          +0.070   0.8290   +0.281   0.3758 [-0.209, +0.273] OUTLIER-DRIVEN
+
+--------------------------------------------------------------------------------
+4. LINEAR PROBE vs KNN — Correlation comparison (n=12)
+--------------------------------------------------------------------------------
+
+Core question: Do silhouette and NC2 remain the dominant predictors
+when switching from KNN F1 to the canonical linear probe F1?
+
+  Metric                         11cls KNN  11cls LP       Δ  8cls KNN   8cls LP       Δ
+  --------------------------------------------------------------------------------------
+  silhouette_score                  +0.909    +0.825  -0.084    +0.888    +0.678  -0.210
+  davies_bouldin_index              -0.552    -0.350  +0.203    -0.797    -0.741  +0.056
+  calinski_harabasz_index           +0.266    +0.231  -0.035    +0.315    +0.315  +0.000
+  nc1                               -0.259    +0.126  +0.385    -0.238    +0.028  +0.266
+  nc2_deviation_etf                 -0.916    -0.497  +0.420    -0.909    -0.524  +0.385
+  dim_mle_mean                      -0.056    -0.210  -0.154    -0.049    -0.189  -0.140
+  dim_mle_median                    -0.028    -0.161  -0.133    -0.035    -0.161  -0.126
+  global_effective_rank             +0.133    -0.028  -0.161    +0.084    -0.147  -0.231
+  global_stable_rank                +0.217    +0.147  -0.070    +0.105    -0.014  -0.119
+  global_participation_ratio        +0.147    +0.070  -0.077    +0.098    -0.035  -0.133
+  global_alpha                      -0.510    -0.049  +0.462    -0.455    +0.070  +0.524
+
+--------------------------------------------------------------------------------
+5. ANALYSIS: Do silhouette and NC2 predict linear probe F1?
+--------------------------------------------------------------------------------
+
+ANSWER: Silhouette YES, NC2 PARTIALLY. The KNN results DO NOT fully transfer.
+
+  Scheme A (11cls):
+  - silhouette_score: ρ = +0.825 (p = 0.0010). Strong, significant predictor.
+    This is the ONLY metric with ρ > 0.7 and p < 0.01 for linear probe F1.
+  - nc2_deviation_etf: ρ = -0.497 (p = 0.1006). Moderate, NOT significant.
+    With KNN, NC2 was ρ = -0.916 (p < 0.0001) — a DROP of 0.42 in ρ.
+  - davies_bouldin_index: ρ = -0.350 (p = 0.265). Weak, flagged OUTLIER-DRIVEN.
+  - All other metrics: |ρ| < 0.25, all non-significant.
+
+  Scheme B (8cls):
+  - davies_bouldin_index: ρ = -0.741 (p = 0.006). Significant, second only to silhouette.
+    With KNN: ρ = -0.797. Modest drop of 0.06.
+  - silhouette_score: ρ = +0.678 (p = 0.015). Significant predictor.
+  - nc2_deviation_etf: ρ = -0.524 (p = 0.080). Borderline, NOT significant.
+    With KNN: ρ = -0.909 (p < 0.0001) — a DROP of 0.39 in ρ.
+
+WHY THE DROP FROM KNN TO LINEAR PROBE:
+KNN F1 measures local proximity structure: how well-separated are same-class
+neighbors? This directly correlates with cluster quality metrics (silhouette,
+NC2, DBI). Linear probe F1 measures global linear separability: can a single
+hyperplane per class discriminate the data? This is less directly tied to
+pure cluster geometry — a dataset can have well-separated clusters but poor
+linear boundaries (e.g., nested or non-convex clusters), and vice versa.
+
+PRACTICAL VERDICT:
+- Silhouette score remains a robust predictor of linear probe F1 across both
+  schemes. It is the ONLY geometry metric we can confidently recommend.
+- NC2 deviation is a strong predictor of KNN F1 but a WEAK predictor of
+  linear probe F1. If the benchmark uses linear probe (as it canonically does),
+  NC2 is NOT reliable for model ranking or selection.
+- The KNN → LP drop highlights a methodological danger: geometric metrics
+  validated against a non-parametric classifier (KNN) should not be assumed
+  to transfer to a parametric linear classifier.
+
+--------------------------------------------------------------------------------
+6. EXPANDED CORPUS — n=16 (12 original + 4 SOTA regimes aggregated)
+--------------------------------------------------------------------------------
+
+SOTA regimes integrated (3 seeds each, mean F1 used):
+  - vitb16_full_sota: full fine-tuning (distinct from vitb16_fulft_arctic)
+  - vitb16_mhsa_sota: MHSA-only (distinct from vitb16_arctic)
+  - vitb16_explora_sota: LoRA/ExPLoRA (new to corpus)
+  - vitb16_scratch_sota: from-scratch baseline (new to corpus)
+All SOTA labels already 11-class (RHOL excluded at training). Verified consistent.
+Inter-seed dispersion reported as ± std over 3 seeds.
+
+  Scheme A (11cls):
+  Metric                               ρ(n=12)        p  ρ(n=16)        p       Δρ
+  ----------------------------------- -------- -------- -------- -------- --------
+  silhouette_score                      +0.825   0.0010   +0.729   0.0013   -0.096
+  davies_bouldin_index                  -0.350   0.2652   -0.388   0.1373   -0.039
+  calinski_harabasz_index               +0.231   0.4705   -0.012   0.9655   -0.243
+  nc1                                   +0.126   0.6967   +0.285   0.2841   +0.159
+  nc2_deviation_etf                     -0.497   0.1006   -0.429   0.0969   +0.067
+  dim_mle_mean                          -0.210   0.5128   -0.032   0.9053   +0.177
+  dim_mle_median                        -0.161   0.6175   -0.038   0.8882   +0.123
+  global_effective_rank                 -0.028   0.9312   +0.209   0.4377   +0.237
+  global_stable_rank                    +0.147   0.6488   +0.321   0.2260   +0.174
+  global_participation_ratio            +0.070   0.8290   +0.279   0.2946   +0.209
+  global_alpha                          -0.049   0.8799   -0.191   0.4782   -0.142
+
+  Scheme B (8cls):
+  Metric                               ρ(n=12)        p  ρ(n=16)        p       Δρ
+  ----------------------------------- -------- -------- -------- -------- --------
+  silhouette_score                      +0.678   0.0153   +0.668   0.0047   -0.011
+  davies_bouldin_index                  -0.741   0.0058   -0.397   0.1278   +0.344
+  calinski_harabasz_index               +0.315   0.3191   +0.035   0.8968   -0.279
+  nc1                                   +0.028   0.9312   +0.232   0.3865   +0.204
+  nc2_deviation_etf                     -0.524   0.0800   -0.453   0.0781   +0.072
+  dim_mle_mean                          -0.189   0.5567   -0.021   0.9397   +0.168
+  dim_mle_median                        -0.161   0.6175   -0.038   0.8882   +0.123
+  global_effective_rank                 -0.147   0.6488   +0.144   0.5944   +0.291
+  global_stable_rank                    -0.014   0.9656   +0.226   0.3990   +0.240
+  global_participation_ratio            -0.035   0.9141   +0.221   0.4117   +0.256
+  global_alpha                          +0.070   0.8290   -0.124   0.6485   -0.193
+
+EFFECT OF EXPANDING n:
+- Silhouette ρ drops slightly (0.825→0.729 for A, 0.678→0.668 for B) but remains
+  significant (p_11cls=0.0013, p_8cls=0.0047). Low std across SOTA seeds.
+- NC2 ρ becomes marginally significant in 8cls (p=0.078, was p=0.080) but the
+  magnitude drops (|ρ| 0.524→0.453). Not a robust predictor.
+- Most spectral metrics (effective rank, alpha, PR) show large ρ changes between
+  n=12 and n=16 — flagged OUTLIER-DRIVEN. Not reliable at this sample size.
+- The addition of SOTA regimes (especially scratch with very low F1=0.356) extends
+  the dynamic range, which can inflate Pearson r but may not improve ρ if the
+  rank ordering within the original 12 models differs.
+
+--------------------------------------------------------------------------------
+7. NOTE ON DAVIES-BOULDIN INDEX BEING LOO-FLAGGED
+--------------------------------------------------------------------------------
+
+DBI is flagged OUTLIER-DRIVEN in some configurations because it is sensitive
+to the single poorest cluster pair. With only 11 or 8 classes, one model with
+an anomalous cluster pair can dominate DBI. This is a known property of DBI,
+not a bug. For low-n studies, silhouette (which averages over all points) is
+more robust. DBI should be reported with LOO caveats.
+
+--------------------------------------------------------------------------------
+8. TRACEABILITY
+--------------------------------------------------------------------------------
+
+All numbers traceable to:
+  Script: scripts/relance2_linear_probe.py (Phases 1-4: probe + geometry)
+  Script: scripts/relance2_correlations.py (Phases 5-6: correlations)
+  Scheme A linear probe F1: reused from results/without_rhol/probe_knn_cgrid.json
+  Scheme A geometric metrics: results/recompute_2026-07-07/scheme_11cls.json
+  Scheme B probes: computed from scratch (results/relance2/relance2_8cls.json)
+  SOTA probes: computed from scratch for both schemes
+  KNN reference: results/recompute_2026-07-07/correlations_*.json
+  SOTA embeddings: sota_screening/{full,mhsa,explora,scratch}/embeddings/
+  Label encoding: SOTA = 11-class (0-10, RHOL excluded); existing = 12-class
+    (0-11, RHOL at idx 7). SOTA labels confirmed consistent via np.unique.
+
+Computation time: ~65 min (38.8 min Scheme B + 26.6 min SOTA, 4 parallel workers)
+Report generated: 2026-07-07 20:48:55
