@@ -1,0 +1,27 @@
+{
+  "item": "T2.c",
+  "method": "RidgeClassifier proxy (fit on full 49k training, predict on 17.6k test)",
+  "scheme": "11cls (RHOL dropped)",
+  "frozen": {
+    "model": "dinov3_vitl16_lvd",
+    "f1_ridge": 0.4768,
+    "f1_canonical_relance2": 0.4792
+  },
+  "ft": {
+    "model": "vitb16_fulft_arctic",
+    "f1_ridge": 0.4749,
+    "f1_canonical_relance2": 0.4796
+  },
+  "bootstrap": {
+    "n": 10000,
+    "delta_mean": -0.0019,
+    "delta_std": 0.0029,
+    "ci95": [
+      -0.0076,
+      0.0038
+    ],
+    "p_two_sided": 0.515
+  },
+  "conclusion": "Non-significant (p\u22480.52), models indistinguishable. Consistent with canonical logreg delta\u22480.",
+  "caveat": "RidgeClassifier proxy. Canonical LogisticRegression infeasible locally (cluster only)."
+}
