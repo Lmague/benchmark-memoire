@@ -20,6 +20,7 @@
 !/make_figures.py
 !/requirements.txt
 !/.gitignore
+!/paper_arctic_fm_benchmark/
 
 # 3) Caches Python toujours exclus, y compris sous src/ et configs/
 __pycache__/
@@ -32,6 +33,23 @@ __pycache__/
 # Artefacts lourds         : *.zip *.pdf *.npy *.pth
 # Hors transport           : legacy/ notebooks/ scripts/ "After Training/" .claude/
 # Utilitaires chemin absolu : validate_split.py  _gen_project_index.py
+
+# --- Fichiers de résultats canoniques (reproduction du manuscrit) ---
+# Relance2 (11cls + 8cls, source canonique unique du manuscript)
+!/results/relance2/
+# Bootstrap CI schéma 8cls
+!/results/8cls/
+# Métriques latentes et corrélations
+!/results/all_scores_consolidated.json
+!/results/correlations_corrected.json
+!/results/T2a_kmeans_control.json
+!/results/T2c_headline_pair_p.json
+
+# --- Répertoires lourds NON commités (images, logs, runs intermédiaires) ---
+# Les répertoires: figures/, figures_paper/, figures_support/,
+#   datacurve/, overnight/, nightly_*, recompute_*, final_2026-07/,
+#   layerwise/, reports/, transfer/
+# restent ignorés par le catch-all /* — sauf les JSON individuels ci-dessous.
 
 # Exception : transporter les scripts d'analyse (le reste de scripts/ reste ignoré)
 !/scripts/
