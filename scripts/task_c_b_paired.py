@@ -51,7 +51,7 @@ def _load_best_canonical() -> dict[str, float]:
 
     Ancienne version bugguée : ``BEST_C = 0.01`` en dur pour les 12 modèles.
     """
-    pk = PROJ / "results" / "with_rhol" / "probe_knn_cgrid.json"
+    pk = PROJ / "_anciennes_experiences" / "with_rhol" / "probe_knn_cgrid.json"
     with open(pk) as f:
         data = json.load(f)
     probe = data.get("probe", data)
