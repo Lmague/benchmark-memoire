@@ -35,15 +35,13 @@ __pycache__/
 # Utilitaires chemin absolu : validate_split.py  _gen_project_index.py
 
 # --- Fichiers de résultats canoniques (reproduction du manuscrit) ---
-# Relance2 (11cls + 8cls, source canonique unique du manuscript)
+# Relance2 (11cls + 8cls, source canonique unique du manuscript, corrélations n12 incluses)
 !/results/relance2/
-# Bootstrap CI schéma 8cls
-!/results/8cls/
 # Métriques latentes et corrélations
 !/results/all_scores_consolidated.json
-!/results/correlations_corrected.json
 !/results/T2a_kmeans_control.json
-!/results/T2c_headline_pair_p.json
+# Paire phare canonique (T2.c)
+!/results/T2c_headline_pair_p_CANONICAL.json
 
 # --- Répertoires lourds NON commités (images, logs, runs intermédiaires) ---
 # Les répertoires: figures/, figures_paper/, figures_support/,
@@ -93,25 +91,27 @@ __pycache__/
 # Sous-ensemble figé des JSON/CSV canoniques (reproductibilité)
 # Ces fichiers sont régénérés par ``make paper`` mais on en commit une copie
 # pour pouvoir relancer les figures/tables en local sans recalculer le probe.
-!/results/with_rhol/probe_knn_cgrid.json
-!/results/with_rhol/latent_metrics.json
-!/results/without_rhol/probe_knn_cgrid.json
+# Note : with_rhol/ archivé dans _anciennes_experiences/with_rhol/ (passe 2, 2026-07-14)
+!/_anciennes_experiences/with_rhol/probe_knn_cgrid.json
+!/_anciennes_experiences/with_rhol/latent_metrics.json
+!/_anciennes_experiences/without_rhol/probe_knn_cgrid.json
 !/results/significance_matrix_all12.json
 !/results/significance_matrix_all12.png
 !/results/geometry_extended_12models.json
-!/results/transfer/spectrum_metrics.json
-!/results/transfer/spectrum_metrics.csv
-!/results/transfer/logme_scores.json
-!/results/transfer/logme_scores.csv
-!/results/transfer/logme_vs_f1.json
-!/results/transfer/logme_vs_f1.png
-!/results/transfer/correlations_with_f1.json
-!/results/transfer/headline_pairs_paired_tests.json
-!/results/transfer/aso_matrix_eps_min.json
-!/results/transfer/heatmap_eps_min.png
-!/results/transfer/bootstrap_distributions.json
-!/results/transfer/pipeline_summary.json
-!/results/transfer/pipeline_run.log
+# Note : transfer/ archivé dans _anciennes_experiences/transfer/ (passe 2, 2026-07-14)
+!/_anciennes_experiences/transfer/spectrum_metrics.json
+!/_anciennes_experiences/transfer/spectrum_metrics.csv
+!/_anciennes_experiences/transfer/logme_scores.json
+!/_anciennes_experiences/transfer/logme_scores.csv
+!/_anciennes_experiences/transfer/logme_vs_f1.json
+!/_anciennes_experiences/transfer/logme_vs_f1.png
+!/_anciennes_experiences/transfer/correlations_with_f1.json
+!/_anciennes_experiences/transfer/headline_pairs_paired_tests.json
+!/_anciennes_experiences/transfer/aso_matrix_eps_min.json
+!/_anciennes_experiences/transfer/heatmap_eps_min.png
+!/_anciennes_experiences/transfer/bootstrap_distributions.json
+!/_anciennes_experiences/transfer/pipeline_summary.json
+!/_anciennes_experiences/transfer/pipeline_run.log
 !/results/correlations.json
 !/results/figures_paper/headline_pair.png
 !/results/figures_paper/controlled_pair.png
