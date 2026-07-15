@@ -13,6 +13,20 @@
 # ViT-L en SSL et ne spécifie PAS alpha ; ici r=16/alpha=16 (scaling=1.0) — capacité adaptée
 # au FT SUPERVISÉ d'un ViT-B sur ~50k tuiles (r est le principal levier, ajustable ici).
 # NB : warmup_epochs sous `schedule:` (lu par engine.build_scheduler).
+#
+# NB CRITIQUE : num_classes=11 exige des CSV DÉJÀ remappés (RHOL exclue, labels 0-10) —
+# splits/*.csv contient les labels bruts 0-11 (12cls) et train.py ne remappe PAS les
+# labels au chargement (bug confirmé, cf. docs/audit_labels_screening.md). On pointe donc
+# csv_dir vers splits_11cls/ (généré par scripts/generate_splits_11cls.py), qui contient
+# déjà train.csv/val.csv/test.csv filtrés+remappés. Sur Narval/Colab, générer
+# splits_11cls/ AVANT de lancer ce run (le script tourne en local pour l'instant).
+paths_local:
+  csv_dir: splits_11cls
+paths_narval:
+  csv_dir: ${SCRATCH}/splits_11cls
+paths_colab:
+  csv_dir: /content/drive/MyDrive/Memoire/splits_11cls
+
 model:
   name: vitb16
   num_classes: 11

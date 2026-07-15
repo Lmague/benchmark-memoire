@@ -83,6 +83,8 @@ class TrainCfg:
     deterministic: bool = False     # True -> cudnn.deterministic + benchmark off (~20 % plus lent)
     seed: int = 42
     save_every: int = 10
+    weighting: str = "sqrt"         # "sqrt" (1/sqrt(n), historique) | "effective_num" (Cui et al. 2019)
+    cui_beta: float = 0.999         # utilisé seulement si weighting == "effective_num"
 
 
 @dataclass

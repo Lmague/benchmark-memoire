@@ -3,6 +3,20 @@
 #   warmup 3 ep · bf16 (sans GradScaler) · grad_clip 1.0 · early-stop f1_macro_pres
 #   · LP-FT (head_only 2 ep). 11 classes (RHOL exclu), labels 0-10.
 # NB : warmup_epochs vit sous `schedule:` (lu par engine.build_scheduler), pas `train:`.
+#
+# NB CRITIQUE : num_classes=11 exige des CSV DÉJÀ remappés (RHOL exclue, labels 0-10) —
+# splits/*.csv contient les labels bruts 0-11 (12cls) et train.py ne remappe PAS les
+# labels au chargement (bug confirmé, cf. docs/audit_labels_screening.md). On pointe donc
+# csv_dir vers splits_11cls/ (généré par scripts/generate_splits_11cls.py), qui contient
+# déjà train.csv/val.csv/test.csv filtrés+remappés. Sur Narval/Colab, générer
+# splits_11cls/ AVANT de lancer ce run (le script tourne en local pour l'instant).
+paths_local:
+  csv_dir: splits_11cls
+paths_narval:
+  csv_dir: ${SCRATCH}/splits_11cls
+paths_colab:
+  csv_dir: /content/drive/MyDrive/Memoire/splits_11cls
+
 model:
   name: vitb16
   num_classes: 11
