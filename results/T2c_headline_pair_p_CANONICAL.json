@@ -1,0 +1,88 @@
+{
+  "item": "T2.c",
+  "method": "LogisticRegression lbfgs multinomial (canonique)",
+  "scheme": "11cls (RHOL dropped)",
+  "best_C": 0.001,
+  "C_grid": [
+    0.0001,
+    0.001,
+    0.01,
+    0.1,
+    1.0,
+    10.0
+  ],
+  "seed": 42,
+  "gate_f1_reproduced": {
+    "dinov3_vitl16_lvd": 0.4792139302399709,
+    "vitb16_fulft_arctic": 0.4796229796373906,
+    "canonical_dinov3_vitl16_lvd": 0.4792,
+    "canonical_vitb16_fulft_arctic": 0.4796,
+    "delta_dinov3_vitl16_lvd": 1.3930239970871838e-05,
+    "delta_vitb16_fulft_arctic": 2.29796373905633e-05
+  },
+  "bootstrap": {
+    "n": 10000,
+    "delta_mean": -0.00038749088548378123,
+    "delta_std": 0.0028087141322451353,
+    "ci95": [
+      -0.005972236497076354,
+      0.005104497475747459
+    ],
+    "p_two_sided": 0.8972
+  },
+  "paired": {
+    "frozen": "dinov3_vitl16_lvd",
+    "finetuned": "vitb16_fulft_arctic",
+    "delta_observed": -0.0004090493974197029,
+    "p_frozen_gt_finetuned": 0.4486,
+    "ci95_frozen": [
+      0.4732590542993009,
+      0.48504776395981875
+    ],
+    "ci95_finetuned": [
+      0.47363254236009616,
+      0.4853605399480889
+    ]
+  },
+  "conclusion": "Non-significant",
+  "models": {
+    "dinov3_vitl16_lvd": {
+      "best_C": 0.001,
+      "n_test": 17598,
+      "f1_linear_probe_reproduced": 0.4792139302399709,
+      "f1_macro_all": {
+        "observed": 0.4792139302399709,
+        "mean": 0.4792042304135678,
+        "std": 0.0030319546354079397,
+        "ci95_low": 0.4732590542993009,
+        "ci95_high": 0.48504776395981875
+      },
+      "f1_macro_pres": {
+        "observed": 0.4792139302399709,
+        "mean": 0.4792042304135678,
+        "std": 0.0030319546354079397,
+        "ci95_low": 0.4732590542993009,
+        "ci95_high": 0.48504776395981875
+      }
+    },
+    "vitb16_fulft_arctic": {
+      "best_C": 0.001,
+      "n_test": 17598,
+      "f1_linear_probe_reproduced": 0.4796229796373906,
+      "f1_macro_all": {
+        "observed": 0.4796229796373906,
+        "mean": 0.47959172129905164,
+        "std": 0.0030000382329896922,
+        "ci95_low": 0.47363254236009616,
+        "ci95_high": 0.4853605399480889
+      },
+      "f1_macro_pres": {
+        "observed": 0.4796229796373906,
+        "mean": 0.47959172129905164,
+        "std": 0.0030000382329896922,
+        "ci95_low": 0.47363254236009616,
+        "ci95_high": 0.4853605399480889
+      }
+    }
+  }
+}
