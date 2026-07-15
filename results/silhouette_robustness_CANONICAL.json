@@ -1,0 +1,935 @@
+{
+  "metadata": {
+    "script": "scripts/silhouette_top8_test.py",
+    "date": "2026-07-15",
+    "f1_source": "results/all_scores_consolidated.json (f1_macro_pres_11cls, without_rhol)",
+    "spectral_source": "git show f7bc3e4^:results/all_scores_consolidated.json",
+    "nc2_source": "abs(nc2_mean_cos - (-0.1)) — 11cls ideal ETF cos",
+    "schema": "11cls manuscrit (without_rhol)",
+    "n_bootstrap": 2000,
+    "seed": 42,
+    "available_metrics": 11,
+    "total_metrics": 11,
+    "missing_metrics": []
+  },
+  "populations": {
+    "n12": {
+      "models": [
+        "vitb16_fulft_arctic",
+        "dinov3_vitl16_lvd",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "simdinov2_vitb16",
+        "dinov3_vitb16_lvd",
+        "resnet50_arctic",
+        "dinov3_vitl16_sat",
+        "vitb16_imagenet",
+        "scalemae_vitl16",
+        "satmae_vitl16",
+        "resnet50_imagenet"
+      ],
+      "n": 12,
+      "f1_values": {
+        "vitb16_fulft_arctic": 0.4796,
+        "dinov3_vitl16_lvd": 0.4792,
+        "simdinov2_vitl16": 0.476,
+        "vitb16_arctic": 0.4759,
+        "simdinov2_vitb16": 0.4723,
+        "dinov3_vitb16_lvd": 0.4712,
+        "resnet50_arctic": 0.462,
+        "dinov3_vitl16_sat": 0.4617,
+        "vitb16_imagenet": 0.45,
+        "scalemae_vitl16": 0.4483,
+        "satmae_vitl16": 0.4093,
+        "resnet50_imagenet": 0.4077
+      },
+      "metrics": [
+        {
+          "metric_key": "silhouette_score",
+          "metric_label": "Silhouette",
+          "spearman_rho": 0.8601398601398602,
+          "spearman_p": 0.000331668339126921,
+          "kendall_tau": 0.7575757575757575,
+          "kendall_p": 0.00024002425044091711,
+          "ci95_low": 0.46897077922077923,
+          "ci95_high": 1.0,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 0.003648351730396131,
+          "p_bh": 0.003648351730396131
+        },
+        {
+          "metric_key": "davies_bouldin_index",
+          "metric_label": "Davies-Bouldin",
+          "spearman_rho": -0.3916083916083916,
+          "spearman_p": 0.20806346369535322,
+          "kendall_tau": -0.2727272727272727,
+          "kendall_p": 0.24957952123750735,
+          "ci95_low": -0.8484026241217344,
+          "ci95_high": 0.3262250384024575,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 0.7628993668829618
+        },
+        {
+          "metric_key": "calinski_harabasz_index",
+          "metric_label": "Calinski-Harabasz",
+          "spearman_rho": 0.2377622377622378,
+          "spearman_p": 0.45680085263992326,
+          "kendall_tau": 0.1818181818181818,
+          "kendall_p": 0.459023957331249,
+          "ci95_low": -0.4875019339865911,
+          "ci95_high": 0.7417033686465897,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0
+        },
+        {
+          "metric_key": "nc1",
+          "metric_label": "NC1",
+          "spearman_rho": 0.09090909090909093,
+          "spearman_p": 0.7787253962454419,
+          "kendall_tau": 0.0909090909090909,
+          "kendall_p": 0.7373055246579552,
+          "ci95_low": -0.48921245981937855,
+          "ci95_high": 0.7204301075268817,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 0.9517754842999846
+        },
+        {
+          "metric_key": "nc2_deviation_etf_11cls",
+          "metric_label": "NC2 dév. ETF",
+          "spearman_rho": -0.5594405594405596,
+          "spearman_p": 0.05858947538856764,
+          "kendall_tau": -0.39393939393939387,
+          "kendall_p": 0.0863171145983646,
+          "ci95_low": -0.8857142857142857,
+          "ci95_high": 0.03980536807408519,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 0.644484229274244,
+          "p_bh": 0.322242114637122
+        },
+        {
+          "metric_key": "dim_mle_mean",
+          "metric_label": "Dim. MLE (moy.)",
+          "spearman_rho": -0.17482517482517487,
+          "spearman_p": 0.5868236643627043,
+          "kendall_tau": -0.1212121212121212,
+          "kendall_p": 0.6383612539081289,
+          "ci95_low": -0.7071428571428572,
+          "ci95_high": 0.4317561664953746,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0
+        },
+        {
+          "metric_key": "dim_mle_median",
+          "metric_label": "Dim. MLE (méd.)",
+          "spearman_rho": -0.1188811188811189,
+          "spearman_p": 0.712884219214772,
+          "kendall_tau": -0.0909090909090909,
+          "kendall_p": 0.7373055246579552,
+          "ci95_low": -0.6762880018565792,
+          "ci95_high": 0.5277296634906645,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0
+        },
+        {
+          "metric_key": "global_effective_rank",
+          "metric_label": "Rang effectif",
+          "spearman_rho": 0.0,
+          "spearman_p": 1.0,
+          "kendall_tau": 0.0606060606060606,
+          "kendall_p": 0.8405883696421891,
+          "ci95_low": -0.6245710604533684,
+          "ci95_high": 0.7638778069075549,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0
+        },
+        {
+          "metric_key": "global_stable_rank",
+          "metric_label": "Stable rank",
+          "spearman_rho": 0.16083916083916086,
+          "spearman_p": 0.6175234895401425,
+          "kendall_tau": 0.1818181818181818,
+          "kendall_p": 0.459023957331249,
+          "ci95_low": -0.5357690820010315,
+          "ci95_high": 0.8709860012172853,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0
+        },
+        {
+          "metric_key": "global_participation_ratio",
+          "metric_label": "Participation ratio",
+          "spearman_rho": 0.08391608391608392,
+          "spearman_p": 0.7954145018538978,
+          "kendall_tau": 0.1212121212121212,
+          "kendall_p": 0.6383612539081289,
+          "ci95_low": -0.5683702672898178,
+          "ci95_high": 0.8022158498435868,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 0.8749559520392877
+        },
+        {
+          "metric_key": "global_alpha",
+          "metric_label": "α spectral",
+          "spearman_rho": -0.0979020979020979,
+          "spearman_p": 0.7621216559962992,
+          "kendall_tau": -0.0606060606060606,
+          "kendall_p": 0.8405883696421891,
+          "ci95_low": -0.7401187842086876,
+          "ci95_high": 0.5699953417957371,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0
+        }
+      ]
+    },
+    "top8": {
+      "models": [
+        "vitb16_fulft_arctic",
+        "dinov3_vitl16_lvd",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "simdinov2_vitb16",
+        "dinov3_vitb16_lvd",
+        "resnet50_arctic",
+        "dinov3_vitl16_sat"
+      ],
+      "n": 8,
+      "f1_values": {
+        "vitb16_fulft_arctic": 0.4796,
+        "dinov3_vitl16_lvd": 0.4792,
+        "simdinov2_vitl16": 0.476,
+        "vitb16_arctic": 0.4759,
+        "simdinov2_vitb16": 0.4723,
+        "dinov3_vitb16_lvd": 0.4712,
+        "resnet50_arctic": 0.462,
+        "dinov3_vitl16_sat": 0.4617
+      },
+      "metrics": [
+        {
+          "metric_key": "silhouette_score",
+          "metric_label": "Silhouette",
+          "spearman_rho": 0.523809523809524,
+          "spearman_p": 0.1827207505397148,
+          "kendall_tau": 0.42857142857142855,
+          "kendall_p": 0.17886904761904762,
+          "ci95_low": -0.3243412162162162,
+          "ci95_high": 1.0,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": -0.33633033633033627
+        },
+        {
+          "metric_key": "davies_bouldin_index",
+          "metric_label": "Davies-Bouldin",
+          "spearman_rho": -0.28571428571428575,
+          "spearman_p": 0.49272624501695717,
+          "kendall_tau": -0.21428571428571427,
+          "kendall_p": 0.5484126984126985,
+          "ci95_low": -0.9230769230769231,
+          "ci95_high": 0.5443037974683544,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": 0.10589410589410586
+        },
+        {
+          "metric_key": "calinski_harabasz_index",
+          "metric_label": "Calinski-Harabasz",
+          "spearman_rho": 0.14285714285714288,
+          "spearman_p": 0.735764859879812,
+          "kendall_tau": 0.14285714285714285,
+          "kendall_p": 0.7195436507936508,
+          "ci95_low": -0.6153846153846154,
+          "ci95_high": 0.8421052631578949,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": -0.09490509490509491
+        },
+        {
+          "metric_key": "nc1",
+          "metric_label": "NC1",
+          "spearman_rho": 0.07142857142857144,
+          "spearman_p": 0.8665262706759088,
+          "kendall_tau": 0.0,
+          "kendall_p": 1.0,
+          "ci95_low": -0.7534246575342466,
+          "ci95_high": 0.6966546112115708,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": -0.019480519480519487
+        },
+        {
+          "metric_key": "nc2_deviation_etf_11cls",
+          "metric_label": "NC2 dév. ETF",
+          "spearman_rho": -0.1666666666666667,
+          "spearman_p": 0.693238811728395,
+          "kendall_tau": -0.14285714285714285,
+          "kendall_p": 0.7195436507936508,
+          "ci95_low": -0.9999999999999998,
+          "ci95_high": 0.79746835443038,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": 0.39277389277389285
+        },
+        {
+          "metric_key": "dim_mle_mean",
+          "metric_label": "Dim. MLE (moy.)",
+          "spearman_rho": -0.5000000000000001,
+          "spearman_p": 0.2070312499999999,
+          "kendall_tau": -0.3571428571428571,
+          "kendall_p": 0.27509920634920637,
+          "ci95_low": -0.9688463184931506,
+          "ci95_high": 0.29155306718597634,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": -0.3251748251748252
+        },
+        {
+          "metric_key": "dim_mle_median",
+          "metric_label": "Dim. MLE (méd.)",
+          "spearman_rho": -0.4047619047619048,
+          "spearman_p": 0.3198886412288163,
+          "kendall_tau": -0.2857142857142857,
+          "kendall_p": 0.39875992063492066,
+          "ci95_low": -0.9189189189189189,
+          "ci95_high": 0.4,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": -0.2858807858807859
+        },
+        {
+          "metric_key": "global_effective_rank",
+          "metric_label": "Rang effectif",
+          "spearman_rho": -0.07142857142857144,
+          "spearman_p": 0.8665262706759088,
+          "kendall_tau": 0.0,
+          "kendall_p": 1.0,
+          "ci95_low": -0.7368421052631581,
+          "ci95_high": 0.8000617283950614,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": -0.07142857142857144
+        },
+        {
+          "metric_key": "global_stable_rank",
+          "metric_label": "Stable rank",
+          "spearman_rho": 0.07142857142857144,
+          "spearman_p": 0.8665262706759088,
+          "kendall_tau": 0.14285714285714285,
+          "kendall_p": 0.7195436507936508,
+          "ci95_low": -0.6202531645569621,
+          "ci95_high": 0.9999999999999998,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 0.9531788977434997,
+          "delta_vs_n12": -0.08941058941058942
+        },
+        {
+          "metric_key": "global_participation_ratio",
+          "metric_label": "Participation ratio",
+          "spearman_rho": -0.023809523809523815,
+          "spearman_p": 0.9553740118158806,
+          "kendall_tau": 0.07142857142857142,
+          "kendall_p": 0.9048611111111111,
+          "ci95_low": -0.6842105263157896,
+          "ci95_high": 0.8535007610349985,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 0.9553740118158806,
+          "delta_vs_n12": -0.10772560772560774
+        },
+        {
+          "metric_key": "global_alpha",
+          "metric_label": "α spectral",
+          "spearman_rho": -0.09523809523809526,
+          "spearman_p": 0.8225054302036114,
+          "kendall_tau": 0.0,
+          "kendall_p": 1.0,
+          "ci95_low": -0.7435897435897436,
+          "ci95_high": 0.8750762195121948,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": 0.002664002664002643
+        }
+      ]
+    },
+    "top6": {
+      "models": [
+        "vitb16_fulft_arctic",
+        "dinov3_vitl16_lvd",
+        "simdinov2_vitl16",
+        "vitb16_arctic",
+        "simdinov2_vitb16",
+        "dinov3_vitb16_lvd"
+      ],
+      "n": 6,
+      "f1_values": {
+        "vitb16_fulft_arctic": 0.4796,
+        "dinov3_vitl16_lvd": 0.4792,
+        "simdinov2_vitl16": 0.476,
+        "vitb16_arctic": 0.4759,
+        "simdinov2_vitb16": 0.4723,
+        "dinov3_vitb16_lvd": 0.4712
+      },
+      "metrics": [
+        {
+          "metric_key": "silhouette_score",
+          "metric_label": "Silhouette",
+          "spearman_rho": 0.5428571428571429,
+          "spearman_p": 0.26570262390670546,
+          "kendall_tau": 0.4666666666666666,
+          "kendall_p": 0.2722222222222222,
+          "ci95_low": -0.5000000000000001,
+          "ci95_high": 1.0,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": -0.3172827172827173
+        },
+        {
+          "metric_key": "davies_bouldin_index",
+          "metric_label": "Davies-Bouldin",
+          "spearman_rho": -0.4285714285714286,
+          "spearman_p": 0.3965014577259473,
+          "kendall_tau": -0.3333333333333333,
+          "kendall_p": 0.46944444444444444,
+          "ci95_low": -1.0,
+          "ci95_high": 0.6363636363636362,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": -0.03696303696303699
+        },
+        {
+          "metric_key": "calinski_harabasz_index",
+          "metric_label": "Calinski-Harabasz",
+          "spearman_rho": 0.5428571428571429,
+          "spearman_p": 0.26570262390670546,
+          "kendall_tau": 0.4666666666666666,
+          "kendall_p": 0.2722222222222222,
+          "ci95_low": -0.5000000000000001,
+          "ci95_high": 1.0,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": 0.3050949050949051
+        },
+        {
+          "metric_key": "nc1",
+          "metric_label": "NC1",
+          "spearman_rho": -0.3714285714285715,
+          "spearman_p": 0.4684781341107872,
+          "kendall_tau": -0.3333333333333333,
+          "kendall_p": 0.46944444444444444,
+          "ci95_low": -1.0,
+          "ci95_high": 0.6000000000000001,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": -0.46233766233766244
+        },
+        {
+          "metric_key": "nc2_deviation_etf_11cls",
+          "metric_label": "NC2 dév. ETF",
+          "spearman_rho": -0.2,
+          "spearman_p": 0.7040000000000001,
+          "kendall_tau": -0.2,
+          "kendall_p": 0.7194444444444444,
+          "ci95_low": -1.0,
+          "ci95_high": 0.8000000000000002,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": 0.3594405594405596
+        },
+        {
+          "metric_key": "dim_mle_mean",
+          "metric_label": "Dim. MLE (moy.)",
+          "spearman_rho": -0.3142857142857143,
+          "spearman_p": 0.5440932944606415,
+          "kendall_tau": -0.2,
+          "kendall_p": 0.7194444444444444,
+          "ci95_low": -1.0,
+          "ci95_high": 0.9354838709677421,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": -0.1394605394605394
+        },
+        {
+          "metric_key": "dim_mle_median",
+          "metric_label": "Dim. MLE (méd.)",
+          "spearman_rho": -0.08571428571428573,
+          "spearman_p": 0.8717434402332361,
+          "kendall_tau": -0.06666666666666665,
+          "kendall_p": 1.0,
+          "ci95_low": -1.0,
+          "ci95_high": 0.9393939393939392,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": 0.033166833166833165
+        },
+        {
+          "metric_key": "global_effective_rank",
+          "metric_label": "Rang effectif",
+          "spearman_rho": -0.08571428571428573,
+          "spearman_p": 0.8717434402332361,
+          "kendall_tau": -0.06666666666666665,
+          "kendall_p": 1.0,
+          "ci95_low": -0.9999999999999999,
+          "ci95_high": 0.8000000000000002,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 0.9589177842565597,
+          "delta_vs_n12": -0.08571428571428573
+        },
+        {
+          "metric_key": "global_stable_rank",
+          "metric_label": "Stable rank",
+          "spearman_rho": -0.08571428571428573,
+          "spearman_p": 0.8717434402332361,
+          "kendall_tau": -0.06666666666666665,
+          "kendall_p": 1.0,
+          "ci95_low": -0.9999999999999999,
+          "ci95_high": 0.8000000000000002,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 0.8717434402332361,
+          "delta_vs_n12": -0.24655344655344658
+        },
+        {
+          "metric_key": "global_participation_ratio",
+          "metric_label": "Participation ratio",
+          "spearman_rho": -0.3142857142857143,
+          "spearman_p": 0.5440932944606415,
+          "kendall_tau": -0.2,
+          "kendall_p": 0.7194444444444444,
+          "ci95_low": -1.0,
+          "ci95_high": 0.8000000000000002,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 0.9975043731778427,
+          "delta_vs_n12": -0.3982017982017982
+        },
+        {
+          "metric_key": "global_alpha",
+          "metric_label": "α spectral",
+          "spearman_rho": -0.14285714285714288,
+          "spearman_p": 0.7871720116618076,
+          "kendall_tau": -0.06666666666666665,
+          "kendall_p": 1.0,
+          "ci95_low": -1.0,
+          "ci95_high": 1.0,
+          "bootstrap_n": 2000,
+          "n_tests": 11,
+          "p_bonferroni": 1.0,
+          "p_bh": 1.0,
+          "delta_vs_n12": -0.04495504495504497
+        }
+      ]
+    }
+  },
+  "leave_one_out": {
+    "n12": {
+      "all": [
+        [
+          "vitb16_fulft_arctic",
+          0.8454545454545455
+        ],
+        [
+          "dinov3_vitl16_lvd",
+          0.8909090909090911
+        ],
+        [
+          "simdinov2_vitl16",
+          0.9090909090909091
+        ],
+        [
+          "vitb16_arctic",
+          0.9
+        ],
+        [
+          "simdinov2_vitb16",
+          0.8727272727272729
+        ],
+        [
+          "dinov3_vitb16_lvd",
+          0.8545454545454546
+        ],
+        [
+          "resnet50_arctic",
+          0.9272727272727275
+        ],
+        [
+          "dinov3_vitl16_sat",
+          0.8181818181818182
+        ],
+        [
+          "vitb16_imagenet",
+          0.8181818181818182
+        ],
+        [
+          "scalemae_vitl16",
+          0.8181818181818182
+        ],
+        [
+          "satmae_vitl16",
+          0.8181818181818182
+        ],
+        [
+          "resnet50_imagenet",
+          0.8181818181818182
+        ]
+      ],
+      "min": 0.8181818181818182,
+      "max": 0.9272727272727275,
+      "delta": 0.10909090909090924,
+      "most_influential_model": "dinov3_vitb16_lvd",
+      "most_influential_rho": 0.8545454545454546
+    },
+    "top8": {
+      "all": [
+        [
+          "vitb16_fulft_arctic",
+          0.39285714285714296
+        ],
+        [
+          "dinov3_vitl16_lvd",
+          0.5714285714285715
+        ],
+        [
+          "simdinov2_vitl16",
+          0.642857142857143
+        ],
+        [
+          "vitb16_arctic",
+          0.6071428571428572
+        ],
+        [
+          "simdinov2_vitb16",
+          0.5
+        ],
+        [
+          "dinov3_vitb16_lvd",
+          0.42857142857142866
+        ],
+        [
+          "resnet50_arctic",
+          0.7142857142857144
+        ],
+        [
+          "dinov3_vitl16_sat",
+          0.28571428571428575
+        ]
+      ],
+      "min": 0.28571428571428575,
+      "max": 0.7142857142857144,
+      "delta": 0.42857142857142866,
+      "most_influential_model": "simdinov2_vitb16",
+      "most_influential_rho": 0.5
+    },
+    "top6": {
+      "all": [
+        [
+          "vitb16_fulft_arctic",
+          0.49999999999999994
+        ],
+        [
+          "dinov3_vitl16_lvd",
+          0.49999999999999994
+        ],
+        [
+          "simdinov2_vitl16",
+          0.7
+        ],
+        [
+          "vitb16_arctic",
+          0.8999999999999998
+        ],
+        [
+          "simdinov2_vitb16",
+          0.39999999999999997
+        ],
+        [
+          "dinov3_vitb16_lvd",
+          0.19999999999999998
+        ]
+      ],
+      "min": 0.19999999999999998,
+      "max": 0.8999999999999998,
+      "delta": 0.6999999999999998,
+      "most_influential_model": "vitb16_fulft_arctic",
+      "most_influential_rho": 0.49999999999999994
+    }
+  },
+  "colinearity": {
+    "Silhouette vs Davies-Bouldin": {
+      "rho": -0.6223776223776225,
+      "p": 0.030675895061640146
+    },
+    "Silhouette vs Calinski-Harabasz": {
+      "rho": 0.5034965034965035,
+      "p": 0.09515736659412467
+    },
+    "Silhouette vs NC1": {
+      "rho": -0.2937062937062937,
+      "p": 0.3541476412329215
+    },
+    "Silhouette vs NC2 dév. ETF": {
+      "rho": -0.7552447552447553,
+      "p": 0.004508435484294223
+    },
+    "Silhouette vs Dim. MLE (moy.)": {
+      "rho": -0.1258741258741259,
+      "p": 0.696683109395766
+    },
+    "Silhouette vs Dim. MLE (méd.)": {
+      "rho": -0.09090909090909093,
+      "p": 0.7787253962454419
+    },
+    "Silhouette vs Rang effectif": {
+      "rho": -0.1188811188811189,
+      "p": 0.712884219214772
+    },
+    "Silhouette vs Stable rank": {
+      "rho": -0.02097902097902098,
+      "p": 0.9484022252365222
+    },
+    "Silhouette vs Participation ratio": {
+      "rho": -0.11188811188811189,
+      "p": 0.729194990751066
+    },
+    "Silhouette vs α spectral": {
+      "rho": -0.2027972027972028,
+      "p": 0.5273023541661079
+    },
+    "Davies-Bouldin vs Calinski-Harabasz": {
+      "rho": -0.7832167832167832,
+      "p": 0.00258621483336259
+    },
+    "Davies-Bouldin vs NC1": {
+      "rho": 0.5174825174825175,
+      "p": 0.08486877113393476
+    },
+    "Davies-Bouldin vs NC2 dév. ETF": {
+      "rho": 0.4895104895104896,
+      "p": 0.10625237175934595
+    },
+    "Davies-Bouldin vs Dim. MLE (moy.)": {
+      "rho": 0.5734265734265735,
+      "p": 0.05126558978649151
+    },
+    "Davies-Bouldin vs Dim. MLE (méd.)": {
+      "rho": 0.5454545454545455,
+      "p": 0.06661188226688902
+    },
+    "Davies-Bouldin vs Rang effectif": {
+      "rho": 0.4825174825174825,
+      "p": 0.11210929146889187
+    },
+    "Davies-Bouldin vs Stable rank": {
+      "rho": 0.5104895104895105,
+      "p": 0.08991373630263919
+    },
+    "Davies-Bouldin vs Participation ratio": {
+      "rho": 0.5594405594405596,
+      "p": 0.05858947538856764
+    },
+    "Davies-Bouldin vs α spectral": {
+      "rho": 0.027972027972027972,
+      "p": 0.9312343512018807
+    },
+    "Calinski-Harabasz vs NC1": {
+      "rho": -0.6993006993006995,
+      "p": 0.01137419864269093
+    },
+    "Calinski-Harabasz vs NC2 dév. ETF": {
+      "rho": -0.1328671328671329,
+      "p": 0.6805975082860817
+    },
+    "Calinski-Harabasz vs Dim. MLE (moy.)": {
+      "rho": -0.4825174825174825,
+      "p": 0.11210929146889187
+    },
+    "Calinski-Harabasz vs Dim. MLE (méd.)": {
+      "rho": -0.43356643356643365,
+      "p": 0.15910576941219534
+    },
+    "Calinski-Harabasz vs Rang effectif": {
+      "rho": -0.7972027972027973,
+      "p": 0.0019003677255282697
+    },
+    "Calinski-Harabasz vs Stable rank": {
+      "rho": -0.8041958041958043,
+      "p": 0.001614768986069931
+    },
+    "Calinski-Harabasz vs Participation ratio": {
+      "rho": -0.8671328671328673,
+      "p": 0.00025981184986148103
+    },
+    "Calinski-Harabasz vs α spectral": {
+      "rho": 0.3356643356643357,
+      "p": 0.28612290291498743
+    },
+    "NC1 vs NC2 dév. ETF": {
+      "rho": 0.34965034965034975,
+      "p": 0.26523878689278996
+    },
+    "NC1 vs Dim. MLE (moy.)": {
+      "rho": 0.27272727272727276,
+      "p": 0.39109677094189615
+    },
+    "NC1 vs Dim. MLE (méd.)": {
+      "rho": 0.20979020979020982,
+      "p": 0.512840943181826
+    },
+    "NC1 vs Rang effectif": {
+      "rho": 0.39860139860139865,
+      "p": 0.19933549461780897
+    },
+    "NC1 vs Stable rank": {
+      "rho": 0.44755244755244755,
+      "p": 0.1445863013033476
+    },
+    "NC1 vs Participation ratio": {
+      "rho": 0.5034965034965035,
+      "p": 0.09515736659412467
+    },
+    "NC1 vs α spectral": {
+      "rho": 0.0979020979020979,
+      "p": 0.7621216559962992
+    },
+    "NC2 dév. ETF vs Dim. MLE (moy.)": {
+      "rho": -0.04895104895104895,
+      "p": 0.8799185788786748
+    },
+    "NC2 dév. ETF vs Dim. MLE (méd.)": {
+      "rho": -0.06293706293706294,
+      "p": 0.8459309212287789
+    },
+    "NC2 dév. ETF vs Rang effectif": {
+      "rho": -0.3216783216783217,
+      "p": 0.30790987618065263
+    },
+    "NC2 dév. ETF vs Stable rank": {
+      "rho": -0.34965034965034975,
+      "p": 0.26523878689278996
+    },
+    "NC2 dév. ETF vs Participation ratio": {
+      "rho": -0.2937062937062937,
+      "p": 0.3541476412329215
+    },
+    "NC2 dév. ETF vs α spectral": {
+      "rho": 0.6853146853146854,
+      "p": 0.013905968814362752
+    },
+    "Dim. MLE (moy.) vs Dim. MLE (méd.)": {
+      "rho": 0.9790209790209792,
+      "p": 3.089801398548709e-08
+    },
+    "Dim. MLE (moy.) vs Rang effectif": {
+      "rho": 0.5174825174825175,
+      "p": 0.08486877113393476
+    },
+    "Dim. MLE (moy.) vs Stable rank": {
+      "rho": 0.44055944055944063,
+      "p": 0.1517350357167303
+    },
+    "Dim. MLE (moy.) vs Participation ratio": {
+      "rho": 0.4825174825174825,
+      "p": 0.11210929146889187
+    },
+    "Dim. MLE (moy.) vs α spectral": {
+      "rho": -0.2657342657342658,
+      "p": 0.4038330883147116
+    },
+    "Dim. MLE (méd.) vs Rang effectif": {
+      "rho": 0.4755244755244756,
+      "p": 0.118175957013032
+    },
+    "Dim. MLE (méd.) vs Stable rank": {
+      "rho": 0.39860139860139865,
+      "p": 0.19933549461780897
+    },
+    "Dim. MLE (méd.) vs Participation ratio": {
+      "rho": 0.44055944055944063,
+      "p": 0.1517350357167303
+    },
+    "Dim. MLE (méd.) vs α spectral": {
+      "rho": -0.20979020979020982,
+      "p": 0.512840943181826
+    },
+    "Rang effectif vs Stable rank": {
+      "rho": 0.9580419580419581,
+      "p": 9.543581826838402e-07
+    },
+    "Rang effectif vs Participation ratio": {
+      "rho": 0.965034965034965,
+      "p": 3.880985299627466e-07
+    },
+    "Rang effectif vs α spectral": {
+      "rho": -0.7412587412587414,
+      "p": 0.005801150474478245
+    },
+    "Stable rank vs Participation ratio": {
+      "rho": 0.9860139860139862,
+      "p": 4.1168959116543235e-09
+    },
+    "Stable rank vs α spectral": {
+      "rho": -0.7062937062937064,
+      "p": 0.010245193941127849
+    },
+    "Participation ratio vs α spectral": {
+      "rho": -0.6643356643356644,
+      "p": 0.01845271802844544
+    }
+  }
+}
