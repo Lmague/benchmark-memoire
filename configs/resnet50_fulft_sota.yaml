@@ -1,8 +1,9 @@
-# ViT-B/16 ImageNet — FULL fine-tuning AMÉLIORÉ (recette T1), baseline SoTA Arctic-TVC.
-# Régime screening 1/4. Calqué sur vitb16_fulft_datacurve.yaml + améliorations Tier 1 :
-#   warmup 3 ep · bf16 (sans GradScaler) · grad_clip 1.0 · early-stop f1_macro_pres
-#   · LP-FT (head_only 2 ep). 11 classes (RHOL exclu), labels 0-10.
-# NB : warmup_epochs vit sous `schedule:` (lu par engine.build_scheduler), pas `train:`.
+# ResNet-50 ImageNet — FULL fine-tuning Tier 1, Arctic-TVC 11classes.
+# Proposition Tier 3 (conceptuelle) — RELIRE avant Narval.
+# Justifications détaillées : docs/resnet50_sota_rationale.md
+#
+# Régime screening 1/4. 11 classes (RHOL exclu), labels 0-10.
+# Rebalancing : CrossEntropyLoss(weight=1/sqrt(n)) SEULEMENT — PAS de WeightedRandomSampler.
 #
 # NB CRITIQUE : num_classes=11 exige des CSV DÉJÀ remappés (RHOL exclue, labels 0-10) —
 # splits/*.csv contient les labels bruts 0-11 (12cls) et train.py ne remappe PAS les
@@ -18,25 +19,25 @@ paths_colab:
   csv_dir: /content/drive/MyDrive/Memoire/splits_11cls
 
 model:
-  name: vitb16
+  name: resnet50
   num_classes: 11
   norm: imagenet
 
 regime: full
 
 optim:
-  weight_decay: 0.05
+  weight_decay: 0.02
   lr:
-    backbone: 1.0e-5
+    backbone: 2.0e-5
     head: 1.0e-4
 
 schedule:
-  warmup_epochs: 3
+  warmup_epochs: 2
 
 train:
   epochs: 50
   patience: 10
-  head_only_epochs: 2
+  head_only_epochs: 1
   amp_dtype: bfloat16
   grad_clip: 1.0
   early_stop_metric: f1_macro_pres

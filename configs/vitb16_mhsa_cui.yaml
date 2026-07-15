@@ -1,8 +1,8 @@
-# ViT-B/16 ImageNet — FULL fine-tuning AMÉLIORÉ (recette T1), baseline SoTA Arctic-TVC.
-# Régime screening 1/4. Calqué sur vitb16_fulft_datacurve.yaml + améliorations Tier 1 :
-#   warmup 3 ep · bf16 (sans GradScaler) · grad_clip 1.0 · early-stop f1_macro_pres
-#   · LP-FT (head_only 2 ep). 11 classes (RHOL exclu), labels 0-10.
-# NB : warmup_epochs vit sous `schedule:` (lu par engine.build_scheduler), pas `train:`.
+# ViT-B/16 ImageNet — MHSA-only (attention + head dégelés, FFN gelé ; Touvron 2022).
+# Régime screening 2/4. Recette T1 : warmup 3 ep · bf16 · grad_clip 1.0 · early-stop
+# f1_macro_pres. Pas de LP-FT (head_only=0) : MHSA est déjà un fine-tuning partiel.
+# 11 classes (RHOL exclu). LR SoTA : attn=1e-5, head=1e-4 (≠ notebook 4e-5/2e-4).
+# NB : warmup_epochs sous `schedule:` (lu par engine.build_scheduler).
 #
 # NB CRITIQUE : num_classes=11 exige des CSV DÉJÀ remappés (RHOL exclue, labels 0-10) —
 # splits/*.csv contient les labels bruts 0-11 (12cls) et train.py ne remappe PAS les
@@ -22,21 +22,23 @@ model:
   num_classes: 11
   norm: imagenet
 
-regime: full
+regime: mhsa
 
 optim:
   weight_decay: 0.05
   lr:
-    backbone: 1.0e-5
+    attn: 1.0e-5
     head: 1.0e-4
 
 schedule:
   warmup_epochs: 3
 
 train:
+  weighting: effective_num
+  cui_beta: 0.999
   epochs: 50
   patience: 10
-  head_only_epochs: 2
+  head_only_epochs: 0
   amp_dtype: bfloat16
   grad_clip: 1.0
   early_stop_metric: f1_macro_pres

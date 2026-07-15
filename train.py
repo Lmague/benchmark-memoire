@@ -13,7 +13,7 @@ import os
 from src import engine, utils
 from src.config import load_config
 from src.data import make_loaders
-from src.losses import build_class_weights, build_criterion
+from src.losses import build_class_weights, build_class_weights_effective_num, build_criterion
 from src.models import build_model
 
 
@@ -44,11 +44,16 @@ def main() -> None:
 
     # --- loss pondérée 1/sqrt(n) depuis les effectifs du train ---
     _, train_labels = utils.read_split_csv(os.path.join(cfg.paths.csv_dir, "train.csv"))
-    weights = build_class_weights(train_labels, cfg.model.num_classes)
+    weighting = getattr(cfg.train, "weighting", "sqrt")
+    beta = getattr(cfg.train, "cui_beta", 0.999)
+    weights = (build_class_weights(train_labels, cfg.model.num_classes) if weighting == "sqrt"
+            else build_class_weights_effective_num(train_labels, cfg.model.num_classes, beta))
+    print(f"[train] weighting={weighting}" + (f" beta={beta}" if weighting != "sqrt" else ""))
     print("[train] class weights:",
-          {c: round(float(w), 3) for c, w in zip(utils.CLASS_NAMES, weights)})
-    criterion = build_criterion(train_labels, cfg.model.num_classes, device)
-
+        {c: round(float(w), 3) for c, w in zip(utils.CLASS_NAMES_11, weights)})
+    criterion = build_criterion(train_labels, cfg.model.num_classes, device,
+                                weighting=weighting, beta=beta)
+                                
     # --- loaders ---
     loaders = make_loaders(cfg, train_aug=True)
     print("[train] tailles:", {s: len(dl.dataset) for s, dl in loaders.items()})
