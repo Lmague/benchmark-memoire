@@ -4,18 +4,14 @@
 # 11 classes (RHOL exclu). LR SoTA : attn=1e-5, head=1e-4 (≠ notebook 4e-5/2e-4).
 # NB : warmup_epochs sous `schedule:` (lu par engine.build_scheduler).
 #
-# NB CRITIQUE : num_classes=11 exige des CSV DÉJÀ remappés (RHOL exclue, labels 0-10) —
-# splits/*.csv contient les labels bruts 0-11 (12cls) et train.py ne remappe PAS les
-# labels au chargement (bug confirmé, cf. docs/audit_labels_screening.md). On pointe donc
-# csv_dir vers splits_11cls/ (généré par scripts/generate_splits_11cls.py), qui contient
-# déjà train.csv/val.csv/test.csv filtrés+remappés. Sur Narval/Colab, générer
-# splits_11cls/ AVANT de lancer ce run (le script tourne en local pour l'instant).
-paths_local:
-  csv_dir: splits_11cls
-paths_narval:
-  csv_dir: ${SCRATCH}/splits_11cls
-paths_colab:
-  csv_dir: /content/drive/MyDrive/Memoire/splits_11cls
+# NB CRITIQUE : ce config est lancé via scripts/datacurve_one_run.py (pas train.py
+# directement), qui fait SON PROPRE filtrage RHOL + remap 12->11 en interne (voir
+# _RHOL_IDX/LABEL_REMAP_12TO11 en tête de ce script). csv_dir doit donc pointer vers
+# les CSV BRUTS 12 classes (splits/, le défaut de base.yaml) — PAS vers splits_11cls/
+# (déjà remappé), sinon double-remap silencieux : une classe (WILL) disparaît, une
+# autre (RUBC) affiche un compte erroné. Bug diagnostiqué le 2026-07-15/16, cf. fil de
+# debug — ne jamais réintroduire de csv_dir custom sur ce fichier sans revérifier
+# quel script de training consomme réellement ce config.
 
 model:
   name: vitb16
