@@ -83,6 +83,11 @@ __pycache__/
 !/scripts/slurm_probe_all.sh
 # Bootstrap CI schéma 8cls (CPU) :
 !/scripts/slurm_bootstrap_8cls.sh
+# FT SoTA backbones SSL (DINOv3-B/LVD, SimDINOv2-B) — full/mhsa, 100%, 3 seeds :
+!/scripts/slurm_ft_dinov3_vitb16_lvd_full.sh
+!/scripts/slurm_ft_dinov3_vitb16_lvd_mhsa.sh
+!/scripts/slurm_ft_simdinov2_vitb16_full.sh
+!/scripts/slurm_ft_simdinov2_vitb16_mhsa.sh
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/

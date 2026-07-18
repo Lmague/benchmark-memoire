@@ -31,9 +31,16 @@ def main() -> None:
     device = utils.get_device()
     print(f"[train] model={cfg.model.name} regime={cfg.regime} env={cfg.env} device={device}")
 
+    # --- checkpoint pré-entraîné (backbones SSL_FT_NAMES, ex. SimDINOv2) ---
+    # Chemin relatif -> résolu contre ckpt_dir (même logique que extract.py) ; ignoré si absent
+    # (DINOv3-HF n'a pas besoin de `checkpoint:`, chargé via AutoModel.from_pretrained).
+    checkpoint = cfg.raw.get("checkpoint")
+    if checkpoint and not os.path.isabs(checkpoint):
+        checkpoint = os.path.join(cfg.paths.ckpt_dir, checkpoint)
+
     # --- modèle + groupes de params (valide le régime, ex. mhsa interdit sur CNN) ---
     model, groups = build_model(cfg.model.name, cfg.regime, cfg.model.num_classes,
-                                lora=cfg.lora)
+                                lora=cfg.lora, checkpoint=checkpoint)
     model = model.to(device)
     n_total = sum(p.numel() for p in model.parameters())
     n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)

@@ -1,0 +1,45 @@
+# DINOv3 ViT-B/16 (LVD-1689M) — MHSA-only (attention + head dégelés, FFN gelé ; Touvron 2022).
+# Même recette que vitb16_mhsa_sota.yaml : warmup 3 ep · bf16 · grad_clip 1.0 · early-stop
+# f1_macro_pres. Pas de LP-FT (head_only=0) : MHSA est déjà un fine-tuning partiel.
+# 11 classes (RHOL exclu), labels 0-10. Seul le backbone change vs vitb16_mhsa_sota.yaml.
+#
+# Backbone : HuggingFace facebook/dinov3-vitb16-pretrain-lvd1689m (AutoModel), dim 768,
+# norm imagenet — MÊME loader que l'extraction frozen (configs/frozen_dinov3_lvd.yaml),
+# réutilisé tel quel via src.models.build_frozen_extractor (cf. src.models.SSL_FT_NAMES).
+# Aucun `checkpoint:` requis (poids HF, pas de .pth local).
+#
+# Groupe 'attn' : couvre à la fois la convention timm/DINOv2 ("attn") et HuggingFace DINOv3
+# ("attention", ex. model.layer.N.attention.{q,k,v,o}_proj) — cf. src.models._is_attn_param.
+#
+# NB CRITIQUE csv_dir : PAS d'override ici — voir note identique dans
+# ft_dinov3_vitb16_lvd_full.yaml (double-remap si csv_dir pointe vers un schéma déjà remappé ;
+# ce config est consommé par scripts/datacurve_one_run.py, pas train.py directement).
+#
+# C_grid : grille canonique 6 valeurs, identique à TOUS les configs FT/frozen existants.
+
+model:
+  name: dinov3_vitb16_lvd
+  num_classes: 11
+  norm: imagenet
+
+regime: mhsa
+
+optim:
+  weight_decay: 0.05
+  lr:
+    attn: 1.0e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]

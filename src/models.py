@@ -11,8 +11,9 @@ from __future__ import annotations
 
 CNN_NAMES = {"resnet50"}
 VIT_NAMES = {"vitb16"}
-# Familles non encore implémentées (points d'extension propres) :
-EXTENSION_NAMES = {"dinov3_ft", "simdino_ft"}
+# Backbones SSL frozen (build_frozen_extractor) rendus fine-tunables via un wrapper
+# nn.Module {backbone, head} — régimes limités à frozen|mhsa|full (pas d'ExPLoRA/scratch ici).
+SSL_FT_NAMES = {"dinov3_vitb16_lvd", "simdinov2_vitb16"}
 
 _TIMM_ID = {"resnet50": "resnet50", "vitb16": "vit_base_patch16_224"}
 
@@ -20,10 +21,6 @@ _TIMM_ID = {"resnet50": "resnet50", "vitb16": "vit_base_patch16_224"}
 # --------------------------------------------------------------------------- régimes
 def _validate_regime(name: str, regime: str) -> None:
     """Valide la compatibilité (modèle, régime) sans aucun import lourd."""
-    if name in EXTENSION_NAMES:
-        raise NotImplementedError(
-            f"'{name}' est un point d'extension non implémenté (voir README §Extensions). "
-            "DINOv3/SimDINO fine-tuning réutilisent la logique de régime ViT.")
     if name in CNN_NAMES:
         if regime == "mhsa":
             raise ValueError(
@@ -36,6 +33,11 @@ def _validate_regime(name: str, regime: str) -> None:
             raise ValueError(
                 f"régime '{regime}' inconnu pour '{name}' "
                 f"(attendu: frozen|mhsa|full|explora_like|scratch).")
+    elif name in SSL_FT_NAMES:
+        if regime not in ("frozen", "mhsa", "full"):
+            raise ValueError(
+                f"régime '{regime}' inconnu pour '{name}' (attendu: frozen|mhsa|full — "
+                "explora_like/scratch non supportés pour les backbones SSL).")
     else:
         raise ValueError(f"modèle de fine-tuning inconnu : '{name}'.")
 
@@ -45,16 +47,28 @@ def _set_requires_grad(model, predicate) -> None:
         p.requires_grad = bool(predicate(n))
 
 
+def _is_attn_param(n: str) -> bool:
+    """Nom de paramètre d'attention multi-têtes, toutes conventions supportées :
+
+    timm/DINOv2 (``blocks.N.attn.*``) et HuggingFace DINOv3 (``model.layer.N.attention.*``).
+    Superset sûr : aucun paramètre timm existant ne contient la sous-chaîne "attention".
+    """
+    return ("attn" in n) or ("attention" in n)
+
+
 def _vit_groups(model, regime: str) -> dict:
-    """Applique le régime sur un ViT timm et renvoie les groupes de params entraînables."""
+    """Applique le régime sur un ViT (timm, ou wrapper SSL {backbone,head}) et renvoie
+    les groupes de params entraînables. Le prédicat d'attention couvre timm/DINOv2
+    ("attn") et HuggingFace DINOv3 ("attention") — cf. :func:`_is_attn_param`.
+    """
     named = list(model.named_parameters())
     if regime == "frozen":
         _set_requires_grad(model, lambda n: "head" in n)
         return {"head": [p for n, p in named if "head" in n]}
     if regime == "mhsa":
-        _set_requires_grad(model, lambda n: ("attn" in n) or ("head" in n))
+        _set_requires_grad(model, lambda n: _is_attn_param(n) or ("head" in n))
         return {
-            "attn": [p for n, p in named if "attn" in n and p.requires_grad],
+            "attn": [p for n, p in named if _is_attn_param(n) and p.requires_grad],
             "head": [p for n, p in named if "head" in n and p.requires_grad],
         }
     # full
@@ -239,17 +253,61 @@ def _resnet_groups(model, regime: str) -> dict:
     }
 
 
+_SSL_CLASSIFIER_CLASS = None
+
+
+def _get_ssl_classifier_class():
+    """Définit/retourne ``SSLBackboneClassifier`` (lazy : préserve ``import src.models`` sans torch).
+
+    Wrapper minimal ``{backbone, head}`` pour rendre fine-tunable un backbone SSL headless
+    (DINOv3-HF, SimDINOv2) chargé par :func:`build_frozen_extractor`. ``forward_fn`` est LA
+    MÊME fonction que celle utilisée pour l'extraction frozen (``_dinov3_hf_forward`` /
+    ``_simdino_forward``) — garantit que la représentation fine-tunée est comparable à la
+    représentation frozen (même pooling). ``head`` : ``nn.Linear(embed_dim, num_classes)``.
+    """
+    global _SSL_CLASSIFIER_CLASS
+    if _SSL_CLASSIFIER_CLASS is not None:
+        return _SSL_CLASSIFIER_CLASS
+    import torch.nn as nn
+
+    class SSLBackboneClassifier(nn.Module):
+        def __init__(self, backbone, forward_fn, embed_dim, num_classes):
+            super().__init__()
+            self.backbone = backbone
+            self._forward_fn = forward_fn
+            self.head = nn.Linear(embed_dim, num_classes)
+
+        def forward(self, x):
+            feats = self._forward_fn(self.backbone, x)
+            return self.head(feats)
+
+    _SSL_CLASSIFIER_CLASS = SSLBackboneClassifier
+    return _SSL_CLASSIFIER_CLASS
+
+
 def build_model(name: str, regime: str, num_classes: int, drop_path_rate: float = 0.1,
-                lora=None):
+                lora=None, checkpoint: str | None = None):
     """Construit (model, param_groups) pour le fine-tuning.
 
     ``param_groups`` : dict ``{nom_groupe: [Parameters]}`` ; les LR sont appliqués par
     :func:`engine.build_optimizer` à partir de ``config.optim.lr`` (mêmes noms de groupes).
     ``regime='scratch'`` : init ALÉATOIRE (``pretrained=False``), 1 seul groupe 'all'.
     ``regime='explora_like'`` : LoRA précoce + full-FT tardif (requiert ``lora`` = cfg.lora).
+    ``checkpoint`` : requis pour les backbones ``SSL_FT_NAMES`` de type SimDINOv2 (chemin du
+    ``.pth`` teacher pré-entraîné — voir :func:`build_frozen_extractor`) ; ignoré sinon.
     """
     name = name.lower()
     _validate_regime(name, regime)  # peut lever AVANT tout import lourd
+
+    if name in SSL_FT_NAMES:
+        backbone, forward_fn, embed_dim, _norm_key = build_frozen_extractor(name, checkpoint)
+        cls = _get_ssl_classifier_class()
+        model = cls(backbone, forward_fn, embed_dim, num_classes)
+        if regime == "frozen":
+            _set_requires_grad(model, lambda n: "head" in n)
+            return model, {"head": [p for n, p in model.named_parameters() if "head" in n]}
+        return model, _vit_groups(model, regime)
+
     import timm
 
     if name in CNN_NAMES:
@@ -598,6 +656,47 @@ def _load_finetuned_backbone(arch: str, checkpoint: str, expected_dim: int):
             f"checkpoint incompatible (clés inattendues={len(incompatible.unexpected_keys)}). "
             "Vérifie l'architecture et le bon .pth.")
     return model.eval()
+
+
+def load_finetuned_ssl_backbone(name: str, pretrain_checkpoint: str | None, ft_checkpoint: str):
+    """Reconstruit un backbone SSL (``SSL_FT_NAMES``) et y injecte des poids fine-tunés.
+
+    Réutilise :func:`build_frozen_extractor` pour l'architecture/``forward_fn``/normalisation
+    (MÊME logique que l'extraction frozen — les poids pré-entraînés qu'il charge sont
+    immédiatement écrasés par ceux du checkpoint fine-tuné ci-dessous, léger surcoût mais
+    zéro divergence d'architecture possible). ``ft_checkpoint`` vient de
+    :func:`engine._save_ckpt` (poids sous ``model_state_dict``, préfixe ``backbone.`` posé par
+    :class:`SSLBackboneClassifier`) — on ne garde que ce sous-arbre (la tête ``head.*`` est
+    ignorée : seule la représentation pré-tête sert à la sonde linéaire aval).
+    Retourne ``(model, forward_fn, embed_dim, norm_key)`` — même signature que
+    :func:`build_frozen_extractor`, prêt pour la même extraction (cache, sanity_check, etc.).
+    """
+    import os
+    import torch
+    if name not in SSL_FT_NAMES:
+        raise ValueError(f"'{name}' n'est pas un backbone SSL fine-tunable ({sorted(SSL_FT_NAMES)}).")
+    if not os.path.exists(ft_checkpoint):
+        raise FileNotFoundError(f"checkpoint fine-tuné introuvable : {ft_checkpoint!r}")
+    model, forward_fn, dim, norm_key = build_frozen_extractor(name, pretrain_checkpoint)
+    ckpt = torch.load(ft_checkpoint, map_location="cpu", weights_only=False)
+    state = ckpt.get("model_state_dict", ckpt) if isinstance(ckpt, dict) else ckpt
+    state = merge_lora_state_dict(state)  # no-op (full/mhsa n'ont pas de clés LoRA)
+    backbone_state = {k[len("backbone."):]: v for k, v in state.items() if k.startswith("backbone.")}
+    if not backbone_state:
+        raise RuntimeError(
+            f"{name} : aucune clé 'backbone.*' dans {ft_checkpoint!r} — checkpoint inattendu "
+            "(pas produit par SSLBackboneClassifier ?).")
+    incompatible = model.load_state_dict(backbone_state, strict=False)
+    n_model = len(model.state_dict())
+    n_missing = len(incompatible.missing_keys)
+    frac = n_missing / max(1, n_model)
+    print(f"[finetuned-ssl] {name}: chargé {n_model - n_missing}/{n_model} clés "
+          f"(manquantes={n_missing}, inattendues={len(incompatible.unexpected_keys)})")
+    if frac > 0.10:
+        raise RuntimeError(
+            f"{name} fine-tuné : {n_missing}/{n_model} clés manquantes ({frac:.0%} > 10%) — "
+            f"checkpoint incompatible (clés inattendues={len(incompatible.unexpected_keys)}).")
+    return model.eval(), forward_fn, dim, norm_key
 
 
 # --------------------------------------------------------- accès couche-par-couche
