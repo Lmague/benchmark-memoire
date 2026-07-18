@@ -61,23 +61,42 @@ def _frac_tag(fraction: float, seed: int) -> str:
     return f"frac{pct:03d}_seed{seed}"
 
 
-def _extract_backbone_embeddings(ckpt_path: str, cfg, splits=("val", "test")) -> dict:
+def _extract_backbone_embeddings(model_key: str, ckpt_path: str, cfg, pretrain_checkpoint=None,
+                                 splits=("val", "test")) -> dict:
     """Charge le backbone fine-tuné depuis ckpt_path, extrait les features pour splits.
 
     Retourne {split: (embeddings float16, labels int64)} — labels encore en 12-class ici.
     Le remapping 11-class est appliqué en aval par _apply_11cls_remap.
+
+    ``model_key`` sélectionne le loader : vitb16/resnet50 (chemin historique, timm
+    ``vit_base_patch16_224``/``resnet50``, norm imagenet — INCHANGÉ) vs backbones SSL
+    (``src.models.SSL_FT_NAMES`` : DINOv3-HF, SimDINOv2 — réutilise le MÊME forward_fn et la
+    MÊME normalisation que l'extraction frozen via :func:`src.models.load_finetuned_ssl_backbone`).
     """
     import torch
-    from src.models import _load_finetuned_backbone
+    from src.models import SSL_FT_NAMES
     from src.data import build_transforms, ArcticTVCDataset
     from src.utils import get_normalization, get_device
     from torch.utils.data import DataLoader
 
     device = get_device()
-    backbone = _load_finetuned_backbone("vit_base_patch16_224", ckpt_path, 768)
-    backbone = backbone.to(device).eval()
+    if model_key in SSL_FT_NAMES:
+        from src.models import load_finetuned_ssl_backbone
+        backbone, forward_fn, _dim, norm_key = load_finetuned_ssl_backbone(
+            model_key, pretrain_checkpoint, ckpt_path)
+        backbone = backbone.to(device).eval()
+        mean, std = get_normalization(norm_key)
+        def _fwd(x, _backbone=backbone, _forward_fn=forward_fn):
+            return _forward_fn(_backbone, x)
+    else:
+        # Chemin historique INCHANGÉ (vitb16 timm, num_features=768).
+        from src.models import _load_finetuned_backbone
+        backbone = _load_finetuned_backbone("vit_base_patch16_224", ckpt_path, 768)
+        backbone = backbone.to(device).eval()
+        mean, std = get_normalization("imagenet")
+        def _fwd(x, _backbone=backbone):
+            return _backbone(x)
 
-    mean, std = get_normalization("imagenet")
     out: dict = {}
     for s in splits:
         tf = build_transforms("eval", mean, std, cfg.data.image_size)
@@ -89,7 +108,7 @@ def _extract_backbone_embeddings(ckpt_path: str, cfg, splits=("val", "test")) ->
         with torch.no_grad():
             for x, y in loader:
                 x = x.to(device, non_blocking=True)
-                f = backbone(x)
+                f = _fwd(x)
                 embs.append(f.detach().cpu().to(torch.float16).numpy())
                 lbls.append(y.numpy())
         E = np.concatenate(embs, axis=0)
@@ -191,6 +210,13 @@ def main() -> None:
 
     cfg = load_config(os.path.join(code_dir, args.config))
 
+    # Checkpoint pré-entraîné (backbones SSL_FT_NAMES, ex. SimDINOv2) — résolu MAINTENANT,
+    # avant que cfg.paths.ckpt_dir soit réassigné plus bas au dossier local du run (sinon on
+    # chercherait le .pth pré-entraîné dans un dossier de run vide). Même logique que extract.py.
+    pretrain_checkpoint = cfg.raw.get("checkpoint")
+    if pretrain_checkpoint and not os.path.isabs(pretrain_checkpoint):
+        pretrain_checkpoint = os.path.join(cfg.paths.ckpt_dir, pretrain_checkpoint)
+
     tag = _frac_tag(args.fraction, args.seed)
     run_dir = os.path.join(args.out_dir, "runs", tag)
     os.makedirs(run_dir, exist_ok=True)
@@ -211,7 +237,10 @@ def main() -> None:
     os.makedirs(ckpt_dir, exist_ok=True)
     pct = int(round(args.fraction * 100))
     regime_tag = _REGIME_TAG.get(cfg.regime, cfg.regime)
-    ckpt_tag = f"vitb16_{regime_tag}_frac{pct:03d}_seed{args.seed}"
+    # NB : préfixé par cfg.model.name (pas "vitb16" en dur) — no-op pour les configs vitb16
+    # existantes (cfg.model.name == "vitb16"), mais évite une collision de tag/checkpoint
+    # avec les runs vitb16 canoniques pour les nouveaux backbones (dinov3_vitb16_lvd, ...).
+    ckpt_tag = f"{cfg.model.name}_{regime_tag}_frac{pct:03d}_seed{args.seed}"
     best_ckpt = os.path.join(ckpt_dir, f"{ckpt_tag}_best.pth")
 
     # ── 1. ENTRAÎNEMENT ─────────────────────────────────────────────────────────
@@ -259,7 +288,7 @@ def main() -> None:
     print(f"  [Tier3] classes rares dans le sous-échantillon : {rare}", flush=True)
 
     model, groups = build_model(cfg.model.name, cfg.regime, cfg.model.num_classes,
-                                lora=cfg.lora)
+                                lora=cfg.lora, checkpoint=pretrain_checkpoint)
     model = model.to(device)
     criterion = build_criterion(sub_labels, cfg.model.num_classes, device)
 
@@ -290,12 +319,14 @@ def main() -> None:
     print("\n[datacurve] 2/3 — Extraction des embeddings", flush=True)
 
     emb_base = args.emb_dir or cfg.paths.emb_dir
-    emb_key = f"vitb16_{regime_tag}_frac{pct:03d}_seed{args.seed}"
+    emb_key = ckpt_tag  # même convention {model}_{regime}_frac{XXX}_seed{N}, cf. NB ci-dessus
     emb_dir_run = os.path.join(emb_base, emb_key)
     os.makedirs(emb_dir_run, exist_ok=True)
 
     # Extraction val + test (labels 12-class depuis le CSV, remapping appliqué après)
-    feats_vt_12 = _extract_backbone_embeddings(best_ckpt, cfg, splits=("val", "test"))
+    feats_vt_12 = _extract_backbone_embeddings(cfg.model.name, best_ckpt, cfg,
+                                               pretrain_checkpoint=pretrain_checkpoint,
+                                               splits=("val", "test"))
 
     # Remapping 11-class pour val et test
     feats_vt: dict = {}
@@ -310,7 +341,9 @@ def main() -> None:
 
     # Extraction train (full) puis sous-sélection + remapping
     print("  extraction train (sous-ensemble)...", flush=True)
-    feats_tr_12 = _extract_backbone_embeddings(best_ckpt, cfg, splits=("train",))
+    feats_tr_12 = _extract_backbone_embeddings(cfg.model.name, best_ckpt, cfg,
+                                               pretrain_checkpoint=pretrain_checkpoint,
+                                               splits=("train",))
     E_tr_full_12, L_tr_full_12 = feats_tr_12["train"]
     # Garder uniquement les indices du sous-ensemble (déjà non-RHOL)
     E_tr_raw = E_tr_full_12[orig_train_sub_idx]
