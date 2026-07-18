@@ -7,7 +7,6 @@
 /*
 
 # 1b) …mais ré-inclure explicitement les sous-dossiers de résultats pour la repro.
-!/results/
 !/docs/figures/
 
 # 2) …puis ré-inclure explicitement le code
