@@ -88,15 +88,17 @@ def _extract_backbone_embeddings(model_key: str, ckpt_path: str, cfg, pretrain_c
         mean, std = get_normalization(norm_key)
         def _fwd(x, _backbone=backbone, _forward_fn=forward_fn):
             return _forward_fn(_backbone, x)
+
     else:
-        # Chemin historique INCHANGÉ (vitb16 timm, num_features=768).
-        from src.models import _load_finetuned_backbone
-        backbone = _load_finetuned_backbone("vit_base_patch16_224", ckpt_path, 768)
+        # Chemin historique INCHANGÉ (vitb16/resnet50 timm).
+        from src.models import _load_finetuned_backbone, _TIMM_ID
+        arch = _TIMM_ID.get(model_key, "vit_base_patch16_224")
+        expected_dim = 2048 if model_key in ("resnet50",) else 768
+        backbone = _load_finetuned_backbone(arch, ckpt_path, expected_dim)
         backbone = backbone.to(device).eval()
         mean, std = get_normalization("imagenet")
         def _fwd(x, _backbone=backbone):
             return _backbone(x)
-
     out: dict = {}
     for s in splits:
         tf = build_transforms("eval", mean, std, cfg.data.image_size)
