@@ -199,15 +199,28 @@ def _explora_groups(model, lora) -> dict:
         raise ValueError("régime 'explora_like' : modèle sans attribut 'blocks' (ViT timm requis).")
     blocks = model.blocks
     n_blocks = len(blocks)
-    n_late = int(lora.n_full_ft_blocks)
-    if not 0 <= n_late < n_blocks:
-        raise ValueError(f"n_full_ft_blocks={n_late} invalide pour {n_blocks} blocs.")
-    late_start = n_blocks - n_late
+
+    # full_ft_block_indices (optionnel) prend le dessus sur n_full_ft_blocks : permet de
+    # choisir explicitement quels blocs restent full-FT (ex. {0, N-1} = premier+dernier,
+    # conforme au papier ExPLoRA U={1,L}) plutôt que de déduire uniquement "les N derniers".
+    explicit_idx = getattr(lora, "full_ft_block_indices", None)
+    if explicit_idx is not None:
+        full_ft_idx = sorted(set(int(i) for i in explicit_idx))
+        if not full_ft_idx or any(not 0 <= i < n_blocks for i in full_ft_idx):
+            raise ValueError(f"full_ft_block_indices={full_ft_idx} invalide pour {n_blocks} blocs.")
+    else:
+        n_late = int(lora.n_full_ft_blocks)
+        if not 0 <= n_late < n_blocks:
+            raise ValueError(f"n_full_ft_blocks={n_late} invalide pour {n_blocks} blocs.")
+        late_start = n_blocks - n_late
+        full_ft_idx = list(range(late_start, n_blocks))
+
+    lora_idx = [i for i in range(n_blocks) if i not in full_ft_idx]
     lora_cls = _get_lora_class()
     targets = tuple(t.lower() for t in lora.target_modules)
 
-    # 1. Injection LoRA sur le qkv des blocs PRÉCOCES (les derniers restent full-FT)
-    for i in range(late_start):
+    # 1. Injection LoRA sur le qkv des blocs hors full-FT
+    for i in lora_idx:
         attn = blocks[i].attn
         if not hasattr(attn, "qkv"):
             raise ValueError(f"bloc {i} : attn sans 'qkv' fusionné (arch ViT timm attendue).")
@@ -220,7 +233,7 @@ def _explora_groups(model, lora) -> dict:
         if isinstance(m, nn.LayerNorm):
             for pn, _ in m.named_parameters(recurse=False):
                 norm_param_names.add(f"{mname}.{pn}" if mname else pn)
-    late_prefixes = tuple(f"blocks.{i}." for i in range(late_start, n_blocks))
+    late_prefixes = tuple(f"blocks.{i}." for i in full_ft_idx)
 
     # 3. Attribution exclusive des groupes + requires_grad
     groups = {"lora": [], "full_late": [], "norm": [], "head": []}
