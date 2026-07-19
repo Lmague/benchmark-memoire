@@ -122,16 +122,19 @@ class FeaturesCfg:
 class LoraCfg:
     """Régime ``explora_like`` (variante supervisée inspirée d'ExPLoRA, arXiv:2406.10973).
 
-    LoRA injecté sur les projections Q/V des blocs PRÉCOCES ; les ``n_full_ft_blocks``
-    derniers blocs sont full-FT ; toutes les LayerNorm + la head sont dégelées.
-    Le papier (SSL) teste r∈{8,32,64} (meilleur r64), LoRA sur Q,V uniquement, α non
-    spécifié → ici r=16/α=16 (scaling=1.0) adapté au FT supervisé ViT-B sur Arctic-TVC.
-    Ignoré par tous les autres régimes.
+    LoRA injecté sur les projections Q/V des blocs restants ; les blocs full-FT sont
+    soit les ``n_full_ft_blocks`` derniers (comportement historique), soit une liste
+    explicite ``full_ft_block_indices`` (prend le dessus si fournie — ex. [0, 11] pour
+    premier+dernier, conforme au papier U={1,L}). Toutes les LayerNorm + la head sont
+    dégelées. Le papier (SSL) teste r∈{8,32,64} (meilleur r64), LoRA sur Q,V uniquement,
+    α non spécifié → ici r=16/α=16 (scaling=1.0) adapté au FT supervisé ViT-B sur
+    Arctic-TVC. Ignoré par tous les autres régimes.
     """
     r: int = 16
     alpha: float = 16.0
     target_modules: list[str] = field(default_factory=lambda: ["q", "v"])
     n_full_ft_blocks: int = 2
+    full_ft_block_indices: list[int] | None = None
     dropout: float = 0.0
 
 
