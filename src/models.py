@@ -12,7 +12,8 @@ from __future__ import annotations
 CNN_NAMES = {"resnet50"}
 VIT_NAMES = {"vitb16"}
 # Backbones SSL frozen (build_frozen_extractor) rendus fine-tunables via un wrapper
-# nn.Module {backbone, head} — régimes limités à frozen|mhsa|full (pas d'ExPLoRA/scratch ici).
+# nn.Module {backbone, head} — régimes frozen|mhsa|full|explora_like (pas de 'scratch' :
+# init aléatoire n'a pas de sens pour un backbone pré-entraîné).
 SSL_FT_NAMES = {"dinov3_vitb16_lvd", "simdinov2_vitb16"}
 
 _TIMM_ID = {"resnet50": "resnet50", "vitb16": "vit_base_patch16_224"}
@@ -34,10 +35,10 @@ def _validate_regime(name: str, regime: str) -> None:
                 f"régime '{regime}' inconnu pour '{name}' "
                 f"(attendu: frozen|mhsa|full|explora_like|scratch).")
     elif name in SSL_FT_NAMES:
-        if regime not in ("frozen", "mhsa", "full"):
+        if regime not in ("frozen", "mhsa", "full", "explora_like"):
             raise ValueError(
-                f"régime '{regime}' inconnu pour '{name}' (attendu: frozen|mhsa|full — "
-                "explora_like/scratch non supportés pour les backbones SSL).")
+                f"régime '{regime}' inconnu pour '{name}' (attendu: frozen|mhsa|full|explora_like — "
+                "scratch non supporté pour les backbones SSL).")
     else:
         raise ValueError(f"modèle de fine-tuning inconnu : '{name}'.")
 
@@ -80,14 +81,19 @@ def _vit_groups(model, regime: str) -> dict:
 
 
 # ----------------------------------------------------- LoRA (régime explora_like)
-# LoRA minimal maison (peft non requis) : low-rank A·B sur des SLICES du qkv FUSIONNÉ
-# de timm. Le papier ExPLoRA (arXiv:2406.10973) applique LoRA sur Q,V uniquement ; comme
-# timm fusionne Q,K,V dans une seule Linear (attn.qkv : dim -> 3·dim), on adapte chaque
-# slice ciblée indépendamment (K laissé intact si non ciblé) — fidèle au Q,V-only du papier.
-# Le delta est FUSIONNÉ dans qkv.weight à l'extraction (merge_lora_state_dict) : le checkpoint
-# redevient un ViT timm standard, donc datacurve_one_run reste agnostique au régime.
+# LoRA minimal maison (peft non requis) : low-rank A·B sur les projections Q/V de
+# l'attention. Le papier ExPLoRA (arXiv:2406.10973) applique LoRA sur Q,V uniquement.
+# Deux architectures d'attention coexistent dans ce projet, donc DEUX classes LoRA :
+#   - timm ViT (qkv FUSIONNÉ, une seule Linear dim -> 3·dim)      -> LoRAFusedQKV
+#     (slice de sortie ciblée, K laissé intact si non ciblé) ;
+#   - HuggingFace DINOv3 (q_proj/k_proj/v_proj/o_proj SÉPARÉS,    -> LoRALinear
+#     vérifié en inspectant transformers.models.dinov3_vit : pas de qkv fusionné)
+#     chaque projection ciblée reçoit son propre A/B, pas de slice à gérer.
+# Le delta est FUSIONNÉ dans le(s) poids de base à l'extraction (merge_lora_state_dict) :
+# le checkpoint redevient un modèle standard (timm ou HF), agnostique au régime.
 _LORA_CLASS = None
 _QKV_SLICE = {"q": 0, "k": 1, "v": 2}  # ordre de fusion timm : [Q | K | V]
+_PROJ_ATTR = {"q": "q_proj", "k": "k_proj", "v": "v_proj"}  # HF DINOv3 : projections séparées
 
 
 def _get_lora_class():
@@ -149,14 +155,74 @@ def _get_lora_class():
     return _LORA_CLASS
 
 
-def merge_lora_state_dict(state: dict) -> dict:
-    """Fusionne tout adaptateur LoRA d'un ``state_dict`` dans le ``weight`` qkv correspondant.
+_LORA_LINEAR_CLASS = None
+_LORA_LINEAR_TARGET = "d"  # clé unique (delta plein, pas de slice) — distingue de _QKV_SLICE
 
-    Pour chaque préfixe ``P`` portant des clés ``P.lora_A.<t>``/``P.lora_B.<t>`` : applique
-    ``W[slice_t] += scaling · (B·A)`` sur ``P.weight`` (slice q/k/v déduite de ``<t>``,
-    scaling lu dans ``P.scaling_buf``) puis SUPPRIME les clés LoRA et le buffer. Le state_dict
-    résultant est celui d'un ViT timm standard. No-op si aucune clé LoRA (checkpoints full/mhsa/
-    scratch ou backbones fine-tunés legacy) → sûr à appeler inconditionnellement à l'extraction.
+
+def _get_lora_linear_class():
+    """Définit/retourne ``LoRALinear`` (lazy, cf. :func:`_get_lora_class`).
+
+    Contrepartie de ``LoRAFusedQKV`` pour les architectures où Q/K/V sont des ``nn.Linear``
+    SÉPARÉES (HuggingFace DINOv3 : ``attention.q_proj``/``k_proj``/``v_proj``/``o_proj``,
+    aucun ``qkv`` fusionné — vérifié dans ``transformers.models.dinov3_vit.modeling_dinov3_vit``).
+    Un ``LoRALinear`` remplace UNE projection ciblée (ex. ``q_proj``) : pas de slice de sortie
+    à gérer (contrairement à ``LoRAFusedQKV``), le delta bas-rang s'applique à toute la sortie.
+    """
+    global _LORA_LINEAR_CLASS
+    if _LORA_LINEAR_CLASS is not None:
+        return _LORA_LINEAR_CLASS
+    import math
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+
+    class LoRALinear(nn.Module):
+        """Wrappe un ``nn.Linear`` standalone (base GELÉE) + un adaptateur LoRA bas-rang."""
+
+        def __init__(self, base, r, alpha, dropout=0.0):
+            super().__init__()
+            self.in_features = base.in_features
+            self.out_features = base.out_features
+            self.r = int(r)
+            self.scaling = float(alpha) / float(r)
+            self.weight = nn.Parameter(base.weight.detach().clone(), requires_grad=False)
+            if base.bias is not None:
+                self.bias = nn.Parameter(base.bias.detach().clone(), requires_grad=False)
+            else:
+                self.register_parameter("bias", None)
+            self.drop = nn.Dropout(dropout) if dropout and dropout > 0 else nn.Identity()
+            A = nn.Parameter(torch.empty(self.r, self.in_features))
+            B = nn.Parameter(torch.zeros(self.out_features, self.r))
+            nn.init.kaiming_uniform_(A, a=math.sqrt(5))
+            self.lora_A = nn.ParameterDict({_LORA_LINEAR_TARGET: A})
+            self.lora_B = nn.ParameterDict({_LORA_LINEAR_TARGET: B})
+            self.register_buffer("scaling_buf", torch.tensor(self.scaling, dtype=torch.float32))
+
+        def forward(self, x):
+            out = F.linear(x, self.weight, self.bias)
+            xd = self.drop(x)
+            t = _LORA_LINEAR_TARGET
+            d = self.scaling * F.linear(F.linear(xd, self.lora_A[t]), self.lora_B[t])
+            return out + d
+
+    _LORA_LINEAR_CLASS = LoRALinear
+    return _LORA_LINEAR_CLASS
+
+
+def merge_lora_state_dict(state: dict) -> dict:
+    """Fusionne tout adaptateur LoRA d'un ``state_dict`` dans le(s) poids de base correspondants.
+
+    Pour chaque préfixe ``P`` portant des clés ``P.lora_A.<t>``/``P.lora_B.<t>`` :
+
+    - ``qkv`` FUSIONNÉ (timm, ``t`` ∈ q/k/v) : ``W[slice_t] += scaling · (B·A)`` sur
+      ``P.weight`` (slice déduite de ``<t>``, cf. :data:`_QKV_SLICE`) ;
+    - projection SÉPARÉE (HF DINOv3, ``t`` == :data:`_LORA_LINEAR_TARGET`) : ``W += scaling ·
+      (B·A)`` sur tout ``P.weight`` (pas de slice — une seule Linear par préfixe).
+
+    Scaling lu dans ``P.scaling_buf``. SUPPRIME ensuite les clés LoRA et le buffer. Le
+    state_dict résultant est celui d'un modèle standard (timm ou HF), sans trace de LoRA.
+    No-op si aucune clé LoRA (checkpoints full/mhsa/scratch ou backbones fine-tunés legacy) →
+    sûr à appeler inconditionnellement à l'extraction.
     """
     prefixes = sorted({k.split(".lora_A.")[0] for k in state if ".lora_A." in k})
     if not prefixes:
@@ -167,15 +233,21 @@ def merge_lora_state_dict(state: dict) -> dict:
         if wkey not in out:
             continue
         W = out[wkey].clone()
-        dim = W.shape[0] // 3
         skey = f"{p}.scaling_buf"
         scaling = float(out[skey]) if skey in out else 1.0
-        for t, s in _QKV_SLICE.items():
-            ka, kb = f"{p}.lora_A.{t}", f"{p}.lora_B.{t}"
-            if ka in out and kb in out:
-                A = out[ka].to(W.dtype)
-                B = out[kb].to(W.dtype)
-                W[s * dim:(s + 1) * dim, :] += scaling * (B @ A)
+        ka_full, kb_full = f"{p}.lora_A.{_LORA_LINEAR_TARGET}", f"{p}.lora_B.{_LORA_LINEAR_TARGET}"
+        if ka_full in out and kb_full in out:
+            A = out[ka_full].to(W.dtype)
+            B = out[kb_full].to(W.dtype)
+            W += scaling * (B @ A)
+        else:
+            dim = W.shape[0] // 3
+            for t, s in _QKV_SLICE.items():
+                ka, kb = f"{p}.lora_A.{t}", f"{p}.lora_B.{t}"
+                if ka in out and kb in out:
+                    A = out[ka].to(W.dtype)
+                    B = out[kb].to(W.dtype)
+                    W[s * dim:(s + 1) * dim, :] += scaling * (B @ A)
         out[wkey] = W
         for kk in list(out):
             if kk.startswith(f"{p}.lora_A.") or kk.startswith(f"{p}.lora_B.") or kk == skey:
@@ -183,22 +255,36 @@ def merge_lora_state_dict(state: dict) -> dict:
     return out
 
 
+def _find_module_name(model, target) -> str:
+    """Nom pointé (``named_modules``) du sous-module ``target`` dans ``model`` (par identité)."""
+    for n, m in model.named_modules():
+        if m is target:
+            return n
+    raise ValueError("module introuvable par identité dans l'arbre (get_transformer_blocks a "
+                     "renvoyé une ModuleList qui n'appartient pas à ce modèle ?).")
+
+
 def _explora_groups(model, lora) -> dict:
     """Régime ``explora_like`` : injecte LoRA sur les blocs précoces, full-FT sur les derniers.
 
-    - Blocs ``0 .. N-n_full_ft_blocks-1`` : qkv wrappé LoRA (Q/V), reste du bloc GELÉ.
+    Couvre DEUX architectures d'attention (cf. :func:`_get_lora_class`/:func:`_get_lora_linear_class`) :
+    ViT timm (``attn.qkv`` fusionné) et HuggingFace DINOv3 (``attention.{q,k,v,o}_proj`` séparés,
+    aucun attribut ``blocks`` — les blocs vivent sous ``model.model.layer`` (potentiellement
+    préfixé ``backbone.`` par :class:`SSLBackboneClassifier`), retrouvés via
+    :func:`get_transformer_blocks`).
+
+    - Blocs ``0 .. N-n_full_ft_blocks-1`` : Q/V wrappés LoRA, reste du bloc GELÉ.
     - Blocs ``N-n_full_ft_blocks .. N-1`` : full-FT (sauf leurs LayerNorm → groupe 'norm').
     - Toutes les LayerNorm (partout, + norm finale) : dégelées → groupe 'norm'.
-    - Head : dégelée → groupe 'head'. pos_embed/cls_token/patch_embed : GELÉS (init ImageNet).
+    - Head : dégelée → groupe 'head'. pos_embed/cls_token/patch_embed : GELÉS (init pré-entraîné).
     Groupes retournés : 'lora' | 'full_late' | 'norm' | 'head' (LR fournis par cfg.optim.lr).
     """
     import torch.nn as nn
     if lora is None:
         raise ValueError("régime 'explora_like' : configuration LoRA absente (cfg.lora).")
-    if not hasattr(model, "blocks"):
-        raise ValueError("régime 'explora_like' : modèle sans attribut 'blocks' (ViT timm requis).")
-    blocks = model.blocks
+    blocks = get_transformer_blocks(model)
     n_blocks = len(blocks)
+    blocklist_name = _find_module_name(model, blocks)
 
     # full_ft_block_indices (optionnel) prend le dessus sur n_full_ft_blocks : permet de
     # choisir explicitement quels blocs restent full-FT (ex. {0, N-1} = premier+dernier,
@@ -217,15 +303,30 @@ def _explora_groups(model, lora) -> dict:
 
     lora_idx = [i for i in range(n_blocks) if i not in full_ft_idx]
     lora_cls = _get_lora_class()
+    lora_linear_cls = _get_lora_linear_class()
     targets = tuple(t.lower() for t in lora.target_modules)
 
-    # 1. Injection LoRA sur le qkv des blocs hors full-FT
+    # 1. Injection LoRA sur l'attention des blocs hors full-FT (qkv fusionné OU projections séparées)
     for i in lora_idx:
-        attn = blocks[i].attn
-        if not hasattr(attn, "qkv"):
-            raise ValueError(f"bloc {i} : attn sans 'qkv' fusionné (arch ViT timm attendue).")
-        attn.qkv = lora_cls(attn.qkv, r=lora.r, alpha=lora.alpha,
-                            targets=targets, dropout=lora.dropout)
+        block = blocks[i]
+        attn = getattr(block, "attn", None)
+        if attn is None:
+            attn = getattr(block, "attention", None)
+        if attn is None:
+            raise ValueError(
+                f"bloc {i} : pas de sous-module 'attn'/'attention' (arch non supportée).")
+        if hasattr(attn, "qkv"):
+            attn.qkv = lora_cls(attn.qkv, r=lora.r, alpha=lora.alpha,
+                                targets=targets, dropout=lora.dropout)
+        else:
+            for t in targets:
+                proj_name = _PROJ_ATTR.get(t)
+                if proj_name is None or not hasattr(attn, proj_name):
+                    raise ValueError(
+                        f"bloc {i} : cible LoRA '{t}' introuvable sur {type(attn).__name__} "
+                        f"(ni 'qkv' fusionné, ni '{proj_name}' séparé).")
+                setattr(attn, proj_name, lora_linear_cls(
+                    getattr(attn, proj_name), r=lora.r, alpha=lora.alpha, dropout=lora.dropout))
 
     # 2. Noms exacts des paramètres de LayerNorm (robuste : par type de module)
     norm_param_names = set()
@@ -233,7 +334,7 @@ def _explora_groups(model, lora) -> dict:
         if isinstance(m, nn.LayerNorm):
             for pn, _ in m.named_parameters(recurse=False):
                 norm_param_names.add(f"{mname}.{pn}" if mname else pn)
-    late_prefixes = tuple(f"blocks.{i}." for i in full_ft_idx)
+    late_prefixes = tuple(f"{blocklist_name}.{i}." for i in full_ft_idx)
 
     # 3. Attribution exclusive des groupes + requires_grad
     groups = {"lora": [], "full_late": [], "norm": [], "head": []}
@@ -304,8 +405,11 @@ def build_model(name: str, regime: str, num_classes: int, drop_path_rate: float 
 
     ``param_groups`` : dict ``{nom_groupe: [Parameters]}`` ; les LR sont appliqués par
     :func:`engine.build_optimizer` à partir de ``config.optim.lr`` (mêmes noms de groupes).
-    ``regime='scratch'`` : init ALÉATOIRE (``pretrained=False``), 1 seul groupe 'all'.
-    ``regime='explora_like'`` : LoRA précoce + full-FT tardif (requiert ``lora`` = cfg.lora).
+    ``regime='scratch'`` : init ALÉATOIRE (``pretrained=False``), 1 seul groupe 'all'
+    (uniquement pour les ViT timm — pas de sens pour un backbone SSL pré-entraîné).
+    ``regime='explora_like'`` : LoRA précoce + full-FT tardif (requiert ``lora`` = cfg.lora) ;
+    supporté pour les ViT timm (qkv fusionné) ET les backbones ``SSL_FT_NAMES`` HuggingFace
+    (projections Q/K/V séparées, ex. DINOv3) — cf. :func:`_explora_groups`.
     ``checkpoint`` : requis pour les backbones ``SSL_FT_NAMES`` de type SimDINOv2 (chemin du
     ``.pth`` teacher pré-entraîné — voir :func:`build_frozen_extractor`) ; ignoré sinon.
     """
@@ -319,6 +423,8 @@ def build_model(name: str, regime: str, num_classes: int, drop_path_rate: float 
         if regime == "frozen":
             _set_requires_grad(model, lambda n: "head" in n)
             return model, {"head": [p for n, p in model.named_parameters() if "head" in n]}
+        if regime == "explora_like":
+            return model, _explora_groups(model, lora)
         return model, _vit_groups(model, regime)
 
     import timm
@@ -693,7 +799,7 @@ def load_finetuned_ssl_backbone(name: str, pretrain_checkpoint: str | None, ft_c
     model, forward_fn, dim, norm_key = build_frozen_extractor(name, pretrain_checkpoint)
     ckpt = torch.load(ft_checkpoint, map_location="cpu", weights_only=False)
     state = ckpt.get("model_state_dict", ckpt) if isinstance(ckpt, dict) else ckpt
-    state = merge_lora_state_dict(state)  # no-op (full/mhsa n'ont pas de clés LoRA)
+    state = merge_lora_state_dict(state)  # fusionne si explora_like ; no-op sinon (full/mhsa)
     backbone_state = {k[len("backbone."):]: v for k, v in state.items() if k.startswith("backbone.")}
     if not backbone_state:
         raise RuntimeError(
@@ -728,15 +834,19 @@ def get_transformer_blocks(model):
       - timm ViT / DINOv3 du hub : ``model.blocks`` ;
       - torchvision ViT          : ``model.encoder.layers`` ;
       - HuggingFace DINOv2       : ``model.encoder.layer`` (singulier) ;
-      - HuggingFace DINOv3 (``Dinov3ViTModel``, transformers>=4.56) : ``model.layer``.
+      - HuggingFace DINOv3 (``DINOv3ViTModel``, ``transformers.models.dinov3_vit``, vérifié en
+        instantiant le modèle localement) : ``model.model.layer`` — ``DINOv3ViTModel.model``
+        est un ``DINOv3ViTEncoder`` dont ``.layer`` est la ``ModuleList`` des blocs (PAS
+        ``model.layer`` directement, contrairement à une supposition précédente non vérifiée).
 
-    L'attribut exact de DINOv3-HF n'a pas pu être vérifié hors-ligne (transformers non
-    installé sur la machine d'analyse) : on tente donc plusieurs chemins, puis, en dernier
-    recours, on prend la plus longue ``nn.ModuleList`` du modèle. Le garde-fou de
+    Si un modèle est passé déjà wrappé (ex. :class:`SSLBackboneClassifier` : ``model.backbone``
+    est le vrai ``DINOv3ViTModel``), aucun des chemins ci-dessus ne matche directement ``model``
+    → repli sur la plus longue ``nn.ModuleList`` trouvée par recherche récursive (``model.modules()``),
+    qui retrouve la même ModuleList quel que soit le niveau d'imbrication. Le garde-fou de
     :func:`extract_layerwise` valide ensuite que ``len(blocks) == nb attendu`` (24 pour ViT-L).
     Lève ``ValueError`` pour un modèle sans blocs (ex. CNN).
     """
-    for attr_path in (("blocks",), ("layer",), ("layers",),
+    for attr_path in (("blocks",), ("model", "layer"), ("layer",), ("layers",),
                       ("encoder", "layers"), ("encoder", "layer")):
         obj = model
         ok = True
