@@ -1,0 +1,61 @@
+# ViT-B/16 DINOv3 (générique, lvd1689m) — ExPLoRA-like SUPERVISÉ (variante inspirée de
+# Khanna 2024, arXiv:2406.10973 ; le papier original est du SSL non-supervisé).
+#
+# Architecture (cf. src.models._explora_groups) :
+#   - blocs 0 et 11 (premier + dernier) : full fine-tuning (groupe 'full_late'),
+#     conforme au papier ExPLoRA U={1,L}
+#   - blocs 1..10 : q_proj/v_proj wrappés LoRA (k_proj intact) ; reste du bloc GELÉ
+#     (init DINOv3 lvd1689m)
+#   - toutes les LayerNorm (partout + norm finale) : dégelées (groupe 'norm')
+#   - head : dégelée. pos_embed / cls_token / patch_embed : GELÉS.
+# Le delta LoRA est fusionné à l'extraction (merge_lora_state_dict), qui gère
+# maintenant LoRALinear (q_proj/v_proj séparés HF) en plus de LoRAFusedQKV (timm).
+#
+# Fidélité papier : LoRA Q,V uniquement (✓), blocs {1,L} (✓, corrige la variante
+# précédente {10,11} qui ne couvrait pas le bloc bas-niveau). r=16/alpha=16
+# (scaling=1.0), même capacité que la variante ImageNet pour comparaison directe.
+#
+# NB CRITIQUE : num_classes=11 exige des CSV DÉJÀ remappés (RHOL exclue, labels 0-10) —
+# csv_dir pointe vers splits_11cls/ (généré par scripts/generate_splits_11cls.py).
+paths_local:
+  csv_dir: splits_11cls
+paths_narval:
+  csv_dir: ${SCRATCH}/splits_11cls
+paths_colab:
+  csv_dir: /content/drive/MyDrive/Memoire/splits_11cls
+
+model:
+  name: dinov3_vitb16_lvd
+  num_classes: 11
+  norm: imagenet
+
+regime: explora_like
+
+lora:
+  r: 16
+  alpha: 16.0
+  target_modules: [q, v]
+  full_ft_block_indices: [0, 11]   # premier + dernier bloc (papier : U={1,L})
+  dropout: 0.0
+
+optim:
+  weight_decay: 0.05
+  lr:
+    lora: 1.0e-4
+    full_late: 5.0e-5
+    norm: 1.0e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
