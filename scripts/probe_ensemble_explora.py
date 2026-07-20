@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""Ensembling par moyenne d'embeddings sur les 3 seeds ExPLoRA (DINOv3-B), probe canonique
-sur l'embedding moyenné, comparé aux 3 seeds individuels.
+"""Compare deux stratégies d'ensembling sur les 3 seeds ExPLoRA (DINOv3-B, run CORRIGÉ
+20/07/2026, csv_dir fix — F1 individuels attendus proches de 0.48, PAS 0.52) :
 
-Idée testée : pour chaque tuile, on a 3 embeddings indépendants (un par seed d'entraînement
-ExPLoRA — même config, même données, seed de départ différent). On moyenne ces 3 embeddings
-tuile par tuile (AVANT standardisation) pour voir si le signal partagé entre seeds ressort
-mieux que le bruit spécifique à chaque run — c'est un ensembling au niveau représentation,
-pas au niveau prédiction (pas de vote/moyenne de logits).
+  (a) Moyenne des EMBEDDINGS (features brutes moyennées tuile-à-tuile AVANT standardisation,
+      un seul probe entraîné sur la moyenne) — un seul modèle final.
+  (b) Moyenne des PROBABILITÉS (un probe complet, indépendant, par seed ; les 3 distributions
+      de proba de test sont moyennées, puis argmax) — ensembling de décisions, 3 modèles.
 
-Prérequis : les 3 seeds d'embeddings finaux ExPLoRA existent déjà sur le disque
-(sota_screening/dinov3_vitb16_lvd_explora/embeddings/dinov3_vitb16_lvd_explora_frac100_seed{0,1,2}/).
+(b) est généralement plus robuste en pratique : chaque probe capture indépendamment le bruit
+d'init de son seed, la moyenne de décisions lisse ce bruit mieux qu'une moyenne de features
+qui peut juste produire un point flou entre les 3 optima. (a) est moins cher (1 seul probe)
+mais plus fragile si les 3 embeddings ne sont pas bien alignés géométriquement entre seeds.
+
+Prérequis : les 3 seeds d'embeddings finaux ExPLoRA existent déjà sur le disque, run corrigé.
 AUCUNE réextraction nécessaire — ce script consomme ce qui est déjà là.
 
 IMPORTANT — alignement : la moyenne n'a de sens QUE si les 3 fichiers train/val/test.npy
@@ -80,7 +83,10 @@ def check_alignment(per_seed: list[dict]) -> None:
     print("[check] alignement OK : mêmes shapes + mêmes labels (même ordre) sur les 3 seeds.")
 
 
-def linear_probe_f1(data: dict, n_classes: int):
+def linear_probe_f1(data: dict, n_classes: int, return_proba: bool = False):
+    """Probe canonique standard. Si return_proba=True, retourne aussi les probabilités
+    de test (n_test, n_classes) alignées sur `labels_range`, pour permettre l'ensembling
+    par moyenne de probabilités en aval (voir ensemble_proba_f1)."""
     etr, ltr = data["train"]
     eva, lva = data["val"]
     ete, lte = data["test"]
@@ -100,7 +106,42 @@ def linear_probe_f1(data: dict, n_classes: int):
     clf.fit(xtr, ltr)
     yp = clf.predict(xte)
     f1 = float(f1_score(lte, yp, average="macro", zero_division=0, labels=labels_range))
+    if return_proba:
+        # clf.classes_ peut être un sous-ensemble/ordre différent de labels_range si une
+        # classe est absente du train — on réaligne explicitement sur labels_range pour que
+        # la moyenne inter-seeds soit colonne-à-colonne comparable (même ordre de classes).
+        proba_raw = clf.predict_proba(xte)
+        proba = np.zeros((xte.shape[0], n_classes), dtype=np.float64)
+        for j, c in enumerate(clf.classes_):
+            proba[:, int(c)] = proba_raw[:, j]
+        return f1, best_c, proba
     return f1, best_c
+
+
+def ensemble_proba_f1(per_seed: list[dict], n_classes: int):
+    """Ensembling par MOYENNE DES PROBABILITÉS : un probe complet (train+selection C sur
+    val) par seed, puis moyenne des proba de test sur les 3 seeds, puis argmax.
+    Différent de l'ensembling par moyenne des embeddings (un seul probe sur la moyenne des
+    features) : ici chaque seed garde son propre modèle, seule la décision finale est agrégée.
+    """
+    labels_range = list(range(n_classes))
+    probas, f1s_individual, best_cs = [], [], []
+    lte_ref = None
+    for i, data in enumerate(per_seed):
+        f1, best_c, proba = linear_probe_f1(data, n_classes, return_proba=True)
+        probas.append(proba)
+        f1s_individual.append(f1)
+        best_cs.append(best_c)
+        _, lte = data["test"]
+        if lte_ref is None:
+            lte_ref = lte
+        elif not np.array_equal(lte, lte_ref):
+            raise RuntimeError("labels test divergents entre seeds — alignement invalide.")
+
+    proba_mean = np.mean(probas, axis=0)
+    y_pred = proba_mean.argmax(axis=1)
+    f1_ens = float(f1_score(lte_ref, y_pred, average="macro", zero_division=0, labels=labels_range))
+    return f1_ens, f1s_individual, best_cs
 
 
 def main():
@@ -127,24 +168,39 @@ def main():
         L = per_seed[0][s][1]  # identique sur les 3 (vérifié par check_alignment)
         ensembled[s] = (E_mean.astype(np.float32), L)
 
-    f1_ens, best_c_ens = linear_probe_f1(ensembled, n_classes)
-    results["ensemble_mean_3seeds"] = {"f1": f1_ens, "best_C": best_c_ens}
-    print(f"[ensemble] F1={f1_ens:.4f} best_C={best_c_ens}")
+    f1_ens_emb, best_c_ens = linear_probe_f1(ensembled, n_classes)
+    results["ensemble_mean_embeddings"] = {"f1": f1_ens_emb, "best_C": best_c_ens}
+    print(f"[ensemble embeddings] F1={f1_ens_emb:.4f} best_C={best_c_ens}")
+
+    # --- (c) ensembling : moyenne des PROBABILITÉS (probe séparé par seed, proba moyennée) ---
+    f1_ens_proba, f1s_check, best_cs_check = ensemble_proba_f1(per_seed, n_classes)
+    results["ensemble_mean_proba"] = {"f1": f1_ens_proba, "best_C_per_seed": best_cs_check}
+    print(f"[ensemble proba]      F1={f1_ens_proba:.4f}  (best_C par seed: {best_cs_check})")
 
     mean_individual = float(np.mean([results[f"seed{s}"]["f1"] for s in SEEDS]))
     std_individual = float(np.std([results[f"seed{s}"]["f1"] for s in SEEDS]))
-    delta = f1_ens - mean_individual
-    print(f"\n[résumé] moyenne des 3 F1 individuels = {mean_individual:.4f} ± {std_individual:.4f}")
-    print(f"[résumé] F1 de l'embedding moyenné    = {f1_ens:.4f}  (Δ = {delta:+.4f} vs moyenne individuelle)")
+    delta_emb = f1_ens_emb - mean_individual
+    delta_proba = f1_ens_proba - mean_individual
+    print(f"\n[résumé] moyenne des {len(SEEDS)} F1 individuels     = {mean_individual:.4f} ± {std_individual:.4f}")
+    print(f"[résumé] F1 ensemble EMBEDDINGS (features moyennées) = {f1_ens_emb:.4f}  (Δ = {delta_emb:+.4f})")
+    print(f"[résumé] F1 ensemble PROBA (décisions moyennées)     = {f1_ens_proba:.4f}  (Δ = {delta_proba:+.4f})")
+    if f1_ens_proba > f1_ens_emb:
+        print(f"[résumé] → PROBA gagne (+{f1_ens_proba - f1_ens_emb:.4f} vs embeddings)")
+    elif f1_ens_emb > f1_ens_proba:
+        print(f"[résumé] → EMBEDDINGS gagne (+{f1_ens_emb - f1_ens_proba:.4f} vs proba)")
+    else:
+        print("[résumé] → égalité exacte")
 
     out = {
-        "pipeline": "LR lbfgs, C_grid [1e-4..10], seed=42, max_iter=2000 — ensembling embeddings",
+        "pipeline": "LR lbfgs, C_grid [1e-4..10], seed=42, max_iter=2000 — comparaison ensembling",
         "schema": f"{n_classes}cls",
         "individual_seeds": {f"seed{s}": results[f"seed{s}"] for s in SEEDS},
-        "ensemble_mean_3seeds": results["ensemble_mean_3seeds"],
+        "ensemble_mean_embeddings": results["ensemble_mean_embeddings"],
+        "ensemble_mean_proba": results["ensemble_mean_proba"],
         "mean_individual_f1": mean_individual,
         "std_individual_f1": std_individual,
-        "delta_ensemble_vs_mean_individual": delta,
+        "delta_embeddings_vs_mean_individual": delta_emb,
+        "delta_proba_vs_mean_individual": delta_proba,
     }
     out_path = PROJ / "results/probe_ensemble_explora_dinov3b.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
