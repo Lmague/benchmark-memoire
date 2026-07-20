@@ -15,14 +15,17 @@
 # précédente {10,11} qui ne couvrait pas le bloc bas-niveau). r=16/alpha=16
 # (scaling=1.0), même capacité que la variante ImageNet pour comparaison directe.
 #
-# NB CRITIQUE : num_classes=11 exige des CSV DÉJÀ remappés (RHOL exclue, labels 0-10) —
-# csv_dir pointe vers splits_11cls/ (généré par scripts/generate_splits_11cls.py).
-paths_local:
-  csv_dir: splits_11cls
-paths_narval:
-  csv_dir: ${SCRATCH}/splits_11cls
-paths_colab:
-  csv_dir: /content/drive/MyDrive/Memoire/splits_11cls
+# NB CRITIQUE csv_dir : PAS d'override ici (voir note identique dans
+# ft_dinov3_vitb16_lvd_mhsa.yaml / ft_dinov3_vitb16_lvd_full.yaml). Le CSV attendu par
+# _extract_backbone_embeddings + _apply_11cls_remap est le schema BRUT 12cls
+# (defaut base.yaml : splits/) -- _apply_11cls_remap filtre RHOL et decale les indices
+# lui-meme. Pointer csv_dir vers un schema deja remappe (splits_11cls/) cause un
+# double-remap : le label 7 deja-11cls (RUBC, pas RHOL) est filtre par erreur, et la
+# derniere classe (WILL, indice 10 en 11cls) disparait par decalage en cascade.
+# CORRIGE le 20/07/2026 -- bug detecte sur dinov3_vitb16_lvd_explora (3 seeds, WILL
+# absente des 3 splits, F1 canonique 0,5257 invalide, a recalculer apres reextraction).
+# num_classes=11 (ci-dessous) concerne UNIQUEMENT la tete de classification entrainee,
+# pas le format du CSV source -- aucun lien avec csv_dir.
 
 model:
   name: dinov3_vitb16_lvd
