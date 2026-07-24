@@ -291,7 +291,7 @@ def _explora_groups(model, lora) -> dict:
     explicit_idx = getattr(lora, "full_ft_block_indices", None)
     if explicit_idx is not None:
         full_ft_idx = sorted(set(int(i) for i in explicit_idx))
-        if not full_ft_idx or any(not 0 <= i < n_blocks for i in full_ft_idx):
+        if any(not 0 <= i < n_blocks for i in full_ft_idx):
             raise ValueError(f"full_ft_block_indices={full_ft_idx} invalide pour {n_blocks} blocs.")
     else:
         n_late = int(lora.n_full_ft_blocks)
