@@ -280,6 +280,7 @@ def _explora_groups(model, lora) -> dict:
     - Head : dégelée → groupe 'head'. pos_embed/cls_token/patch_embed : GELÉS (init pré-entraîné).
     Groupes retournés : 'lora' | 'full_late' | 'norm' | 'head' (LR fournis par cfg.optim.lr).
     """
+    import torch.nn as nn
     if lora is None:
         raise ValueError("régime 'explora_like' : configuration LoRA absente (cfg.lora).")
     blocks = get_transformer_blocks(model)
