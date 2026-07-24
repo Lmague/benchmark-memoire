@@ -30,12 +30,12 @@ def _validate_regime(name: str, regime: str) -> None:
         if regime not in ("frozen", "full"):
             raise ValueError(f"régime '{regime}' inconnu pour '{name}' (attendu: frozen|full).")
     elif name in VIT_NAMES:
-        if regime not in ("frozen", "mhsa", "full", "explora_like", "scratch"):
+        if regime not in ("frozen", "mhsa", "full", "explora_like", "scratch", "lora"):
             raise ValueError(
                 f"régime '{regime}' inconnu pour '{name}' "
                 f"(attendu: frozen|mhsa|full|explora_like|scratch).")
     elif name in SSL_FT_NAMES:
-        if regime not in ("frozen", "mhsa", "full", "explora_like"):
+        if regime not in ("frozen", "mhsa", "full", "explora_like", "lora"):
             raise ValueError(
                 f"régime '{regime}' inconnu pour '{name}' (attendu: frozen|mhsa|full|explora_like — "
                 "scratch non supporté pour les backbones SSL).")
@@ -265,7 +265,7 @@ def _find_module_name(model, target) -> str:
 
 
 def _explora_groups(model, lora) -> dict:
-    """Régime ``explora_like`` : injecte LoRA sur les blocs précoces, full-FT sur les derniers.
+    """Régime ``explora_like`` : LoRA Q,V sur TOUS les blocs + full-FT sur blocs U={1,L}.
 
     Couvre DEUX architectures d'attention (cf. :func:`_get_lora_class`/:func:`_get_lora_linear_class`) :
     ViT timm (``attn.qkv`` fusionné) et HuggingFace DINOv3 (``attention.{q,k,v,o}_proj`` séparés,
@@ -273,22 +273,21 @@ def _explora_groups(model, lora) -> dict:
     préfixé ``backbone.`` par :class:`SSLBackboneClassifier`), retrouvés via
     :func:`get_transformer_blocks`).
 
-    - Blocs ``0 .. N-n_full_ft_blocks-1`` : Q/V wrappés LoRA, reste du bloc GELÉ.
-    - Blocs ``N-n_full_ft_blocks .. N-1`` : full-FT (sauf leurs LayerNorm → groupe 'norm').
+    - LoRA Q,V injecté sur TOUS les blocs (0..11).
+    - full-FT sur ``full_ft_block_indices`` (défaut : {0, N-1} = U={1,L} du papier ExPLoRA).
+      Les blocs full-FT ont LoRA + full-FT EN SUPERPOSITION (pas disjoints).
     - Toutes les LayerNorm (partout, + norm finale) : dégelées → groupe 'norm'.
     - Head : dégelée → groupe 'head'. pos_embed/cls_token/patch_embed : GELÉS (init pré-entraîné).
     Groupes retournés : 'lora' | 'full_late' | 'norm' | 'head' (LR fournis par cfg.optim.lr).
     """
-    import torch.nn as nn
     if lora is None:
         raise ValueError("régime 'explora_like' : configuration LoRA absente (cfg.lora).")
     blocks = get_transformer_blocks(model)
     n_blocks = len(blocks)
     blocklist_name = _find_module_name(model, blocks)
 
-    # full_ft_block_indices (optionnel) prend le dessus sur n_full_ft_blocks : permet de
-    # choisir explicitement quels blocs restent full-FT (ex. {0, N-1} = premier+dernier,
-    # conforme au papier ExPLoRA U={1,L}) plutôt que de déduire uniquement "les N derniers".
+    # full_ft_block_indices (optionnel) prend le dessus sur n_full_ft_blocks.
+    # Défaut ExPLoRA (n_full_ft_blocks=2) → U={1,L} = premier + dernier bloc.
     explicit_idx = getattr(lora, "full_ft_block_indices", None)
     if explicit_idx is not None:
         full_ft_idx = sorted(set(int(i) for i in explicit_idx))
@@ -298,15 +297,22 @@ def _explora_groups(model, lora) -> dict:
         n_late = int(lora.n_full_ft_blocks)
         if not 0 <= n_late < n_blocks:
             raise ValueError(f"n_full_ft_blocks={n_late} invalide pour {n_blocks} blocs.")
-        late_start = n_blocks - n_late
-        full_ft_idx = list(range(late_start, n_blocks))
+        if n_late == 1:
+            full_ft_idx = [n_blocks - 1]
+        elif n_late == 2:
+            full_ft_idx = [0, n_blocks - 1]                 # U={1,L}
+        else:
+            n_first = n_late // 2
+            n_last = n_late - n_first
+            full_ft_idx = list(range(0, n_first)) + list(range(n_blocks - n_last, n_blocks))
 
-    lora_idx = [i for i in range(n_blocks) if i not in full_ft_idx]
+    # LoRA sur TOUS les blocs (y compris ceux en full-FT → superposition)
+    lora_idx = list(range(n_blocks))
     lora_cls = _get_lora_class()
     lora_linear_cls = _get_lora_linear_class()
     targets = tuple(t.lower() for t in lora.target_modules)
 
-    # 1. Injection LoRA sur l'attention des blocs hors full-FT (qkv fusionné OU projections séparées)
+    # 1. Injection LoRA sur l'attention de TOUS les blocs (qkv fusionné OU projections séparées)
     for i in lora_idx:
         block = blocks[i]
         attn = getattr(block, "attn", None)
@@ -423,7 +429,7 @@ def build_model(name: str, regime: str, num_classes: int, drop_path_rate: float 
         if regime == "frozen":
             _set_requires_grad(model, lambda n: "head" in n)
             return model, {"head": [p for n, p in model.named_parameters() if "head" in n]}
-        if regime == "explora_like":
+        if regime in ("explora_like", "lora"):
             return model, _explora_groups(model, lora)
         return model, _vit_groups(model, regime)
 
@@ -440,7 +446,7 @@ def build_model(name: str, regime: str, num_classes: int, drop_path_rate: float 
     if regime == "scratch":
         _set_requires_grad(model, lambda n: True)
         return model, {"all": [p for _, p in model.named_parameters()]}
-    if regime == "explora_like":
+    if regime in ("explora_like", "lora"):
         return model, _explora_groups(model, lora)
     return model, _vit_groups(model, regime)
 
