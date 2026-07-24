@@ -44,7 +44,7 @@ LABELS_8CLS = [0, 2, 4, 5, 6, 8, 9, 10]   # ALDE BIRC LICH MOSS PETF SEDG TUSS W
 # Tag court par régime → injecté dans ckpt_tag / emb_key pour éviter toute collision entre
 # régimes sous un même out-dir (sota_screening : full/mhsa/explora/scratch). 'full' inchangé
 # (rétro-compat datacurve Q5). Régime inconnu → son nom brut.
-_REGIME_TAG = {"full": "full", "mhsa": "mhsa", "explora_like": "explora", "scratch": "scratch"}
+_REGIME_TAG = {"full": "full", "mhsa": "mhsa", "explora_like": "explora", "scratch": "scratch", "lora": "lora"}
 
 
 def _apply_11cls_remap(E: np.ndarray, L: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
