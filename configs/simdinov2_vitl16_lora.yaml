@@ -8,6 +8,16 @@ model:
   name: simdinov2_vitl16
   num_classes: 11
   norm: simdino_inat
+data:
+  # Fix OOM (2026-07-27) : batch=128 (défaut base.yaml, hérité du ViT-B) sature un slice
+  # MIG a100_*.20gb (19.62 GiB) dès le 1er forward. ViT-L (dim=1024, depth=24) vs ViT-B
+  # (dim=768, depth=12) : calc activations forward ≈ 24 couches × 3,29M élém/échantillon
+  # × 128 × 2o (bf16) ≈ 18,8 GiB + poids gelés/CUDA ctx/fragmentation ≈ 19,7-22 GiB,
+  # > slice — cohérent avec le crash observé (~19,44-19,46 GiB déjà alloués). Le site
+  # (F.pad dans LoRAFusedQKV, src/models.py) est incident : c'est là que l'allocateur
+  # tombe à court après 24 couches cumulées, pas un bug de cette op.
+  # batch=64 → terme d'activations ~9,4 GiB, pic estimé ~10,5-11 GiB (~55% du slice).
+  batch_size: 64
 regime: lora
 lora:
   r: 8
