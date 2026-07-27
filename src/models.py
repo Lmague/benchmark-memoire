@@ -14,7 +14,7 @@ VIT_NAMES = {"vitb16"}
 # Backbones SSL frozen (build_frozen_extractor) rendus fine-tunables via un wrapper
 # nn.Module {backbone, head} — régimes frozen|mhsa|full|explora_like (pas de 'scratch' :
 # init aléatoire n'a pas de sens pour un backbone pré-entraîné).
-SSL_FT_NAMES = {"dinov3_vitb16_lvd", "simdinov2_vitb16"}
+SSL_FT_NAMES = {"dinov3_vitb16_lvd", "dinov3_vitl16_lvd", "simdinov2_vitb16", "simdinov2_vitl16"}
 
 _TIMM_ID = {"resnet50": "resnet50", "vitb16": "vit_base_patch16_224"}
 

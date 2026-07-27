@@ -1,0 +1,32 @@
+# DINOv3 ViT-L/16 (LVD-1689M) — LoRA r=8 Q/V sur tous les blocs.
+# Mêmes hyperparams que dinov3_vitb16_lvd LoRA r=8 canonique (alpha=8.0, scaling=1.0).
+# Objectif : mesurer le gap frozen→LoRA pour ViT-L vs ViT-B (scaling behaviour).
+model:
+  name: dinov3_vitl16_lvd
+  num_classes: 11
+  norm: imagenet
+regime: lora
+lora:
+  r: 8
+  alpha: 8.0
+  target_modules: [q, v]
+  full_ft_block_indices: []
+  dropout: 0.0
+optim:
+  weight_decay: 0.05
+  lr:
+    lora: 1.0e-4
+    full_late: 5.0e-5
+    norm: 1.0e-5
+    head: 1.0e-4
+schedule:
+  warmup_epochs: 3
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
