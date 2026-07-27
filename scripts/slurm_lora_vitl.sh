@@ -5,7 +5,7 @@
 # Task 0 : DINOv3 ViT-L/16 LVD
 # Task 1 : SimDINOv2 ViT-L/16
 #
-# Chaque task exécute 3 seeds séquentiellement sur la même slice A100 2g.20gb.
+# Chaque task exécute 3 seeds séquentiellement sur la même slice A100 3g.20gb.
 # Checkpoints → $SCRATCH/sota_screening/lora_3models/checkpoints/{model}/
 # Embeddings → $SCRATCH/sota_screening/lora_3models/embeddings/
 # Runs       → $SCRATCH/sota_screening/lora_3models/runs/
@@ -14,15 +14,19 @@
 #   - $SCRATCH/hf_cache/models--facebook--dinov3-vitl16-pretrain-lvd1689m/ (DINOv3-L)
 #   - $SCRATCH/checkpoints/simdinov2_vitl_inat21plantae.pth  (SimDINOv2-L)
 #
-# ⚠ MIG slices (partition mig) : à vérifier avec `sinfo | grep mig`.
-#   Si indisponible, remplacer `--gres=gpu:a100:2g.20gb` par `--gres=gpu:a100:1`
-#   et `--mem` par 60G.
+# 20 Go (a100_3g.20gb/a100_4g.20gb) = plafond MIG mesuré (`sinfo -o "%P %G" | grep a100`,
+# 2026-07-27) : pas de profil >20 Go en MIG sur Narval. 3g.20gb choisi plutôt que 4g.20gb
+# (même mémoire, mais 3-4 instances/nœud contre 1 seule → plus rapide à obtenir).
+# OOM du 2026-07-26 causé par batch_size=128 (défaut hérité du ViT-B, ~19,7-22 GiB de
+# pic estimé) — corrigé à batch_size=64 dans les configs (~10,5-11 GiB, tient dans
+# les 19.62 GiB utilisables du slice). Si indisponible malgré tout, replier sur
+# `--gres=gpu:a100:1` + `--mem=60G` (A100 complet, 40 Go, queue plus lente).
 #
 # Soumission : sbatch scripts/slurm_lora_vitl.sh
 # ═══════════════════════════════════════════════════════════════════════════════
 #SBATCH --job-name=lora_vitl
 #SBATCH --array=0-1
-#SBATCH --gres=gpu:a100:2g.20gb
+#SBATCH --gres=gpu:a100_3g.20gb:1
 #SBATCH --mem=40G
 #SBATCH --cpus-per-task=4
 #SBATCH --time=12:00:00
