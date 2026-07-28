@@ -3,14 +3,20 @@
 # LoRA r=8 — SimDINOv2 ViT-B/16 × 3 seeds (pas d'array, job unique)
 #
 # Exécute 3 seeds séquentiellement sur une slice A100 3g.20gb.
-# Checkpoints → $SCRATCH/sota_screening/lora_3models/checkpoints/simdinov2_vitb16/
-# Embeddings → $SCRATCH/sota_screening/lora_3models/embeddings/
-# Runs       → $SCRATCH/sota_screening/lora_3models/runs/
+# Checkpoints → $SCRATCH/sota_screening/lora_3models/checkpoints/ (fichiers préfixés ckpt_tag)
+# Embeddings  → $SCRATCH/sota_screening/lora_3models/embeddings/
+# Runs        → $SCRATCH/sota_screening/lora_3models/runs/simdinov2_vitb16_lora_frac100_seed{0,1,2}/
+#
+# Les 3 seeds sont déjà complétés (migrés vers le chemin ci-dessus après le fix de
+# collision run_dir dans datacurve_one_run.py — cf. commit associé). Ce script n'a
+# PAS besoin d'être relancé pour ce modèle ; --out-dir/--skip-if-done pointent vers
+# le tag ckpt_tag={model}_{regime}_frac{XXX}_seed{N} désormais utilisé par run_dir,
+# donc si relancé par erreur, les 3 seeds seront correctement skippés (done déjà présent).
 #
 # PRÉ-REQUIS :
 #   - $SCRATCH/checkpoints/simdinov2_vitb_inat21plantae.pth
 #
-# Soumission : sbatch scripts/slurm_lora_vitb.sh
+# Soumission (uniquement si besoin de relancer) : sbatch scripts/slurm_lora_vitb.sh
 # ═══════════════════════════════════════════════════════════════════════════════
 #SBATCH --job-name=lora_vitb
 #SBATCH --gres=gpu:a100_3g.20gb:1
@@ -58,10 +64,11 @@ else
     echo "[ERROR] $SCRATCH/tiles.zip introuvable"; exit 1
 fi
 
-mkdir -p "$OUT_DIR/runs/$MODEL" "$OUT_DIR/checkpoints/$MODEL" "$OUT_DIR/embeddings"
+mkdir -p "$OUT_DIR/runs" "$OUT_DIR/checkpoints" "$OUT_DIR/embeddings"
 mkdir -p "$CODE_DIR/logs"
 
-# 3 seeds séquentielles
+# 3 seeds séquentielles — run_dir scopé par ckpt_tag (inclut $MODEL), donc sûr même
+# si un autre modèle écrit en parallèle vers le même $OUT_DIR.
 for SEED in 0 1 2; do
     echo ""
     echo "─── $MODEL seed=$SEED ───"
@@ -81,5 +88,5 @@ done
 
 echo ""
 echo "[slurm] $MODEL terminé."
-echo "  Résultats   : $OUT_DIR/runs/$MODEL/"
+echo "  Résultats   : $OUT_DIR/runs/${MODEL}_lora_frac100_seed{0,1,2}/"
 echo "  Embeddings  : $OUT_DIR/embeddings/"

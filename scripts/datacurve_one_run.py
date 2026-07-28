@@ -10,10 +10,14 @@ Utilisé directement par slurm_datacurve.sh. Peut aussi être appelé manuelleme
         --out-dir outputs/datacurve
 
 Sorties (sous --out-dir) :
-  runs/frac01_seed0/metrics.json   — chiffres du run
-  runs/frac01_seed0/done           — sentinel de complétion (skip si présent)
+  runs/{model}_{regime}_frac001_seed0/metrics.json   — chiffres du run
+  runs/{model}_{regime}_frac001_seed0/done           — sentinel de complétion (skip si présent)
 
-Embeddings : écrits dans {emb_base_dir}/vitb16_fulft_frac01_seed0/ (val + test + labels)
+Le tag de run (identique à ckpt_tag / emb_key, cf. _REGIME_TAG) inclut TOUJOURS le nom du
+modèle — pas seulement fraction+seed — pour que plusieurs modèles puissent partager le même
+--out-dir (ex. array SLURM) sans jamais écrire vers le même run_dir en parallèle.
+
+Embeddings : écrits dans {emb_base_dir}/{model}_{regime}_frac001_seed0/ (val + test + labels)
 où emb_base_dir = cfg.paths.emb_dir par défaut ou --emb-dir.
 """
 from __future__ import annotations
@@ -212,6 +216,20 @@ def main() -> None:
 
     cfg = load_config(os.path.join(code_dir, args.config))
 
+    # Tag canonique du run — {model.name}_{regime}_frac{XXX}_seed{N} — calculé ICI, avant
+    # toute construction de chemin, et réutilisé tel quel pour run_dir/done/metrics.json
+    # PLUS ckpt_tag et emb_key plus bas (une seule source de vérité).
+    # AVANT ce fix, run_dir n'était scopé que par frac+seed (_frac_tag seul, sans nom de
+    # modèle) : deux modèles partageant --out-dir (ex. array SLURM lancé en parallèle,
+    # slurm_lora_vitl.sh) écrivaient vers le MÊME runs/frac100_seed0/, la tâche la plus
+    # lente écrasant silencieusement le résultat de l'autre. Perte réelle constatée le
+    # 2026-07-27/28 : résultat SimDINOv2 ViT-L seed=0 (~4h47 GPU) écrasé par DINOv3-L.
+    # NB : préfixé par cfg.model.name (pas "vitb16" en dur) — no-op pour les configs vitb16
+    # existantes (cfg.model.name == "vitb16"), mais évite toute collision pour les nouveaux
+    # backbones (dinov3_vitb16_lvd, simdinov2_vitl16, ...).
+    regime_tag = _REGIME_TAG.get(cfg.regime, cfg.regime)
+    ckpt_tag = f"{cfg.model.name}_{regime_tag}_{_frac_tag(args.fraction, args.seed)}"
+
     # Checkpoint pré-entraîné (backbones SSL_FT_NAMES, ex. SimDINOv2) — résolu MAINTENANT,
     # avant que cfg.paths.ckpt_dir soit réassigné plus bas au dossier local du run (sinon on
     # chercherait le .pth pré-entraîné dans un dossier de run vide). Même logique que extract.py.
@@ -219,7 +237,7 @@ def main() -> None:
     if pretrain_checkpoint and not os.path.isabs(pretrain_checkpoint):
         pretrain_checkpoint = os.path.join(cfg.paths.ckpt_dir, pretrain_checkpoint)
 
-    tag = _frac_tag(args.fraction, args.seed)
+    tag = ckpt_tag
     run_dir = os.path.join(args.out_dir, "runs", tag)
     os.makedirs(run_dir, exist_ok=True)
     done_path = os.path.join(run_dir, "done")
@@ -237,12 +255,6 @@ def main() -> None:
     # Chemins checkpoints (sous out-dir pour ne pas polluer le ckpt_dir principal)
     ckpt_dir = os.path.join(args.out_dir, "checkpoints")
     os.makedirs(ckpt_dir, exist_ok=True)
-    pct = int(round(args.fraction * 100))
-    regime_tag = _REGIME_TAG.get(cfg.regime, cfg.regime)
-    # NB : préfixé par cfg.model.name (pas "vitb16" en dur) — no-op pour les configs vitb16
-    # existantes (cfg.model.name == "vitb16"), mais évite une collision de tag/checkpoint
-    # avec les runs vitb16 canoniques pour les nouveaux backbones (dinov3_vitb16_lvd, ...).
-    ckpt_tag = f"{cfg.model.name}_{regime_tag}_frac{pct:03d}_seed{args.seed}"
     best_ckpt = os.path.join(ckpt_dir, f"{ckpt_tag}_best.pth")
 
     # ── 1. ENTRAÎNEMENT ─────────────────────────────────────────────────────────
@@ -377,6 +389,22 @@ def main() -> None:
 
     # Sauvegarde
     metrics_path = os.path.join(run_dir, "metrics.json")
+    # Garde-fou anti-collision : run_dir est maintenant scopé par ckpt_tag (cf. plus haut),
+    # donc un metrics.json déjà présent ici ne devrait JAMAIS appartenir à un autre run.
+    # S'il en existe un avec un ckpt_tag différent, on refuse d'écraser plutôt que de
+    # silencieusement perdre un résultat (c'est exactement ce qui a causé la perte du run
+    # SimDINOv2 ViT-L seed=0 avant ce fix) — backstop pour toute future collision de chemin,
+    # pas une garantie de verrouillage inter-process.
+    if os.path.exists(metrics_path):
+        with open(metrics_path) as f:
+            existing_ckpt_tag = json.load(f).get("ckpt_tag")
+        if existing_ckpt_tag is not None and existing_ckpt_tag != ckpt_tag:
+            raise RuntimeError(
+                f"[datacurve] COLLISION DE CHEMIN : {metrics_path} contient déjà un "
+                f"résultat pour ckpt_tag={existing_ckpt_tag!r}, différent du run courant "
+                f"({ckpt_tag!r}). Écriture refusée pour ne pas écraser un résultat "
+                "d'un autre modèle/run — vérifier --out-dir."
+            )
     with open(metrics_path, "w") as f:
         json.dump(metrics, f, indent=2)
     print(f"  → {metrics_path}", flush=True)
