@@ -1,18 +1,29 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════════
-# LoRA r=8 — 2 × 3 seeds = 6 runs (array 0-1)
+# LoRA r=8 — DINOv3 ViT-L/16 LVD × 3 seeds (job unique, pas d'array)
 #
-# Task 0 : DINOv3 ViT-L/16 LVD
-# Task 1 : SimDINOv2 ViT-L/16
+# Anciennement task 0 de scripts/slurm_lora_vitl.sh (array 0-1 partagé avec
+# SimDINOv2 ViT-L). Séparé en script indépendant : les deux modèles écrivaient
+# EN PARALLÈLE (deux tâches d'array lancées simultanément) vers le même
+# --out-dir, et jusqu'au fix de scripts/datacurve_one_run.py, run_dir n'était
+# scopé que par fraction+seed (pas par modèle) → collision de chemin, la tâche
+# la plus lente écrasant le résultat de l'autre. Perte réelle constatée le
+# 2026-07-27/28 : SimDINOv2 ViT-L seed=0 (~4h47 GPU) écrasé par DINOv3-L.
+# Le fix scope désormais run_dir par ckpt_tag (inclut le nom du modèle), donc
+# partager --out-dir est de nouveau sûr, mais on garde deux scripts séparés
+# pour éviter tout --time partagé inadapté (durées mesurées très différentes,
+# cf. ci-dessous) et pour qu'un seul modèle écrive à la fois par job.
 #
-# Chaque task exécute 3 seeds séquentiellement sur la même slice A100 3g.20gb.
-# Checkpoints → $SCRATCH/sota_screening/lora_3models/checkpoints/{model}/
-# Embeddings → $SCRATCH/sota_screening/lora_3models/embeddings/
-# Runs       → $SCRATCH/sota_screening/lora_3models/runs/
+# Checkpoints → $SCRATCH/sota_screening/lora_3models/checkpoints/
+# Embeddings  → $SCRATCH/sota_screening/lora_3models/embeddings/
+# Runs        → $SCRATCH/sota_screening/lora_3models/runs/dinov3_vitl16_lvd_lora_frac100_seed{0,1,2}/
 #
 # PRÉ-REQUIS :
-#   - $SCRATCH/hf_cache/models--facebook--dinov3-vitl16-pretrain-lvd1689m/ (DINOv3-L)
-#   - $SCRATCH/checkpoints/simdinov2_vitl_inat21plantae.pth  (SimDINOv2-L)
+#   - $SCRATCH/hf_cache/models--facebook--dinov3-vitl16-pretrain-lvd1689m/
+#
+# --time=20:00:00 : mesuré sur Narval, job 66522732 task 0, seed=0 = 356.5 min
+# (~5h56, cf. logs/lora_vitl_66522732_0.out : "[datacurve] DONE ... (356.5 min)").
+# 3 seeds séquentiels ≈ 18h → 20h de marge de sécurité.
 #
 # 20 Go (a100_3g.20gb/a100_4g.20gb) = plafond MIG mesuré (`sinfo -o "%P %G" | grep a100`,
 # 2026-07-27) : pas de profil >20 Go en MIG sur Narval. 3g.20gb choisi plutôt que 4g.20gb
@@ -22,30 +33,19 @@
 # les 19.62 GiB utilisables du slice). Si indisponible malgré tout, replier sur
 # `--gres=gpu:a100:1` + `--mem=60G` (A100 complet, 40 Go, queue plus lente).
 #
-# Soumission : sbatch scripts/slurm_lora_vitl.sh
+# Soumission : sbatch scripts/slurm_lora_dinov3_vitl.sh
 # ═══════════════════════════════════════════════════════════════════════════════
-#SBATCH --job-name=lora_vitl
-#SBATCH --array=0-1
+#SBATCH --job-name=lora_dinov3_vitl
 #SBATCH --gres=gpu:a100_3g.20gb:1
 #SBATCH --mem=40G
 #SBATCH --cpus-per-task=4
-#SBATCH --time=12:00:00
-#SBATCH --output=logs/lora_vitl_%A_%a.out
-#SBATCH --error=logs/lora_vitl_%A_%a.err
+#SBATCH --time=20:00:00
+#SBATCH --output=logs/lora_dinov3_vitl_%j.out
+#SBATCH --error=logs/lora_dinov3_vitl_%j.err
 #SBATCH --account=def-bouguess_gpu
 
-CONFIGS=(
-    "configs/dinov3_vitl16_lvd_lora.yaml"
-    "configs/simdinov2_vitl16_lora.yaml"
-)
-
-MODEL_NAMES=(
-    "dinov3_vitl16_lvd"
-    "simdinov2_vitl16"
-)
-
-CONFIG="${CONFIGS[$SLURM_ARRAY_TASK_ID]}"
-MODEL="${MODEL_NAMES[$SLURM_ARRAY_TASK_ID]}"
+CONFIG="configs/dinov3_vitl16_lvd_lora.yaml"
+MODEL="dinov3_vitl16_lvd"
 FRAC=1.00
 
 CODE_DIR="$HOME/benchmark-memoire"
@@ -59,9 +59,9 @@ export TORCH_HOME="$SCRATCH/torch_cache"
 export CODE_DIR
 
 echo "═══════════════════════════════════════════════"
-echo "LoRA r=8 | array=$SLURM_ARRAY_TASK_ID → $MODEL"
+echo "LoRA r=8 | $MODEL"
 echo "Config  : $CONFIG"
-echo "Nœud    : $SLURMD_NODENAME  | Job : $SLURM_JOB_ID.$SLURM_ARRAY_TASK_ID"
+echo "Nœud    : $SLURMD_NODENAME  | Job : $SLURM_JOB_ID"
 echo "OUT_DIR : $OUT_DIR"
 echo "═══════════════════════════════════════════════"
 
@@ -81,10 +81,11 @@ else
     echo "[ERROR] $SCRATCH/tiles.zip introuvable"; exit 1
 fi
 
-mkdir -p "$OUT_DIR/runs/$MODEL" "$OUT_DIR/checkpoints/$MODEL" "$OUT_DIR/embeddings"
+mkdir -p "$OUT_DIR/runs" "$OUT_DIR/checkpoints" "$OUT_DIR/embeddings"
 mkdir -p "$CODE_DIR/logs"
 
-# 3 seeds séquentielles
+# 3 seeds séquentielles — run_dir scopé par ckpt_tag (inclut $MODEL), donc sûr même
+# si un autre job (SimDINOv2 ViT-L) écrit en parallèle vers le même $OUT_DIR.
 for SEED in 0 1 2; do
     echo ""
     echo "─── $MODEL seed=$SEED ───"
@@ -103,6 +104,6 @@ for SEED in 0 1 2; do
 done
 
 echo ""
-echo "[slurm] Tâche $SLURM_ARRAY_TASK_ID ($MODEL) terminée."
-echo "  Résultats   : $OUT_DIR/runs/$MODEL/"
+echo "[slurm] $MODEL terminé."
+echo "  Résultats   : $OUT_DIR/runs/${MODEL}_lora_frac100_seed{0,1,2}/"
 echo "  Embeddings  : $OUT_DIR/embeddings/"

@@ -87,6 +87,11 @@ __pycache__/
 !/scripts/slurm_ft_dinov3_vitb16_lvd_mhsa.sh
 !/scripts/slurm_ft_simdinov2_vitb16_full.sh
 !/scripts/slurm_ft_simdinov2_vitb16_mhsa.sh
+# LoRA r=8 screening (DINOv3-L, SimDINOv2-L, SimDINOv2-B) — 100%, 3 seeds :
+!/scripts/slurm_lora_vitb.sh
+!/scripts/slurm_lora_dinov3_vitl.sh
+!/scripts/slurm_lora_simdinov2_vitl.sh
+!/scripts/migrate_lora3models_run_dirs.sh
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/
