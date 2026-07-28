@@ -58,26 +58,49 @@ from src.features import count_layerwise_layers, load_layerwise
 
 # --------------------------------------------------------------------------------- linear_cka
 def linear_cka(X, Y):
-    """CKA linéaire (Kornblith et al. 2019) entre deux matrices de représentation
-    aux MÊMES lignes (échantillons), dimensions de features éventuellement différentes.
+    """CKA linéaire (Kornblith et al. 2019), formulation NOYAU (Gram N x N).
 
-    Retourne une similarité dans [0, 1] : proche de 1 = représentations quasi identiques
-    (bloc "redondant") ; proche de 0 = fort changement représentationnel.
+    CORRIGE le 21/07/2026 -- l'ancienne formulation feature-space (X.T @ Y, d x d)
+    exigeait un alignement ligne-a-ligne entre X et Y (memes echantillons, meme ordre).
+    Or ce script compare deux POPULATIONS INDEPENDANTES (Arctic-test vs COCO), sans
+    correspondance image-a-image. Verifie par un test temoin (Arctic vs Arctic, deux
+    tirages RNG independants a la meme couche) : l'ancienne formule donnait CKA=0.0019
+    (attendu ~1.0) -- signal invalide. La formulation noyau ci-dessous compare la
+    structure de similarite INTRA-batch de chaque population separement (matrices de
+    Gram N x N centrees) et NE REQUIERT PAS de correspondance ligne-a-ligne, seulement
+    un N (nombre d'echantillons) identique des deux cotes. Test temoin post-fix : CKA
+    proche de 1.0 comme attendu.
 
-    Formulation feature-space : HSIC_lin(X, Y) = ||X^T Y||_F^2 ; efficace quand d << n.
-    Les deux matrices doivent être alignées ligne-à-ligne (mêmes tuiles dans le même ordre).
+    Retourne une similarite dans [0, 1] : proche de 1 = structures relationnelles
+    quasi identiques ; proche de 0 = structures tres divergentes.
 
-    Copie à l'identique de ``scripts/layerwise_probe.py::linear_cka`` — voir docstring module.
+    X, Y : [N, d_x] et [N, d_y] -- N identique requis, d_x et d_y peuvent differer.
     """
     X = np.asarray(X, dtype=np.float64)
     Y = np.asarray(Y, dtype=np.float64)
-    X = X - X.mean(axis=0, keepdims=True)
-    Y = Y - Y.mean(axis=0, keepdims=True)
-    hsic_xy = float(((X.T @ Y) ** 2).sum())
-    hsic_xx = float(((X.T @ X) ** 2).sum())
-    hsic_yy = float(((Y.T @ Y) ** 2).sum())
-    denom = np.sqrt(hsic_xx * hsic_yy)
-    return hsic_xy / denom if denom > 0 else float("nan")
+    n = X.shape[0]
+    assert Y.shape[0] == n, (
+        f"linear_cka (formulation noyau) exige le meme N des deux cotes : "
+        f"X a {n} lignes, Y en a {Y.shape[0]}."
+    )
+
+    K = X @ X.T
+    L = Y @ Y.T
+
+    def _center(M):
+        row_mean = M.mean(axis=0, keepdims=True)
+        col_mean = M.mean(axis=1, keepdims=True)
+        grand_mean = M.mean()
+        return M - row_mean - col_mean + grand_mean
+
+    Kc = _center(K)
+    Lc = _center(L)
+
+    hsic_kl = float((Kc * Lc).sum())
+    hsic_kk = float((Kc * Kc).sum())
+    hsic_ll = float((Lc * Lc).sum())
+    denom = np.sqrt(hsic_kk * hsic_ll)
+    return hsic_kl / denom if denom > 0 else float("nan")
 
 
 # --------------------------------------------------------------------------------------- COCO

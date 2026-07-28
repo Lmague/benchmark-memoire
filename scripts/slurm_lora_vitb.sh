@@ -2,7 +2,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # LoRA r=8 — SimDINOv2 ViT-B/16 × 3 seeds (pas d'array, job unique)
 #
-# Exécute 3 seeds séquentiellement sur une slice A100 1g.10gb.
+# Exécute 3 seeds séquentiellement sur une slice A100 3g.20gb.
 # Checkpoints → $SCRATCH/sota_screening/lora_3models/checkpoints/simdinov2_vitb16/
 # Embeddings → $SCRATCH/sota_screening/lora_3models/embeddings/
 # Runs       → $SCRATCH/sota_screening/lora_3models/runs/
@@ -10,17 +10,13 @@
 # PRÉ-REQUIS :
 #   - $SCRATCH/checkpoints/simdinov2_vitb_inat21plantae.pth
 #
-# ⚠ MIG slices (partition mig) : à vérifier avec `sinfo | grep mig`.
-#   Si indisponible, remplacer `--gres=gpu:a100:1g.10gb` par `--gres=gpu:a100:1`
-#   et `--mem` par 60G.
-#
 # Soumission : sbatch scripts/slurm_lora_vitb.sh
 # ═══════════════════════════════════════════════════════════════════════════════
 #SBATCH --job-name=lora_vitb
-#SBATCH --gres=gpu:a100:1g.10gb
+#SBATCH --gres=gpu:a100_3g.20gb:1
 #SBATCH --mem=32G
 #SBATCH --cpus-per-task=4
-#SBATCH --time=12:00:00
+#SBATCH --time=6:00:00
 #SBATCH --output=logs/lora_vitb_%j.out
 #SBATCH --error=logs/lora_vitb_%j.err
 #SBATCH --account=def-bouguess_gpu

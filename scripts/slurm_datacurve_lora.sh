@@ -9,10 +9,10 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 #SBATCH --job-name=lora_dc
 #SBATCH --array=0-7
-#SBATCH --gres=gpu:a100:1
-#SBATCH --mem=40G
+#SBATCH --gres=gpu:a100_2g.10gb:1
+#SBATCH --mem=16G
 #SBATCH --cpus-per-task=4
-#SBATCH --time=10:00:00
+#SBATCH --time=6:00:00
 #SBATCH --output=logs/lora_dc_%A_%a.out
 #SBATCH --error=logs/lora_dc_%A_%a.err
 #SBATCH --account=def-bouguess_gpu
@@ -56,6 +56,11 @@ fi
 
 mkdir -p "$OUT_DIR/runs" "$OUT_DIR/checkpoints" "$OUT_DIR/embeddings"
 mkdir -p "$CODE_DIR/logs"
+
+# Copie horodatée du config réellement utilisé — pour retrouver les hyperparamètres
+# exacts de ce run sans ambiguïté plus tard (évite le problème alpha=16 vs alpha=8 vécu aujourd'hui)
+cp "$CONFIG" "$OUT_DIR/config_used_${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}.yaml"
+
 
 # 3 seeds séquentiels sur la même A100
 for SEED in 0 1 2; do
