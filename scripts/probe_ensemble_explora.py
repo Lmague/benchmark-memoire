@@ -40,7 +40,7 @@ SEED = 42
 C_GRID = [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
 MAX_ITER = 2000
 
-BASE = "sota_screening/dinov3_vitb16_lvd_explora/embeddings/dinov3_vitb16_lvd_explora_frac100"
+BASE = "/scratch/lmague/sota_screening/dinov3_vitb16_lvd_explora/embeddings/dinov3_vitb16_lvd_explora_frac100"
 SEEDS = [0, 1, 2]
 
 
