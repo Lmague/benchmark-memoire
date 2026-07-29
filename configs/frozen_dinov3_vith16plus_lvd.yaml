@@ -10,7 +10,7 @@ model:
   num_classes: 12
   norm: imagenet
 data:
-  batch_size: 1       # ViT-H+ 840M — batch_size prudent (mémoire GPU/CPU)
+  batch_size: 16       # ViT-H+ 840M — batch_size prudent (mémoire GPU/CPU)
   num_workers: 0
 features:
   cache: true
