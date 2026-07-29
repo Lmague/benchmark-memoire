@@ -1,0 +1,18 @@
+# Extraction frozen — DINOv3 ViT-H+/16 LVD-1689M (HuggingFace transformers)
+# 840M params, dim=1280, SwiGLU FFN, 20 têtes, RoPE, 4 register tokens.
+# Attention : modèle lourd — extraction GPU recommandée (batch_size=1 pour CPU/Narval login).
+#   python extract.py --config configs/frozen_dinov3_vith16plus_lvd.yaml
+#   python extract.py --config configs/frozen_dinov3_vith16plus_lvd.yaml --layerwise
+regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
+
+model:
+  name: dinov3_vith16plus_lvd
+  num_classes: 12
+  norm: imagenet
+data:
+  batch_size: 1       # ViT-H+ 840M — batch_size prudent (mémoire GPU/CPU)
+  num_workers: 0
+features:
+  cache: true
+  remap_v3: false
+  layerwise: false

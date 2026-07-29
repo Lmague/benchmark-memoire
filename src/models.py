@@ -14,7 +14,7 @@ VIT_NAMES = {"vitb16"}
 # Backbones SSL frozen (build_frozen_extractor) rendus fine-tunables via un wrapper
 # nn.Module {backbone, head} — régimes frozen|mhsa|full|explora_like (pas de 'scratch' :
 # init aléatoire n'a pas de sens pour un backbone pré-entraîné).
-SSL_FT_NAMES = {"dinov3_vitb16_lvd", "dinov3_vitl16_lvd", "simdinov2_vitb16", "simdinov2_vitl16"}
+SSL_FT_NAMES = {"dinov3_vitb16_lvd", "dinov3_vitl16_lvd", "dinov3_vith16plus_lvd", "simdinov2_vitb16", "simdinov2_vitl16"}
 
 _TIMM_ID = {"resnet50": "resnet50", "vitb16": "vit_base_patch16_224"}
 
@@ -573,6 +573,17 @@ def build_frozen_extractor(name: str, checkpoint: str | None = None):
                 "dinov3_vitl16_sat nécessite transformers>=4.56.0 : pip install transformers")
         m = AutoModel.from_pretrained("facebook/dinov3-vitl16-pretrain-sat493m")
         return m, _dinov3_hf_forward, 1024, "dinov3_sat"
+    if name == "dinov3_vith16plus_lvd":
+        # HuggingFace : transformers.AutoModel + pooler_output
+        # Réf. : facebook/dinov3-vith16plus-pretrain-lvd1689m, dim=1280, 840M params,
+        # ViT-H+/16, SwiGLU FFN, 20 têtes, RoPE, 4 register tokens, norm ImageNet
+        try:
+            from transformers import AutoModel
+        except ImportError:
+            raise ImportError(
+                "dinov3_vith16plus_lvd nécessite transformers>=4.56.0 : pip install transformers")
+        m = AutoModel.from_pretrained("facebook/dinov3-vith16plus-pretrain-lvd1689m")
+        return m, _dinov3_hf_forward, 1280, "imagenet"
     if name in ("simdinov2_vitb16", "simdinov2_vitl16",
                 "simdinov2_vitb16_imagenet", "simdinov2_vitl16_imagenet"):
         # Deux pré-entraînements SimDINOv2, MÊME recette/arch (DINOv2-with-registers, 4 reg.,
