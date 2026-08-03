@@ -20,6 +20,9 @@
 !/requirements.txt
 !/.gitignore
 !/paper_arctic_fm_benchmark/
+!/tools/
+/tools/*
+!/tools/ortho_annotator/
 
 # 3) Caches Python toujours exclus, y compris sous src/ et configs/
 __pycache__/
