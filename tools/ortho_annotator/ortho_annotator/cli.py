@@ -353,13 +353,14 @@ def _open_tilers(folder: Path, names, tile_size_m: float, log=print):
     return tilers
 
 
-def _load_embedder(model_id: Optional[str], threads: int, log=print):
+def _load_embedder(model_id: Optional[str], threads: int, log=print,
+                    device: Optional[str] = None):
     """Charge l'encodeur figé si les poids sont là ; sinon renvoie None."""
     try:
         from .embed import Embedder
 
-        emb = Embedder(model_id, threads=threads)
-        log(f"  encodeur : {emb.model_id} (CPU, {threads} threads)")
+        emb = Embedder(model_id, threads=threads, device=device)
+        log(f"  encodeur : {emb.model_id} ({emb.device}, {threads} threads)")
         return emb
     except Exception as exc:
         log(f"  encodeur indisponible ({exc}) -> étage couleur uniquement")
@@ -400,7 +401,7 @@ def cmd_prospect_learn(args: argparse.Namespace) -> int:
     matcher = None
     if not args.no_embed:
         print("\n== 2. Encodeur figé ==")
-        embedder = _load_embedder(args.model, args.threads)
+        embedder = _load_embedder(args.model, args.threads, device=args.device)
 
     if embedder is not None:
         print("\n== 3. Jetons de référence (détection dense) ==")
@@ -509,7 +510,7 @@ def cmd_prospect_scan(args: argparse.Namespace) -> int:
         print("\n== Étage couleur ==")
         bank = embedder = None
         if not args.no_rerank and (out_dir / PROTOTYPES_FILE).is_file():
-            embedder = _load_embedder(args.model, args.threads)
+            embedder = _load_embedder(args.model, args.threads, device=args.device)
             if embedder is not None:
                 bank = PrototypeBank.load(out_dir / PROTOTYPES_FILE)
         found += scan_raster(
@@ -522,7 +523,7 @@ def cmd_prospect_scan(args: argparse.Namespace) -> int:
             print("Banque de jetons absente : étage dense sauté.")
         else:
             print("\n== Étage dense ==")
-            embedder = _load_embedder(args.model, args.threads)
+            embedder = _load_embedder(args.model, args.threads, device=args.device)
             if embedder is not None:
                 matcher = DenseMatcher.load(out_dir / DENSE_FILE)
                 found += scan_raster_dense(
@@ -687,6 +688,8 @@ def build_parser() -> argparse.ArgumentParser:
                          help="Étage couleur seulement (aucun réseau de neurones).")
     p_learn.add_argument("--model", type=str, default=None)
     p_learn.add_argument("--threads", type=int, default=4)
+    p_learn.add_argument("--device", type=str, default=None,
+                         help="'cuda' ou 'cpu' (défaut : cuda si disponible).")
     add_common(p_learn)
     p_learn.set_defaults(func=cmd_prospect_learn)
 
@@ -712,6 +715,8 @@ def build_parser() -> argparse.ArgumentParser:
                              "(0 = pas de limite).")
     p_scan.add_argument("--model", type=str, default=None)
     p_scan.add_argument("--threads", type=int, default=4)
+    p_scan.add_argument("--device", type=str, default=None,
+                        help="'cuda' ou 'cpu' (défaut : cuda si disponible).")
     add_common(p_scan)
     p_scan.set_defaults(func=cmd_prospect_scan)
 

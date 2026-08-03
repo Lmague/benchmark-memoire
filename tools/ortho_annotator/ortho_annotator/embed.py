@@ -47,9 +47,14 @@ def available_models() -> List[str]:
 
 
 class Embedder:
-    """Encodeur figé chargé depuis le cache local, en mode strictement hors ligne."""
+    """Encodeur figé chargé depuis le cache local (CPU) ou hors ligne (GPU si dispo).
 
-    def __init__(self, model_id: Optional[str] = None, threads: int = 4):
+    ``device=None`` (défaut) : CUDA si disponible, sinon CPU — inchangé sur la
+    machine d'annotation locale (pas de GPU), utile sur Colab.
+    """
+
+    def __init__(self, model_id: Optional[str] = None, threads: int = 4,
+                 device: Optional[str] = None):
         import os
 
         os.environ.setdefault("HF_HUB_OFFLINE", "1")
@@ -66,11 +71,14 @@ class Embedder:
                     "couleur, elle, fonctionne sans modèle)."
                 )
             model_id = found[0]
-        torch.set_num_threads(max(1, int(threads)))
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        if self.device == "cpu":
+            torch.set_num_threads(max(1, int(threads)))
         self.torch = torch
         self.model_id = model_id
         self.model = AutoModel.from_pretrained(model_id)
         self.model.eval()
+        self.model.to(self.device)
         self.dim = int(self.model.config.hidden_size)
 
     def _preprocess(self, crops: Sequence[np.ndarray]):
@@ -92,11 +100,11 @@ class Embedder:
         outs: List[np.ndarray] = []
         with self.torch.inference_mode():
             for i in range(0, len(crops), batch_size):
-                x = self._preprocess(crops[i: i + batch_size])
+                x = self._preprocess(crops[i: i + batch_size]).to(self.device)
                 o = self.model(pixel_values=x)
                 v = o.pooler_output if getattr(o, "pooler_output", None) is not None \
                     else o.last_hidden_state[:, 0]
-                outs.append(v.float().numpy())
+                outs.append(v.float().cpu().numpy())
         e = np.concatenate(outs, axis=0)
         n = np.linalg.norm(e, axis=1, keepdims=True)
         return (e / np.maximum(n, 1e-8)).astype("float32")
@@ -117,12 +125,12 @@ class Embedder:
         if img.size != (side, side):
             img = img.resize((side, side), Image.BILINEAR)
         arr = (np.asarray(img, dtype="float32") / 255.0 - _IMAGENET_MEAN) / _IMAGENET_STD
-        x = self.torch.from_numpy(arr.transpose(2, 0, 1)[None])
+        x = self.torch.from_numpy(arr.transpose(2, 0, 1)[None]).to(self.device)
         with self.torch.inference_mode():
             out = self.model(pixel_values=x).last_hidden_state[0]
         g = side // 16
         # last_hidden_state = [CLS] + registres + jetons de patch.
-        patches = out[-(g * g):].float().numpy()
+        patches = out[-(g * g):].float().cpu().numpy()
         n = np.linalg.norm(patches, axis=1, keepdims=True)
         return (patches / np.maximum(n, 1e-8)).reshape(g, g, -1).astype("float32")
 
