@@ -529,7 +529,8 @@ def cmd_prospect_scan(args: argparse.Namespace) -> int:
                 found += scan_raster_dense(
                     tiler, matcher, embedder, (kx, ky), params,
                     thresholds={c: v.threshold for c, v in cal["dense"].items()},
-                    species=dense_codes, max_windows=args.max_windows)
+                    species=dense_codes, max_windows=args.max_windows,
+                    batch_size=args.embed_batch_size)
 
     cstore = CandidateStore(out_dir / CANDIDATES_FILE)
     try:
@@ -717,6 +718,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_scan.add_argument("--threads", type=int, default=4)
     p_scan.add_argument("--device", type=str, default=None,
                         help="'cuda' ou 'cpu' (défaut : cuda si disponible).")
+    p_scan.add_argument("--embed-batch-size", type=int, default=16,
+                        help="Fenêtres encodées ensemble par passage modèle (défaut 16). "
+                             "Sur GPU, augmenter (32/64) tant que la VRAM le permet — "
+                             "batch=1 laisse l'essentiel de la carte inutilisée. Sans "
+                             "effet notable sur CPU.")
     add_common(p_scan)
     p_scan.set_defaults(func=cmd_prospect_scan)
 

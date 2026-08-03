@@ -64,21 +64,40 @@ def _window_tokens(tiler, embedder, x_center: float, y_center: float,
     """Jetons d'une fenêtre carrée centrée sur une coordonnée UTM.
 
     Renvoie ``(tokens (g, g, d), left, top)`` ou None si la fenêtre déborde.
+    Traite une seule fenêtre : pour un balayage, préférer ``_read_windows`` +
+    ``DenseMatcher.score_batch`` (batch=1 laisse la VRAM GPU inutilisée).
     """
-    size_px = max(16, int(round(params.span_m / tiler.res_x)))
-    row, col = rio_transform.rowcol(tiler.transform, x_center, y_center)
-    c0, r0 = int(col) - size_px // 2, int(row) - size_px // 2
-    if c0 < 0 or r0 < 0 or c0 + size_px > tiler.width or r0 + size_px > tiler.height:
-        return None
-    arr = tiler.read_window(c0, r0, size_px, size_px,
-                            out_shape=(params.side_px, params.side_px))
-    if arr.size == 0:
-        return None
-    if float(np.all(arr[..., :3] >= PAD_THRESHOLD, axis=2).mean()) > 0.6:
+    reads = _read_windows(tiler, [(x_center, y_center)], params)
+    arr, left, top = reads[0]
+    if arr is None:
         return None
     tokens = embedder.dense(arr, params.side_px)
-    left, top = rio_transform.xy(tiler.transform, r0, c0, offset="ul")
-    return tokens, float(left), float(top)
+    return tokens, left, top
+
+
+def _read_windows(tiler, centers: Sequence[Tuple[float, float]], params: DenseParams
+                  ) -> List[Tuple[Optional[np.ndarray], Optional[float], Optional[float]]]:
+    """Lit (sans encoder) une liste de fenêtres carrées centrées sur des coordonnées UTM.
+
+    Renvoie une entrée par centre : ``(vignette, left, top)`` ou ``(None, None, None)``
+    si la fenêtre déborde du raster ou est vide/bordure de remplissage.
+    """
+    size_px = max(16, int(round(params.span_m / tiler.res_x)))
+    out: List[Tuple[Optional[np.ndarray], Optional[float], Optional[float]]] = []
+    for x_center, y_center in centers:
+        row, col = rio_transform.rowcol(tiler.transform, x_center, y_center)
+        c0, r0 = int(col) - size_px // 2, int(row) - size_px // 2
+        if c0 < 0 or r0 < 0 or c0 + size_px > tiler.width or r0 + size_px > tiler.height:
+            out.append((None, None, None))
+            continue
+        arr = tiler.read_window(c0, r0, size_px, size_px,
+                                out_shape=(params.side_px, params.side_px))
+        if arr.size == 0 or float(np.all(arr[..., :3] >= PAD_THRESHOLD, axis=2).mean()) > 0.6:
+            out.append((None, None, None))
+            continue
+        left, top = rio_transform.xy(tiler.transform, r0, c0, offset="ul")
+        out.append((arr, float(left), float(top)))
+    return out
 
 
 def _cell_distance(cell_x: np.ndarray, cell_y: np.ndarray,
@@ -239,6 +258,30 @@ class DenseMatcher:
             return None
         tokens, left, top = res
         return self.score_tokens(tokens, codes), left, top
+
+    def score_batch(self, tiler, embedder, centers: Sequence[Tuple[float, float]],
+                    codes: Optional[Sequence[str]] = None, embed_batch_size: int = 16,
+                    ) -> List[Optional[Tuple[Dict[str, np.ndarray], float, float]]]:
+        """``score_window`` pour plusieurs centres, avec UN SEUL passage GPU par lot.
+
+        C'est la version qui utilise la VRAM disponible : lit toutes les fenêtres
+        du lot, les encode ensemble via ``Embedder.dense_batch`` (au lieu d'un
+        forward pass par fenêtre), puis note chacune séparément (produits
+        scalaires, négligeables face au forward pass). Renvoie une entrée par
+        centre, dans le même ordre, ``None`` pour les fenêtres hors raster/vides.
+        """
+        reads = _read_windows(tiler, centers, self.params)
+        valid = [i for i, (arr, _, _) in enumerate(reads) if arr is not None]
+        out: List[Optional[Tuple[Dict[str, np.ndarray], float, float]]] = [None] * len(centers)
+        if not valid:
+            return out
+        arrays = [reads[i][0] for i in valid]
+        tokens_batch = embedder.dense_batch(arrays, self.params.side_px,
+                                            batch_size=embed_batch_size)
+        for k, i in enumerate(valid):
+            _, left, top = reads[i]
+            out[i] = (self.score_tokens(tokens_batch[k], codes), left, top)
+        return out
 
     def peaks(self, score: np.ndarray, left: float, top: float,
               threshold: float, max_peaks: int = 40

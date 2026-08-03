@@ -364,6 +364,7 @@ def scan_raster_dense(
     thresholds: Optional[Dict[str, float]] = None,
     species: Optional[Sequence[str]] = None,
     max_windows: int = 0,
+    batch_size: int = 16,
     log=print,
     progress=None,
 ) -> List[Candidate]:
@@ -372,6 +373,10 @@ def scan_raster_dense(
     Plus lent que l'étage couleur (~1 s par fenêtre de 5 m) mais il voit la
     texture et la forme : c'est le seul recours pour les espèces défleuries.
     Les fenêtres entièrement blanches (remplissage de bord) sont sautées.
+
+    ``batch_size`` fenêtres sont lues puis encodées ensemble (un seul passage
+    modèle par lot) — sur GPU, batch=1 laisse l'essentiel de la VRAM inutilisée.
+    Sans effet notable sur CPU (le goulot y est déjà l'I/O, pas le batching).
     """
     codes = [c for c in (species or matcher.codes()) if c in matcher.species]
     if not codes:
@@ -386,24 +391,32 @@ def scan_raster_dense(
         todo = todo[:max_windows]
     log(f"  balayage dense {tiler.path.name} : {len(todo)} fenêtre(s) de "
         f"{matcher.params.span_m} m sur {cols * rows} (bordures sautées), "
-        f"espèces {', '.join(codes)}")
+        f"espèces {', '.join(codes)}, lots de {batch_size}")
 
     found: List[Candidate] = []
-    for n, (c, r) in enumerate(todo, start=1):
-        if progress:
-            progress(n, len(todo))
-        cx, cy = rio_transform.xy(
-            tiler.transform, r * span_px + span_px / 2, c * span_px + span_px / 2)
-        res = matcher.score_window(tiler, embedder, float(cx), float(cy), codes)
-        if res is None:
-            continue
-        scores, left, top = res
-        for code, smap in scores.items():
-            for (x, y, s) in matcher.peaks(smap, left, top, thr[code], max_peaks=25):
-                found.append(Candidate(species=code, x=x, y=y, color_score=0.0,
-                                       area_m2=matcher.params.token_m() ** 2,
-                                       embed_score=s, best_code=code, score=s))
-        if n % 25 == 0 or n == len(todo):
+    n = 0
+    for start in range(0, len(todo), batch_size):
+        chunk = todo[start: start + batch_size]
+        centers = [
+            rio_transform.xy(tiler.transform, r * span_px + span_px / 2,
+                             c * span_px + span_px / 2)
+            for c, r in chunk
+        ]
+        results = matcher.score_batch(tiler, embedder, centers, codes,
+                                      embed_batch_size=batch_size)
+        for res in results:
+            n += 1
+            if progress:
+                progress(n, len(todo))
+            if res is None:
+                continue
+            scores, left, top = res
+            for code, smap in scores.items():
+                for (x, y, s) in matcher.peaks(smap, left, top, thr[code], max_peaks=25):
+                    found.append(Candidate(species=code, x=x, y=y, color_score=0.0,
+                                           area_m2=matcher.params.token_m() ** 2,
+                                           embed_score=s, best_code=code, score=s))
+        if n % 25 < batch_size or n == len(todo):
             log(f"    fenêtre {n}/{len(todo)} — {len(found)} pic(s)")
 
     found = deduplicate(found, params.min_sep_m)
