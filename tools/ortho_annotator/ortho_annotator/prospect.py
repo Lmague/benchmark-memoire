@@ -230,6 +230,7 @@ def scan_raster(
     thresholds: Optional[Dict[str, float]] = None,
     bank=None,
     embedder=None,
+    embed_batch_size: int = 64,
     log=print,
     progress=None,
 ) -> List[Candidate]:
@@ -300,12 +301,13 @@ def scan_raster(
         log(f"  {code:8s} : {len(group[: params.max_per_species])} candidat(s) retenus")
 
     if bank is not None and embedder is not None and params.rerank_top > 0:
-        found = rerank(tiler, found, bank, embedder, params, log=log)
+        found = rerank(tiler, found, bank, embedder, params,
+                       batch_size=embed_batch_size, log=log)
     return found
 
 
 def rerank(tiler, cands: List[Candidate], bank, embedder, params: ScanParams,
-           log=print) -> List[Candidate]:
+           batch_size: int = 64, log=print) -> List[Candidate]:
     """Re-classe les meilleurs candidats couleur par plus proche prototype."""
     per: Dict[str, List[Candidate]] = {}
     for c in cands:
@@ -319,7 +321,7 @@ def rerank(tiler, cands: List[Candidate], bank, embedder, params: ScanParams,
 
     crop_px = max(16, int(round(params.crop_m / tiler.res_x)))
     log(f"  re-classement DINOv3 de {len(todo)} candidat(s) "
-        f"(vignettes {params.crop_m*100:.0f} cm)…")
+        f"(vignettes {params.crop_m*100:.0f} cm, lots de {batch_size})…")
     batch: List[np.ndarray] = []
     keep: List[Candidate] = []
     for c in todo:
@@ -327,9 +329,11 @@ def rerank(tiler, cands: List[Candidate], bank, embedder, params: ScanParams,
         if arr.size:
             batch.append(arr)
             keep.append(c)
-    step = 64
+    step = batch_size
     for i in range(0, len(batch), step):
-        emb = embedder.embed(batch[i: i + step])
+        # batch_size passé explicitement : sans ça, Embedder.embed() re-sous-lote
+        # en interne à 8 par défaut, indépendamment de --embed-batch-size.
+        emb = embedder.embed(batch[i: i + step], batch_size=step)
         scores = bank.score(emb)
         best_codes, _ = bank.best(emb)
         for j, c in enumerate(keep[i: i + step]):

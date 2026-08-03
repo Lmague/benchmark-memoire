@@ -516,7 +516,7 @@ def cmd_prospect_scan(args: argparse.Namespace) -> int:
         found += scan_raster(
             tiler, model, (kx, ky), params, species=color_codes,
             thresholds={c: v.threshold for c, v in cal["color"].items()},
-            bank=bank, embedder=embedder)
+            bank=bank, embedder=embedder, embed_batch_size=args.embed_batch_size)
 
     if dense_codes:
         if not (out_dir / DENSE_FILE).is_file():
