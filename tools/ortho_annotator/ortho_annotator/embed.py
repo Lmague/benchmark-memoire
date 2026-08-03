@@ -117,22 +117,46 @@ class Embedder:
         résolution d'un patch — bien moins cher que de promener une fenêtre
         glissante sur la même surface (mesuré : 0,77 s pour 784², contre plus
         d'une minute pour l'équivalent en fenêtres de 224²).
+
+        Traite une seule fenêtre (batch=1) : sur GPU, préférer ``dense_batch``
+        pour un balayage — batch=1 laisse l'essentiel de la VRAM inutilisée.
+        """
+        return self.dense_batch([image], side, batch_size=1)[0]
+
+    def dense_batch(self, images: Sequence[np.ndarray], side: int,
+                    batch_size: int = 16) -> np.ndarray:
+        """``dense()`` pour plusieurs fenêtres en une (ou quelques) passe(s) avant.
+
+        Sur GPU, batcher les fenêtres plutôt que les traiter une par une est ce
+        qui utilise réellement la VRAM disponible (un ViT-L à batch=1 sur un L4
+        24 Go n'en occupe qu'une fraction). ``batch_size`` : à augmenter tant que
+        ça ne sature pas la VRAM (essayer 16 → 32 → 64 sur un L4 pour 784px).
         """
         from PIL import Image
 
+        if not images:
+            return np.zeros((0, 0, 0, self.dim), dtype="float32")
         side = int(side) // 16 * 16
-        img = Image.fromarray(np.ascontiguousarray(image[..., :3]))
-        if img.size != (side, side):
-            img = img.resize((side, side), Image.BILINEAR)
-        arr = (np.asarray(img, dtype="float32") / 255.0 - _IMAGENET_MEAN) / _IMAGENET_STD
-        x = self.torch.from_numpy(arr.transpose(2, 0, 1)[None]).to(self.device)
-        with self.torch.inference_mode():
-            out = self.model(pixel_values=x).last_hidden_state[0]
         g = side // 16
-        # last_hidden_state = [CLS] + registres + jetons de patch.
-        patches = out[-(g * g):].float().cpu().numpy()
-        n = np.linalg.norm(patches, axis=1, keepdims=True)
-        return (patches / np.maximum(n, 1e-8)).reshape(g, g, -1).astype("float32")
+        outs: List[np.ndarray] = []
+        with self.torch.inference_mode():
+            for i in range(0, len(images), batch_size):
+                chunk = images[i: i + batch_size]
+                batch = np.empty((len(chunk), side, side, 3), dtype="float32")
+                for j, image in enumerate(chunk):
+                    img = Image.fromarray(np.ascontiguousarray(image[..., :3]))
+                    if img.size != (side, side):
+                        img = img.resize((side, side), Image.BILINEAR)
+                    batch[j] = np.asarray(img, dtype="float32") / 255.0
+                batch = (batch - _IMAGENET_MEAN) / _IMAGENET_STD
+                x = self.torch.from_numpy(batch.transpose(0, 3, 1, 2)).to(self.device)
+                out = self.model(pixel_values=x).last_hidden_state  # (b, seq, d)
+                # last_hidden_state = [CLS] + registres + jetons de patch, par image.
+                patches = out[:, -(g * g):, :].float().cpu().numpy()
+                outs.append(patches.reshape(len(chunk), g, g, -1))
+        e = np.concatenate(outs, axis=0)
+        n = np.linalg.norm(e, axis=-1, keepdims=True)
+        return (e / np.maximum(n, 1e-8)).astype("float32")
 
 
 # ---------------------------------------------------------------------------
