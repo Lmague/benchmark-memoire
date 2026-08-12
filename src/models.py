@@ -307,8 +307,16 @@ def _explora_groups(model, lora) -> dict:
             n_last = n_late - n_first
             full_ft_idx = list(range(0, n_first)) + list(range(n_blocks - n_last, n_blocks))
 
-    # LoRA sur TOUS les blocs (y compris ceux en full-FT → superposition)
-    lora_idx = list(range(n_blocks))
+    # LoRA sur TOUS les blocs par défaut (y compris ceux en full-FT → superposition) ;
+    # restreint à lora_block_indices si fourni (ablation de position : les blocs non
+    # listés restent entièrement gelés).
+    explicit_lora_idx = getattr(lora, "lora_block_indices", None)
+    if explicit_lora_idx is not None:
+        lora_idx = sorted(set(int(i) for i in explicit_lora_idx))
+        if any(not 0 <= i < n_blocks for i in lora_idx):
+            raise ValueError(f"lora_block_indices={lora_idx} invalide pour {n_blocks} blocs.")
+    else:
+        lora_idx = list(range(n_blocks))
     lora_cls = _get_lora_class()
     lora_linear_cls = _get_lora_linear_class()
     targets = tuple(t.lower() for t in lora.target_modules)

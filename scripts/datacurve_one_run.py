@@ -241,7 +241,14 @@ def main() -> None:
     # même source de vérité pour run_dir/done/metrics.json/ckpt_tag/emb_key.
     lora_sfx = (f"_r{cfg.lora.r}a{int(cfg.lora.alpha)}"
                 if cfg.regime in ("lora", "explora_like") else "")
-    ckpt_tag = f"{cfg.model.name}_{regime_tag}{lora_sfx}_{_frac_tag(args.fraction, args.seed)}"
+    # Ablation de position (2026-08) : encoder la sélection de blocs dans le tag, sinon
+    # deux variantes de blocs du même rang/alpha écraseraient le même run_dir.
+    blk_sfx = ""
+    if cfg.regime in ("lora", "explora_like"):
+        blk = getattr(cfg.lora, "lora_block_indices", None)
+        if blk:
+            blk_sfx = "_b" + "".join(str(int(i)) for i in sorted(blk))
+    ckpt_tag = f"{cfg.model.name}_{regime_tag}{lora_sfx}{blk_sfx}_{_frac_tag(args.fraction, args.seed)}"
 
     # Checkpoint pré-entraîné (backbones SSL_FT_NAMES, ex. SimDINOv2) — résolu MAINTENANT,
     # avant que cfg.paths.ckpt_dir soit réassigné plus bas au dossier local du run (sinon on

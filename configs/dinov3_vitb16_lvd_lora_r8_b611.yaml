@@ -1,0 +1,44 @@
+# DINOv3 ViT-B/16 (LVD-1689M) — LoRA Q/V restreint à la dernière moitié (head-heavy).
+# Ablation de POSITION (2026-08) : norme ||ΔW||/||W0|| par couche des checkpoints
+# r8a16 (croissante en profondeur, pic bloc 11) → tester si l'adaptation utile est
+# concentrée en fin de réseau. r=8/α=16 (scaling=2.0), même protocole que l'ablation
+# de rang (lr=1e-4, wd=0.05, warmup=3, epochs=50, patience=10, head_only=0, bf16,
+# early_stop=f1_macro_pres, grille C canonique).
+# Tag run : {model}_lora_r8a16_bb611_frac100_seed{N} (blocs encodés, cf. datacurve_one_run.py).
+
+model:
+  name: dinov3_vitb16_lvd
+  num_classes: 11
+  norm: imagenet
+
+regime: lora
+
+lora:
+  r: 8
+  alpha: 16.0
+  target_modules: [q, v]
+  n_full_ft_blocks: 0
+  lora_block_indices: [6,7,8,9,10,11]   # LoRA sur ces blocs seulement ; les autres restent gelés
+  dropout: 0.0
+
+optim:
+  weight_decay: 0.05
+  lr:
+    lora: 1.0e-4
+    full_late: 5.0e-5   # groupe vide (n_full_ft_blocks=0), jamais utilisé
+    norm: 1.0e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]

@@ -135,6 +135,10 @@ class LoraCfg:
     target_modules: list[str] = field(default_factory=lambda: ["q", "v"])
     n_full_ft_blocks: int = 2
     full_ft_block_indices: list[int] | None = None
+    # Restreindre l'injection LoRA à ces blocs (None = tous). Complémentaire de
+    # full_ft_block_indices : sert aux ablations de position (ex. [6..11] = dernière
+    # moitié). Les blocs non listés restent gelés (pas de LoRA, pas de full-FT).
+    lora_block_indices: list[int] | None = None
     dropout: float = 0.0
 
 

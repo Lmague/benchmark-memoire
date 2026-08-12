@@ -79,6 +79,9 @@ __pycache__/
 !/scripts/datacurve_one_run.py
 !/scripts/datacurve_aggregate.py
 !/scripts/slurm_datacurve.sh
+# Ablation de position LoRA (2026-08) :
+!/scripts/slurm_lora_block_ablation.sh
+!/scripts/slurm_layerwise_vitb16_lvd.sh
 # SoTA screening baseline FT (4 régimes × 3 seeds) :
 !/scripts/slurm_sota_screening.sh
 # Probe corpus élargi (12 canoniques + 84 SOTA × 3 passes, CPU) :
