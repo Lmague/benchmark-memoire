@@ -77,6 +77,21 @@ Puis ouvrir http://127.0.0.1:8000/.
 Le même `--output` doit être réutilisé pour toutes les sessions et toutes les
 orthomosaïques : c'est le fichier unique partagé.
 
+### Lancement en app (raccourci clavier)
+
+`scripts/launch.sh` évite de retaper la commande : il mémorise la dernière
+orthomosaïque choisie (dialogue de sélection de fichier au premier lancement),
+démarre le serveur s'il ne tourne pas déjà, et ouvre le navigateur sur
+`--output` toujours fixé à `$HOME/annotations_leo/session.gpkg`.
+
+Une entrée d'application est installée dans
+`~/.local/share/applications/ortho-annotator.desktop` : appuyer sur **Super**
+et taper `annotator` (ou `ortho`) fait apparaître « Ortho Annotator » dans le
+lanceur, comme n'importe quelle application. Relancer alors que le serveur
+tourne déjà se contente de rouvrir l'onglet.
+
+Pour arrêter le serveur : `pkill -f "ortho_annotator serve"`.
+
 ### Paramètres (`serve`)
 
 | Argument | Défaut | Rôle |
