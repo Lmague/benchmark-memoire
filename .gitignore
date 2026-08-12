@@ -94,6 +94,7 @@ __pycache__/
 !/scripts/slurm_lora_vitb.sh
 !/scripts/slurm_lora_dinov3_vitl.sh
 !/scripts/slurm_lora_simdinov2_vitl.sh
+!/scripts/slurm_lora_rank_ablation.sh
 !/scripts/migrate_lora3models_run_dirs.sh
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)

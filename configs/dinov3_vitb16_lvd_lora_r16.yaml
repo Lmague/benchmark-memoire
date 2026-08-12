@@ -1,0 +1,43 @@
+# DINOv3 ViT-B/16 (LVD-1689M) — LoRA Q/V sur TOUTES les couches.
+# Ablation du rang LoRA (fraction=100%, 3 seeds) : r=16.
+# Convention : alpha=2r (scaling=2.0) — aligné production r=8/alpha=16 (dinov3_vitb16_lvd_lora8.yaml).
+#   ⚠ ALPHA À VALIDER : changer ici suffit (le tag de run encode r ET alpha, cf.
+#   datacurve_one_run.py — pas de collision entre valeurs différentes).
+# Mêmes hyperparams que la config production sinon (lr=1e-4, wd=0.05, warmup=3,
+# epochs=50, patience=10, head_only=0, bf16, grad_clip=1.0, early_stop=f1_macro_pres).
+
+model:
+  name: dinov3_vitb16_lvd
+  num_classes: 11
+  norm: imagenet
+
+regime: lora
+
+lora:
+  r: 16
+  alpha: 32.0
+  target_modules: [q, v]
+  n_full_ft_blocks: 0       # 0 = LoRA partout, aucun bloc full FT
+  dropout: 0.0
+
+optim:
+  weight_decay: 0.05
+  lr:
+    lora: 1.0e-4
+    full_late: 5.0e-5   # groupe vide (n_full_ft_blocks=0), jamais utilisé
+    norm: 1.0e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0        # pas de LP-FT (comme MIDOG)
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]

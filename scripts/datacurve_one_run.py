@@ -16,6 +16,9 @@ Sorties (sous --out-dir) :
 Le tag de run (identique à ckpt_tag / emb_key, cf. _REGIME_TAG) inclut TOUJOURS le nom du
 modèle — pas seulement fraction+seed — pour que plusieurs modèles puissent partager le même
 --out-dir (ex. array SLURM) sans jamais écrire vers le même run_dir en parallèle.
+Pour les régimes lora/explora_like, il inclut en plus le rang et l'alpha
+(ex. dinov3_vitb16_lvd_lora_r8a16_frac100_seed0) : deux configs LoRA de rangs (ou alpha)
+différents ne peuvent pas entrer en collision.
 
 Embeddings : écrits dans {emb_base_dir}/{model}_{regime}_frac001_seed0/ (val + test + labels)
 où emb_base_dir = cfg.paths.emb_dir par défaut ou --emb-dir.
@@ -228,7 +231,17 @@ def main() -> None:
     # existantes (cfg.model.name == "vitb16"), mais évite toute collision pour les nouveaux
     # backbones (dinov3_vitb16_lvd, simdinov2_vitl16, ...).
     regime_tag = _REGIME_TAG.get(cfg.regime, cfg.regime)
-    ckpt_tag = f"{cfg.model.name}_{regime_tag}_{_frac_tag(args.fraction, args.seed)}"
+    # Ablation du rang LoRA (2026-08) : encoder r ET alpha dans le tag pour les régimes
+    # lora/explora_like, sinon deux configs LoRA différentes du même modèle+régime+frac+seed
+    # écrivent vers le même run_dir (piège alpha=16 vs alpha=8 vécu, slurm_datacurve_lora.sh:61 ;
+    # perte SimDINOv2-L, commit 688a4a2). Rétro-compat : les run_dir existants (datacurve,
+    # sota_screening/lora*, DINOv3_LoRA_8) ont été créés SANS suffixe et gardent leur nom
+    # (déjà sur disque) ; seuls les NOUVEAUX runs portent _r{R}_a{A}. Le garde-fou
+    # anti-collision plus bas (metrics.json.ckpt_tag) reste cohérent : le tag est la
+    # même source de vérité pour run_dir/done/metrics.json/ckpt_tag/emb_key.
+    lora_sfx = (f"_r{cfg.lora.r}a{int(cfg.lora.alpha)}"
+                if cfg.regime in ("lora", "explora_like") else "")
+    ckpt_tag = f"{cfg.model.name}_{regime_tag}{lora_sfx}_{_frac_tag(args.fraction, args.seed)}"
 
     # Checkpoint pré-entraîné (backbones SSL_FT_NAMES, ex. SimDINOv2) — résolu MAINTENANT,
     # avant que cfg.paths.ckpt_dir soit réassigné plus bas au dossier local du run (sinon on
