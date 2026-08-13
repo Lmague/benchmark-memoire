@@ -1,0 +1,1452 @@
+{
+ "protocole": {
+  "description": "Courbe de donn\u00e9es SPATIALE v2 \u2014 volume de train contr\u00f4l\u00e9 par orthomosa\u00efques enti\u00e8res (>= 25 %) ou blocs spatiaux contigus (< 25 %). Val/test = split canonique v3, aucune ortho partag\u00e9e avec le train.",
+  "total_train_tuiles": 49433,
+  "n_orthos_train": 15,
+  "orthos_train_desc": [
+   {
+    "ortho": "20230724_birch24_m3m",
+    "n": 9029
+   },
+   {
+    "ortho": "20230728_tussockfield46_m3m",
+    "n": 8914
+   },
+   {
+    "ortho": "20230724_riparianshrub20_m3m",
+    "n": 4977
+   },
+   {
+    "ortho": "20230724_riparianshrub32_m3m",
+    "n": 4278
+   },
+   {
+    "ortho": "20230724_polygon29_m3m",
+    "n": 3615
+   },
+   {
+    "ortho": "20230724_sedge_mosstundra16_m3m",
+    "n": 3329
+   },
+   {
+    "ortho": "20230724_alder39_m3m",
+    "n": 2489
+   },
+   {
+    "ortho": "20230724_birch33_m3m",
+    "n": 2231
+   },
+   {
+    "ortho": "20230724_lichentundra21_m3m",
+    "n": 2172
+   },
+   {
+    "ortho": "20230725_alder3_m3m",
+    "n": 1806
+   },
+   {
+    "ortho": "20230726_polygon5_m3m",
+    "n": 1618
+   },
+   {
+    "ortho": "20230724_alder43_m3m",
+    "n": 1581
+   },
+   {
+    "ortho": "20230725_tussockfieldsub_m3m",
+    "n": 1214
+   },
+   {
+    "ortho": "20230724_lichentundra45_m3m",
+    "n": 1197
+   },
+   {
+    "ortho": "20230728_tussockfield53_m3m",
+    "n": 983
+   }
+  ],
+  "orthos_val": [
+   "20230724_alder25_m3m",
+   "20230724_birch26_m3m",
+   "20230724_birch30_m3m",
+   "20230724_riparianshrub36_m3m",
+   "20230724_sedge_mosstundra34_m3m",
+   "20230725_sedge_mosstundra19_m3m",
+   "20230725_tussockfield_m3m",
+   "20230728_tussockfield51_m3m"
+  ],
+  "orthos_test": [
+   "20230724_alder4_m3m",
+   "20230724_birch54_m3m",
+   "20230724_lichentundra35_m3m",
+   "20230724_lichentundra41_m3m",
+   "20230724_riparianshrub23_m3m",
+   "20230724_sedge_mosstundra22_m3m",
+   "20230725_birch2_m3m",
+   "20230728_birch42_m3m",
+   "20230728_lichentundra44_m3m"
+  ],
+  "val_test_partages": [],
+  "tilerization": "scripts/tilerization.py : tile_XXXXX = ordre de scan row-major (stride 112 px, overlap 50 %), tuiles vides saut\u00e9es"
+ },
+ "niveaux": [
+  {
+   "tag": "frac001",
+   "cible": 0.01,
+   "type": "bloc_spatial_contigu",
+   "n_tiles_cible": 494,
+   "seeds": [
+    {
+     "seed": 0,
+     "orthos": [
+      "20230724_birch24_m3m"
+     ],
+     "n_orthos": 1,
+     "n_tiles": 494,
+     "fraction_reelle": 0.01,
+     "selection": [
+      {
+       "ortho": "20230724_birch24_m3m",
+       "n_tiles": 494,
+       "offset": 0,
+       "tile_id_range": [
+        8498,
+        11928
+       ],
+       "taille_ortho": 9029,
+       "max_gap_indices_absolus": 192
+      }
+     ],
+     "n_classes_8cls_presentes": 3
+    },
+    {
+     "seed": 1,
+     "orthos": [
+      "20230725_tussockfieldsub_m3m"
+     ],
+     "n_orthos": 1,
+     "n_tiles": 494,
+     "fraction_reelle": 0.01,
+     "selection": [
+      {
+       "ortho": "20230725_tussockfieldsub_m3m",
+       "n_tiles": 494,
+       "offset": 60,
+       "tile_id_range": [
+        4010,
+        15506
+       ],
+       "taille_ortho": 1214,
+       "max_gap_indices_absolus": 5454
+      }
+     ],
+     "n_classes_8cls_presentes": 6
+    },
+    {
+     "seed": 2,
+     "orthos": [
+      "20230725_alder3_m3m"
+     ],
+     "n_orthos": 1,
+     "n_tiles": 494,
+     "fraction_reelle": 0.01,
+     "selection": [
+      {
+       "ortho": "20230725_alder3_m3m",
+       "n_tiles": 494,
+       "offset": 44,
+       "tile_id_range": [
+        7146,
+        12418
+       ],
+       "taille_ortho": 1806,
+       "max_gap_indices_absolus": 173
+      }
+     ],
+     "n_classes_8cls_presentes": 5
+    }
+   ]
+  },
+  {
+   "tag": "frac005",
+   "cible": 0.05,
+   "type": "bloc_spatial_contigu",
+   "n_tiles_cible": 2472,
+   "seeds": [
+    {
+     "seed": 0,
+     "orthos": [
+      "20230724_birch24_m3m"
+     ],
+     "n_orthos": 1,
+     "n_tiles": 2472,
+     "fraction_reelle": 0.05,
+     "selection": [
+      {
+       "ortho": "20230724_birch24_m3m",
+       "n_tiles": 2472,
+       "offset": 0,
+       "tile_id_range": [
+        8498,
+        21768
+       ],
+       "taille_ortho": 9029,
+       "max_gap_indices_absolus": 192
+      }
+     ],
+     "n_classes_8cls_presentes": 5
+    },
+    {
+     "seed": 1,
+     "orthos": [
+      "20230724_riparianshrub32_m3m"
+     ],
+     "n_orthos": 1,
+     "n_tiles": 2472,
+     "fraction_reelle": 0.05,
+     "selection": [
+      {
+       "ortho": "20230724_riparianshrub32_m3m",
+       "n_tiles": 2472,
+       "offset": 1616,
+       "tile_id_range": [
+        13041,
+        22206
+       ],
+       "taille_ortho": 4278,
+       "max_gap_indices_absolus": 156
+      }
+     ],
+     "n_classes_8cls_presentes": 6
+    },
+    {
+     "seed": 2,
+     "orthos": [
+      "20230724_riparianshrub32_m3m"
+     ],
+     "n_orthos": 1,
+     "n_tiles": 2472,
+     "fraction_reelle": 0.05,
+     "selection": [
+      {
+       "ortho": "20230724_riparianshrub32_m3m",
+       "n_tiles": 2472,
+       "offset": 27,
+       "tile_id_range": [
+        6705,
+        15179
+       ],
+       "taille_ortho": 4278,
+       "max_gap_indices_absolus": 148
+      }
+     ],
+     "n_classes_8cls_presentes": 7
+    }
+   ]
+  },
+  {
+   "tag": "frac010",
+   "cible": 0.1,
+   "type": "bloc_spatial_contigu",
+   "n_tiles_cible": 4943,
+   "seeds": [
+    {
+     "seed": 0,
+     "orthos": [
+      "20230724_birch24_m3m"
+     ],
+     "n_orthos": 1,
+     "n_tiles": 4943,
+     "fraction_reelle": 0.1,
+     "selection": [
+      {
+       "ortho": "20230724_birch24_m3m",
+       "n_tiles": 4943,
+       "offset": 0,
+       "tile_id_range": [
+        8498,
+        26878
+       ],
+       "taille_ortho": 9029,
+       "max_gap_indices_absolus": 192
+      }
+     ],
+     "n_classes_8cls_presentes": 5
+    },
+    {
+     "seed": 1,
+     "orthos": [
+      "20230724_riparianshrub20_m3m"
+     ],
+     "n_orthos": 1,
+     "n_tiles": 4943,
+     "fraction_reelle": 0.1,
+     "selection": [
+      {
+       "ortho": "20230724_riparianshrub20_m3m",
+       "n_tiles": 4943,
+       "offset": 15,
+       "tile_id_range": [
+        1526,
+        23019
+       ],
+       "taille_ortho": 4977,
+       "max_gap_indices_absolus": 3017
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    },
+    {
+     "seed": 2,
+     "orthos": [
+      "20230724_birch24_m3m"
+     ],
+     "n_orthos": 1,
+     "n_tiles": 4943,
+     "fraction_reelle": 0.1,
+     "selection": [
+      {
+       "ortho": "20230724_birch24_m3m",
+       "n_tiles": 4943,
+       "offset": 3652,
+       "tile_id_range": [
+        24347,
+        34136
+       ],
+       "taille_ortho": 9029,
+       "max_gap_indices_absolus": 103
+      }
+     ],
+     "n_classes_8cls_presentes": 5
+    }
+   ]
+  },
+  {
+   "tag": "frac025",
+   "cible": 0.25,
+   "type": "orthos_entieres",
+   "n_tiles_cible": 12358,
+   "seeds": [
+    {
+     "seed": 0,
+     "orthos": [
+      "20230724_birch24_m3m",
+      "20230724_sedge_mosstundra16_m3m"
+     ],
+     "n_orthos": 2,
+     "n_tiles": 12358,
+     "fraction_reelle": 0.25,
+     "selection": [
+      {
+       "ortho": "20230724_birch24_m3m",
+       "n_tiles": 9029,
+       "tile_id_range": [
+        8498,
+        35296
+       ]
+      },
+      {
+       "ortho": "20230724_sedge_mosstundra16_m3m",
+       "n_tiles": 3329,
+       "tile_id_range": [
+        7477,
+        39354
+       ]
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    },
+    {
+     "seed": 1,
+     "orthos": [
+      "20230724_polygon29_m3m",
+      "20230724_sedge_mosstundra16_m3m",
+      "20230726_polygon5_m3m",
+      "20230724_alder43_m3m",
+      "20230725_tussockfieldsub_m3m",
+      "20230724_lichentundra45_m3m"
+     ],
+     "n_orthos": 6,
+     "n_tiles": 12554,
+     "fraction_reelle": 0.254,
+     "selection": [
+      {
+       "ortho": "20230724_polygon29_m3m",
+       "n_tiles": 3615,
+       "tile_id_range": [
+        8030,
+        33393
+       ]
+      },
+      {
+       "ortho": "20230724_sedge_mosstundra16_m3m",
+       "n_tiles": 3329,
+       "tile_id_range": [
+        7477,
+        39354
+       ]
+      },
+      {
+       "ortho": "20230726_polygon5_m3m",
+       "n_tiles": 1618,
+       "tile_id_range": [
+        8315,
+        32959
+       ]
+      },
+      {
+       "ortho": "20230724_alder43_m3m",
+       "n_tiles": 1581,
+       "tile_id_range": [
+        7421,
+        24809
+       ]
+      },
+      {
+       "ortho": "20230725_tussockfieldsub_m3m",
+       "n_tiles": 1214,
+       "tile_id_range": [
+        3517,
+        18553
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra45_m3m",
+       "n_tiles": 1197,
+       "tile_id_range": [
+        9157,
+        21225
+       ]
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    },
+    {
+     "seed": 2,
+     "orthos": [
+      "20230724_riparianshrub32_m3m",
+      "20230724_polygon29_m3m",
+      "20230724_sedge_mosstundra16_m3m",
+      "20230724_lichentundra45_m3m"
+     ],
+     "n_orthos": 4,
+     "n_tiles": 12419,
+     "fraction_reelle": 0.2512,
+     "selection": [
+      {
+       "ortho": "20230724_riparianshrub32_m3m",
+       "n_tiles": 4278,
+       "tile_id_range": [
+        6390,
+        24099
+       ]
+      },
+      {
+       "ortho": "20230724_polygon29_m3m",
+       "n_tiles": 3615,
+       "tile_id_range": [
+        8030,
+        33393
+       ]
+      },
+      {
+       "ortho": "20230724_sedge_mosstundra16_m3m",
+       "n_tiles": 3329,
+       "tile_id_range": [
+        7477,
+        39354
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra45_m3m",
+       "n_tiles": 1197,
+       "tile_id_range": [
+        9157,
+        21225
+       ]
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    }
+   ]
+  },
+  {
+   "tag": "frac050",
+   "cible": 0.5,
+   "type": "orthos_entieres",
+   "n_tiles_cible": 24716,
+   "seeds": [
+    {
+     "seed": 0,
+     "orthos": [
+      "20230724_birch24_m3m",
+      "20230728_tussockfield46_m3m",
+      "20230724_lichentundra21_m3m",
+      "20230725_alder3_m3m",
+      "20230724_alder43_m3m",
+      "20230725_tussockfieldsub_m3m"
+     ],
+     "n_orthos": 6,
+     "n_tiles": 24716,
+     "fraction_reelle": 0.5,
+     "selection": [
+      {
+       "ortho": "20230724_birch24_m3m",
+       "n_tiles": 9029,
+       "tile_id_range": [
+        8498,
+        35296
+       ]
+      },
+      {
+       "ortho": "20230728_tussockfield46_m3m",
+       "n_tiles": 8914,
+       "tile_id_range": [
+        7573,
+        32900
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra21_m3m",
+       "n_tiles": 2172,
+       "tile_id_range": [
+        8408,
+        33940
+       ]
+      },
+      {
+       "ortho": "20230725_alder3_m3m",
+       "n_tiles": 1806,
+       "tile_id_range": [
+        6616,
+        23826
+       ]
+      },
+      {
+       "ortho": "20230724_alder43_m3m",
+       "n_tiles": 1581,
+       "tile_id_range": [
+        7421,
+        24809
+       ]
+      },
+      {
+       "ortho": "20230725_tussockfieldsub_m3m",
+       "n_tiles": 1214,
+       "tile_id_range": [
+        3517,
+        18553
+       ]
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    },
+    {
+     "seed": 1,
+     "orthos": [
+      "20230724_birch24_m3m",
+      "20230728_tussockfield46_m3m",
+      "20230724_riparianshrub20_m3m",
+      "20230724_alder43_m3m"
+     ],
+     "n_orthos": 4,
+     "n_tiles": 24501,
+     "fraction_reelle": 0.4956,
+     "selection": [
+      {
+       "ortho": "20230724_birch24_m3m",
+       "n_tiles": 9029,
+       "tile_id_range": [
+        8498,
+        35296
+       ]
+      },
+      {
+       "ortho": "20230728_tussockfield46_m3m",
+       "n_tiles": 8914,
+       "tile_id_range": [
+        7573,
+        32900
+       ]
+      },
+      {
+       "ortho": "20230724_riparianshrub20_m3m",
+       "n_tiles": 4977,
+       "tile_id_range": [
+        1367,
+        23072
+       ]
+      },
+      {
+       "ortho": "20230724_alder43_m3m",
+       "n_tiles": 1581,
+       "tile_id_range": [
+        7421,
+        24809
+       ]
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    },
+    {
+     "seed": 2,
+     "orthos": [
+      "20230728_tussockfield46_m3m",
+      "20230724_polygon29_m3m",
+      "20230724_sedge_mosstundra16_m3m",
+      "20230724_alder39_m3m",
+      "20230724_lichentundra21_m3m",
+      "20230725_alder3_m3m",
+      "20230724_alder43_m3m",
+      "20230724_lichentundra45_m3m"
+     ],
+     "n_orthos": 8,
+     "n_tiles": 25103,
+     "fraction_reelle": 0.5078,
+     "selection": [
+      {
+       "ortho": "20230728_tussockfield46_m3m",
+       "n_tiles": 8914,
+       "tile_id_range": [
+        7573,
+        32900
+       ]
+      },
+      {
+       "ortho": "20230724_polygon29_m3m",
+       "n_tiles": 3615,
+       "tile_id_range": [
+        8030,
+        33393
+       ]
+      },
+      {
+       "ortho": "20230724_sedge_mosstundra16_m3m",
+       "n_tiles": 3329,
+       "tile_id_range": [
+        7477,
+        39354
+       ]
+      },
+      {
+       "ortho": "20230724_alder39_m3m",
+       "n_tiles": 2489,
+       "tile_id_range": [
+        6866,
+        22954
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra21_m3m",
+       "n_tiles": 2172,
+       "tile_id_range": [
+        8408,
+        33940
+       ]
+      },
+      {
+       "ortho": "20230725_alder3_m3m",
+       "n_tiles": 1806,
+       "tile_id_range": [
+        6616,
+        23826
+       ]
+      },
+      {
+       "ortho": "20230724_alder43_m3m",
+       "n_tiles": 1581,
+       "tile_id_range": [
+        7421,
+        24809
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra45_m3m",
+       "n_tiles": 1197,
+       "tile_id_range": [
+        9157,
+        21225
+       ]
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    }
+   ]
+  },
+  {
+   "tag": "frac075",
+   "cible": 0.75,
+   "type": "orthos_entieres",
+   "n_tiles_cible": 37075,
+   "seeds": [
+    {
+     "seed": 0,
+     "orthos": [
+      "20230728_tussockfield46_m3m",
+      "20230724_riparianshrub20_m3m",
+      "20230724_riparianshrub32_m3m",
+      "20230724_polygon29_m3m",
+      "20230724_alder39_m3m",
+      "20230724_birch33_m3m",
+      "20230724_lichentundra21_m3m",
+      "20230725_alder3_m3m",
+      "20230726_polygon5_m3m",
+      "20230724_alder43_m3m",
+      "20230725_tussockfieldsub_m3m",
+      "20230724_lichentundra45_m3m",
+      "20230728_tussockfield53_m3m"
+     ],
+     "n_orthos": 13,
+     "n_tiles": 37075,
+     "fraction_reelle": 0.75,
+     "selection": [
+      {
+       "ortho": "20230728_tussockfield46_m3m",
+       "n_tiles": 8914,
+       "tile_id_range": [
+        7573,
+        32900
+       ]
+      },
+      {
+       "ortho": "20230724_riparianshrub20_m3m",
+       "n_tiles": 4977,
+       "tile_id_range": [
+        1367,
+        23072
+       ]
+      },
+      {
+       "ortho": "20230724_riparianshrub32_m3m",
+       "n_tiles": 4278,
+       "tile_id_range": [
+        6390,
+        24099
+       ]
+      },
+      {
+       "ortho": "20230724_polygon29_m3m",
+       "n_tiles": 3615,
+       "tile_id_range": [
+        8030,
+        33393
+       ]
+      },
+      {
+       "ortho": "20230724_alder39_m3m",
+       "n_tiles": 2489,
+       "tile_id_range": [
+        6866,
+        22954
+       ]
+      },
+      {
+       "ortho": "20230724_birch33_m3m",
+       "n_tiles": 2231,
+       "tile_id_range": [
+        8760,
+        34874
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra21_m3m",
+       "n_tiles": 2172,
+       "tile_id_range": [
+        8408,
+        33940
+       ]
+      },
+      {
+       "ortho": "20230725_alder3_m3m",
+       "n_tiles": 1806,
+       "tile_id_range": [
+        6616,
+        23826
+       ]
+      },
+      {
+       "ortho": "20230726_polygon5_m3m",
+       "n_tiles": 1618,
+       "tile_id_range": [
+        8315,
+        32959
+       ]
+      },
+      {
+       "ortho": "20230724_alder43_m3m",
+       "n_tiles": 1581,
+       "tile_id_range": [
+        7421,
+        24809
+       ]
+      },
+      {
+       "ortho": "20230725_tussockfieldsub_m3m",
+       "n_tiles": 1214,
+       "tile_id_range": [
+        3517,
+        18553
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra45_m3m",
+       "n_tiles": 1197,
+       "tile_id_range": [
+        9157,
+        21225
+       ]
+      },
+      {
+       "ortho": "20230728_tussockfield53_m3m",
+       "n_tiles": 983,
+       "tile_id_range": [
+        7877,
+        33998
+       ]
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    },
+    {
+     "seed": 1,
+     "orthos": [
+      "20230724_birch24_m3m",
+      "20230728_tussockfield46_m3m",
+      "20230724_riparianshrub32_m3m",
+      "20230724_polygon29_m3m",
+      "20230724_alder39_m3m",
+      "20230724_lichentundra21_m3m",
+      "20230725_alder3_m3m",
+      "20230726_polygon5_m3m",
+      "20230724_alder43_m3m",
+      "20230724_lichentundra45_m3m"
+     ],
+     "n_orthos": 10,
+     "n_tiles": 36699,
+     "fraction_reelle": 0.7424,
+     "selection": [
+      {
+       "ortho": "20230724_birch24_m3m",
+       "n_tiles": 9029,
+       "tile_id_range": [
+        8498,
+        35296
+       ]
+      },
+      {
+       "ortho": "20230728_tussockfield46_m3m",
+       "n_tiles": 8914,
+       "tile_id_range": [
+        7573,
+        32900
+       ]
+      },
+      {
+       "ortho": "20230724_riparianshrub32_m3m",
+       "n_tiles": 4278,
+       "tile_id_range": [
+        6390,
+        24099
+       ]
+      },
+      {
+       "ortho": "20230724_polygon29_m3m",
+       "n_tiles": 3615,
+       "tile_id_range": [
+        8030,
+        33393
+       ]
+      },
+      {
+       "ortho": "20230724_alder39_m3m",
+       "n_tiles": 2489,
+       "tile_id_range": [
+        6866,
+        22954
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra21_m3m",
+       "n_tiles": 2172,
+       "tile_id_range": [
+        8408,
+        33940
+       ]
+      },
+      {
+       "ortho": "20230725_alder3_m3m",
+       "n_tiles": 1806,
+       "tile_id_range": [
+        6616,
+        23826
+       ]
+      },
+      {
+       "ortho": "20230726_polygon5_m3m",
+       "n_tiles": 1618,
+       "tile_id_range": [
+        8315,
+        32959
+       ]
+      },
+      {
+       "ortho": "20230724_alder43_m3m",
+       "n_tiles": 1581,
+       "tile_id_range": [
+        7421,
+        24809
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra45_m3m",
+       "n_tiles": 1197,
+       "tile_id_range": [
+        9157,
+        21225
+       ]
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    },
+    {
+     "seed": 2,
+     "orthos": [
+      "20230724_birch24_m3m",
+      "20230728_tussockfield46_m3m",
+      "20230724_riparianshrub20_m3m",
+      "20230724_riparianshrub32_m3m",
+      "20230724_sedge_mosstundra16_m3m",
+      "20230724_alder39_m3m",
+      "20230724_alder43_m3m",
+      "20230724_lichentundra45_m3m",
+      "20230728_tussockfield53_m3m"
+     ],
+     "n_orthos": 9,
+     "n_tiles": 36777,
+     "fraction_reelle": 0.744,
+     "selection": [
+      {
+       "ortho": "20230724_birch24_m3m",
+       "n_tiles": 9029,
+       "tile_id_range": [
+        8498,
+        35296
+       ]
+      },
+      {
+       "ortho": "20230728_tussockfield46_m3m",
+       "n_tiles": 8914,
+       "tile_id_range": [
+        7573,
+        32900
+       ]
+      },
+      {
+       "ortho": "20230724_riparianshrub20_m3m",
+       "n_tiles": 4977,
+       "tile_id_range": [
+        1367,
+        23072
+       ]
+      },
+      {
+       "ortho": "20230724_riparianshrub32_m3m",
+       "n_tiles": 4278,
+       "tile_id_range": [
+        6390,
+        24099
+       ]
+      },
+      {
+       "ortho": "20230724_sedge_mosstundra16_m3m",
+       "n_tiles": 3329,
+       "tile_id_range": [
+        7477,
+        39354
+       ]
+      },
+      {
+       "ortho": "20230724_alder39_m3m",
+       "n_tiles": 2489,
+       "tile_id_range": [
+        6866,
+        22954
+       ]
+      },
+      {
+       "ortho": "20230724_alder43_m3m",
+       "n_tiles": 1581,
+       "tile_id_range": [
+        7421,
+        24809
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra45_m3m",
+       "n_tiles": 1197,
+       "tile_id_range": [
+        9157,
+        21225
+       ]
+      },
+      {
+       "ortho": "20230728_tussockfield53_m3m",
+       "n_tiles": 983,
+       "tile_id_range": [
+        7877,
+        33998
+       ]
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    }
+   ]
+  },
+  {
+   "tag": "frac100",
+   "cible": 1.0,
+   "type": "orthos_entieres",
+   "n_tiles_cible": 49433,
+   "seeds": [
+    {
+     "seed": 0,
+     "orthos": [
+      "20230724_birch24_m3m",
+      "20230728_tussockfield46_m3m",
+      "20230724_riparianshrub20_m3m",
+      "20230724_riparianshrub32_m3m",
+      "20230724_polygon29_m3m",
+      "20230724_sedge_mosstundra16_m3m",
+      "20230724_alder39_m3m",
+      "20230724_birch33_m3m",
+      "20230724_lichentundra21_m3m",
+      "20230725_alder3_m3m",
+      "20230726_polygon5_m3m",
+      "20230724_alder43_m3m",
+      "20230725_tussockfieldsub_m3m",
+      "20230724_lichentundra45_m3m",
+      "20230728_tussockfield53_m3m"
+     ],
+     "n_orthos": 15,
+     "n_tiles": 49433,
+     "fraction_reelle": 1.0,
+     "selection": [
+      {
+       "ortho": "20230724_birch24_m3m",
+       "n_tiles": 9029,
+       "tile_id_range": [
+        8498,
+        35296
+       ]
+      },
+      {
+       "ortho": "20230728_tussockfield46_m3m",
+       "n_tiles": 8914,
+       "tile_id_range": [
+        7573,
+        32900
+       ]
+      },
+      {
+       "ortho": "20230724_riparianshrub20_m3m",
+       "n_tiles": 4977,
+       "tile_id_range": [
+        1367,
+        23072
+       ]
+      },
+      {
+       "ortho": "20230724_riparianshrub32_m3m",
+       "n_tiles": 4278,
+       "tile_id_range": [
+        6390,
+        24099
+       ]
+      },
+      {
+       "ortho": "20230724_polygon29_m3m",
+       "n_tiles": 3615,
+       "tile_id_range": [
+        8030,
+        33393
+       ]
+      },
+      {
+       "ortho": "20230724_sedge_mosstundra16_m3m",
+       "n_tiles": 3329,
+       "tile_id_range": [
+        7477,
+        39354
+       ]
+      },
+      {
+       "ortho": "20230724_alder39_m3m",
+       "n_tiles": 2489,
+       "tile_id_range": [
+        6866,
+        22954
+       ]
+      },
+      {
+       "ortho": "20230724_birch33_m3m",
+       "n_tiles": 2231,
+       "tile_id_range": [
+        8760,
+        34874
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra21_m3m",
+       "n_tiles": 2172,
+       "tile_id_range": [
+        8408,
+        33940
+       ]
+      },
+      {
+       "ortho": "20230725_alder3_m3m",
+       "n_tiles": 1806,
+       "tile_id_range": [
+        6616,
+        23826
+       ]
+      },
+      {
+       "ortho": "20230726_polygon5_m3m",
+       "n_tiles": 1618,
+       "tile_id_range": [
+        8315,
+        32959
+       ]
+      },
+      {
+       "ortho": "20230724_alder43_m3m",
+       "n_tiles": 1581,
+       "tile_id_range": [
+        7421,
+        24809
+       ]
+      },
+      {
+       "ortho": "20230725_tussockfieldsub_m3m",
+       "n_tiles": 1214,
+       "tile_id_range": [
+        3517,
+        18553
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra45_m3m",
+       "n_tiles": 1197,
+       "tile_id_range": [
+        9157,
+        21225
+       ]
+      },
+      {
+       "ortho": "20230728_tussockfield53_m3m",
+       "n_tiles": 983,
+       "tile_id_range": [
+        7877,
+        33998
+       ]
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    },
+    {
+     "seed": 1,
+     "orthos": [
+      "20230724_birch24_m3m",
+      "20230728_tussockfield46_m3m",
+      "20230724_riparianshrub20_m3m",
+      "20230724_riparianshrub32_m3m",
+      "20230724_polygon29_m3m",
+      "20230724_sedge_mosstundra16_m3m",
+      "20230724_alder39_m3m",
+      "20230724_birch33_m3m",
+      "20230724_lichentundra21_m3m",
+      "20230725_alder3_m3m",
+      "20230726_polygon5_m3m",
+      "20230724_alder43_m3m",
+      "20230725_tussockfieldsub_m3m",
+      "20230724_lichentundra45_m3m",
+      "20230728_tussockfield53_m3m"
+     ],
+     "n_orthos": 15,
+     "n_tiles": 49433,
+     "fraction_reelle": 1.0,
+     "selection": [
+      {
+       "ortho": "20230724_birch24_m3m",
+       "n_tiles": 9029,
+       "tile_id_range": [
+        8498,
+        35296
+       ]
+      },
+      {
+       "ortho": "20230728_tussockfield46_m3m",
+       "n_tiles": 8914,
+       "tile_id_range": [
+        7573,
+        32900
+       ]
+      },
+      {
+       "ortho": "20230724_riparianshrub20_m3m",
+       "n_tiles": 4977,
+       "tile_id_range": [
+        1367,
+        23072
+       ]
+      },
+      {
+       "ortho": "20230724_riparianshrub32_m3m",
+       "n_tiles": 4278,
+       "tile_id_range": [
+        6390,
+        24099
+       ]
+      },
+      {
+       "ortho": "20230724_polygon29_m3m",
+       "n_tiles": 3615,
+       "tile_id_range": [
+        8030,
+        33393
+       ]
+      },
+      {
+       "ortho": "20230724_sedge_mosstundra16_m3m",
+       "n_tiles": 3329,
+       "tile_id_range": [
+        7477,
+        39354
+       ]
+      },
+      {
+       "ortho": "20230724_alder39_m3m",
+       "n_tiles": 2489,
+       "tile_id_range": [
+        6866,
+        22954
+       ]
+      },
+      {
+       "ortho": "20230724_birch33_m3m",
+       "n_tiles": 2231,
+       "tile_id_range": [
+        8760,
+        34874
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra21_m3m",
+       "n_tiles": 2172,
+       "tile_id_range": [
+        8408,
+        33940
+       ]
+      },
+      {
+       "ortho": "20230725_alder3_m3m",
+       "n_tiles": 1806,
+       "tile_id_range": [
+        6616,
+        23826
+       ]
+      },
+      {
+       "ortho": "20230726_polygon5_m3m",
+       "n_tiles": 1618,
+       "tile_id_range": [
+        8315,
+        32959
+       ]
+      },
+      {
+       "ortho": "20230724_alder43_m3m",
+       "n_tiles": 1581,
+       "tile_id_range": [
+        7421,
+        24809
+       ]
+      },
+      {
+       "ortho": "20230725_tussockfieldsub_m3m",
+       "n_tiles": 1214,
+       "tile_id_range": [
+        3517,
+        18553
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra45_m3m",
+       "n_tiles": 1197,
+       "tile_id_range": [
+        9157,
+        21225
+       ]
+      },
+      {
+       "ortho": "20230728_tussockfield53_m3m",
+       "n_tiles": 983,
+       "tile_id_range": [
+        7877,
+        33998
+       ]
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    },
+    {
+     "seed": 2,
+     "orthos": [
+      "20230724_birch24_m3m",
+      "20230728_tussockfield46_m3m",
+      "20230724_riparianshrub20_m3m",
+      "20230724_riparianshrub32_m3m",
+      "20230724_polygon29_m3m",
+      "20230724_sedge_mosstundra16_m3m",
+      "20230724_alder39_m3m",
+      "20230724_birch33_m3m",
+      "20230724_lichentundra21_m3m",
+      "20230725_alder3_m3m",
+      "20230726_polygon5_m3m",
+      "20230724_alder43_m3m",
+      "20230725_tussockfieldsub_m3m",
+      "20230724_lichentundra45_m3m",
+      "20230728_tussockfield53_m3m"
+     ],
+     "n_orthos": 15,
+     "n_tiles": 49433,
+     "fraction_reelle": 1.0,
+     "selection": [
+      {
+       "ortho": "20230724_birch24_m3m",
+       "n_tiles": 9029,
+       "tile_id_range": [
+        8498,
+        35296
+       ]
+      },
+      {
+       "ortho": "20230728_tussockfield46_m3m",
+       "n_tiles": 8914,
+       "tile_id_range": [
+        7573,
+        32900
+       ]
+      },
+      {
+       "ortho": "20230724_riparianshrub20_m3m",
+       "n_tiles": 4977,
+       "tile_id_range": [
+        1367,
+        23072
+       ]
+      },
+      {
+       "ortho": "20230724_riparianshrub32_m3m",
+       "n_tiles": 4278,
+       "tile_id_range": [
+        6390,
+        24099
+       ]
+      },
+      {
+       "ortho": "20230724_polygon29_m3m",
+       "n_tiles": 3615,
+       "tile_id_range": [
+        8030,
+        33393
+       ]
+      },
+      {
+       "ortho": "20230724_sedge_mosstundra16_m3m",
+       "n_tiles": 3329,
+       "tile_id_range": [
+        7477,
+        39354
+       ]
+      },
+      {
+       "ortho": "20230724_alder39_m3m",
+       "n_tiles": 2489,
+       "tile_id_range": [
+        6866,
+        22954
+       ]
+      },
+      {
+       "ortho": "20230724_birch33_m3m",
+       "n_tiles": 2231,
+       "tile_id_range": [
+        8760,
+        34874
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra21_m3m",
+       "n_tiles": 2172,
+       "tile_id_range": [
+        8408,
+        33940
+       ]
+      },
+      {
+       "ortho": "20230725_alder3_m3m",
+       "n_tiles": 1806,
+       "tile_id_range": [
+        6616,
+        23826
+       ]
+      },
+      {
+       "ortho": "20230726_polygon5_m3m",
+       "n_tiles": 1618,
+       "tile_id_range": [
+        8315,
+        32959
+       ]
+      },
+      {
+       "ortho": "20230724_alder43_m3m",
+       "n_tiles": 1581,
+       "tile_id_range": [
+        7421,
+        24809
+       ]
+      },
+      {
+       "ortho": "20230725_tussockfieldsub_m3m",
+       "n_tiles": 1214,
+       "tile_id_range": [
+        3517,
+        18553
+       ]
+      },
+      {
+       "ortho": "20230724_lichentundra45_m3m",
+       "n_tiles": 1197,
+       "tile_id_range": [
+        9157,
+        21225
+       ]
+      },
+      {
+       "ortho": "20230728_tussockfield53_m3m",
+       "n_tiles": 983,
+       "tile_id_range": [
+        7877,
+        33998
+       ]
+      }
+     ],
+     "n_classes_8cls_presentes": 8
+    }
+   ]
+  }
+ ]
+}
