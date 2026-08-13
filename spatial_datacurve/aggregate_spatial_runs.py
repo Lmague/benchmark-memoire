@@ -19,6 +19,11 @@ Colonnes :
                             (schéma 11 classes) — metrics.json:n_train_tiles
   f1_macro_pres_test      — F1 macro test, classes présentes dans y_true test
   f1_macro_8cls_test      — F1 macro test, schéma 8 classes
+  f1_macro_train_pres     — F1 macro test RESTREINT aux classes PRÉSENTES dans
+                            le train (composition du split spatial) : effet
+                            VOLUME pur, sans la pénalité des classes jamais
+                            vues. Écart f1_macro_pres_test − train_pres = coût
+                            de couverture d'habitats.
   best_epoch / best_C     — epoch et régularisation sélectionnés
 
 NB : tous les tags de run internes portent `frac100` (artefact du
@@ -34,6 +39,20 @@ import json
 import os
 
 import numpy as np
+
+
+def train_present_f1(metrics: dict, split_manifest: dict) -> float:
+    """F1 macro test restreint aux classes présentes dans le train.
+
+    ``metrics['f1_per_class']`` = {nom 11-class: F1 test} ; la présence au
+    train vient du manifest du split (``classes_11cls``, comptes > 0).
+    """
+    f1_pc = metrics.get("f1_per_class") or {}
+    present = [c for c, n in split_manifest.get("classes_11cls", {}).items()
+               if n > 0 and c in f1_pc]
+    if not present:
+        return float("nan")
+    return float(np.mean([f1_pc[c] for c in present]))
 
 
 def main() -> None:
@@ -57,6 +76,8 @@ def main() -> None:
 
     rows = []
     missing = []
+    splits_dir = os.path.join(os.path.dirname(os.path.abspath(args.manifest)),
+                              "splits")
     for frac_dir in sorted(glob.glob(os.path.join(args.out_root, "frac*"))):
         tag = os.path.basename(frac_dir)
         for mf in sorted(glob.glob(os.path.join(frac_dir, "runs", "*", "metrics.json"))):
@@ -67,6 +88,11 @@ def main() -> None:
             if key not in level_info:
                 missing.append((tag, seed))
                 continue
+            split_manifest = {}
+            sm_path = os.path.join(splits_dir, f"{tag}_seed{seed}", "manifest.json")
+            if os.path.exists(sm_path):
+                with open(sm_path) as f:
+                    split_manifest = json.load(f)
             rows.append({
                 "fraction_cible": level_info[key]["cible"],
                 "spatial_fraction_reelle": level_info[key]["fraction_reelle"],
@@ -75,6 +101,7 @@ def main() -> None:
                 "n_train_tiles_11cls": m.get("n_train_tiles"),
                 "f1_macro_pres_test": m.get("f1_macro_pres_test"),
                 "f1_macro_8cls_test": m.get("f1_macro_8cls_test"),
+                "f1_macro_train_pres": round(train_present_f1(m, split_manifest), 4),
                 "best_epoch": m.get("best_epoch"),
                 "best_C": m.get("best_C"),
             })
@@ -91,14 +118,15 @@ def main() -> None:
         f.write("# Courbe de données spatiale v2 — résultats agrégés\n\n")
         f.write(f"Runs trouvés : **{len(rows)}/21**\n\n")
         f.write("| Cible | Frac. spatiale | Seed | Tuiles (11cls) | "
-                "F1 pres test | F1 8cls test | best_epoch | best_C |\n")
-        f.write("|---|---|---|---|---|---|---|---|\n")
+                "F1 pres test | F1 8cls test | F1 train-pres | best_epoch | best_C |\n")
+        f.write("|---|---|---|---|---|---|---|---|---|\n")
         for r in rows:
             f.write(f"| {r['fraction_cible']:.0%} | "
                     f"{r['spatial_fraction_reelle']:.1%} | {r['seed']} | "
                     f"{r['n_train_tiles_11cls']} | "
                     f"{r['f1_macro_pres_test']:.4f} | "
-                    f"{r['f1_macro_8cls_test']:.4f} | {r['best_epoch']} | "
+                    f"{r['f1_macro_8cls_test']:.4f} | "
+                    f"{r['f1_macro_train_pres']:.4f} | {r['best_epoch']} | "
                     f"{r['best_C']} |\n")
 
     print(f"OK : {len(rows)} runs agrégés → {out_csv}")

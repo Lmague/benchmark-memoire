@@ -64,6 +64,8 @@ TAG = {0.01: "frac001", 0.05: "frac005", 0.10: "frac010",
 CLASS_NAMES_12 = ["ALDE", "ARCA", "BIRC", "DRYI", "LICH", "MOSS", "PETF",
                   "RHOL", "RUBC", "SEDG", "TUSS", "WILL"]
 # 11-class : RHOL(7) exclue, labels remappés 0-10 (cf. datacurve_one_run.py:37-49).
+CLASS_NAMES_11 = ["ALDE", "ARCA", "BIRC", "DRYI", "LICH", "MOSS", "PETF",
+                  "RUBC", "SEDG", "TUSS", "WILL"]
 REMAP_11 = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 8: 7, 9: 8, 10: 9, 11: 10}
 # 8-class (diagnostic) : hors ARCA, DRYI, RUBC en 11-class → en codage 12-class :
 LABELS_8CLS_12 = {0, 2, 4, 5, 6, 9, 10, 11}
@@ -101,7 +103,9 @@ def classes_counts(labels_12: list[str]) -> dict:
     c8 = {lab: n for lab, n in c12.items() if int(lab) in LABELS_8CLS_12}
     return {
         "classes_12cls": {CLASS_NAMES_12[int(k)]: int(v) for k, v in sorted(c12.items())},
-        "classes_11cls": {CLASS_NAMES_12[int(lab)]: int(v) for lab, v in sorted(c11.items())},
+        # NB : labels de c11 = labels 11-class (0-10) → utiliser CLASS_NAMES_11,
+        # pas CLASS_NAMES_12 (bug corrigé 2026-08-13 : RUBC/SEDG/TUSS/WILL décalés).
+        "classes_11cls": {CLASS_NAMES_11[int(lab)]: int(v) for lab, v in sorted(c11.items())},
         "classes_8cls": {CLASS_NAMES_12[int(k)]: int(v) for k, v in sorted(c8.items())},
     }
 
