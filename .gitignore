@@ -24,6 +24,11 @@
 /tools/*
 !/tools/ortho_annotator/
 
+# 2b) Courbe de données spatiale v2 (code + splits + manifest) — 2026-08-13.
+#     Les CSV des splits sont requis sur Narval pour les runs LoRA spatiaux
+#     (pipeline : datacurve_one_run.py lit csv_dir pointé par le script SLURM).
+!/spatial_datacurve/
+
 # 3) Caches Python toujours exclus, y compris sous src/ et configs/
 __pycache__/
 *.pyc

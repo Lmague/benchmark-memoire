@@ -1,0 +1,53 @@
+# ViT-B/16 DINOv3 (lvd1689m) — LoRA r=8 pur (data-efficiency curve SPATIALE v2)
+#
+# LoRA Q,V sur TOUS les blocs, full_ft_block_indices: [] (pas de full-FT).
+# r=8, alpha=16.0 (= 2r, scaling=2.0) — convention production alignée sur
+# dinov3_vitb16_lvd_lora8.yaml et sur les tags `r8a16` des runs LoRA existants
+# (datacurve aléatoire + ablations : toutes les runs portent r8a16, cf.
+# grep -rho "r8a[0-9]*" results/ runs/). Comparabilité garantie avec la courbe
+# aléatoire existante.
+#   ⚠ NE PAS revenir à alpha=8.0 (dinov3_lora_datacurve.yaml) : le tag de run
+#   encode r ET alpha (datacurve_one_run.py) et 8.0 ≠ 2r.
+#
+# Mêmes hyper-paramètres que le LoRA r=8 qui a donné F1=0.4835±0.0011 à 100% :
+# lr=1e-4, wd=0.05, warmup=3, epochs=50, patience=10, head_only=0, bf16,
+# grad_clip=1.0, early_stop=f1_macro_pres, C_grid canonique.
+#
+# NB : le CSV source est le schéma BRUT 12cls (défaut base.yaml : splits/)
+# _apply_11cls_remap filtre RHOL et décale les indices.
+
+model:
+  name: dinov3_vitb16_lvd
+  num_classes: 11
+  norm: imagenet
+
+regime: lora
+
+lora:
+  r: 8
+  alpha: 16.0
+  target_modules: [q, v]
+  full_ft_block_indices: []
+  dropout: 0.0
+
+optim:
+  weight_decay: 0.05
+  lr:
+    lora: 1.0e-4
+    full_late: 5.0e-5
+    norm: 1.0e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
