@@ -47,7 +47,7 @@ def train_present_f1(metrics: dict, split_manifest: dict) -> float:
     ``metrics['f1_per_class']`` = {nom 11-class: F1 test} ; la présence au
     train vient du manifest du split (``classes_11cls``, comptes > 0).
     """
-    f1_pc = metrics.get("f1_per_class") or {}
+    f1_pc = metrics.get("f1_per_class_test") or metrics.get("f1_per_class") or {}
     present = [c for c, n in split_manifest.get("classes_11cls", {}).items()
                if n > 0 and c in f1_pc]
     if not present:
