@@ -1,0 +1,16 @@
+# Extraction frozen — DINOv3 ViT-S/16 LVD-1689M (HuggingFace transformers)
+# CLS, dim 384, 6 têtes, 12 blocs (~22M params, ~4× moins cher que ViT-B/16).
+#   python extract.py --config configs/frozen_dinov3_vits16.yaml
+#   python extract.py --config configs/frozen_dinov3_vits16.yaml --layerwise
+# NB : pas de section data → hérite de base.yaml (batch_size=128) ; ViT-S étant plus
+# petit que ViT-B (batch 128 validé), la mémoire GPU/CPU est très confortable.
+regime: none          # ignoré pour l'extraction/probe (aucun entraînement, aucun optimizer)
+
+model:
+  name: dinov3_vits16_lvd
+  num_classes: 12
+  norm: imagenet
+features:
+  cache: true
+  remap_v3: false
+  layerwise: false
