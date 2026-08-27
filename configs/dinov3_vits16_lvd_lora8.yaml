@@ -1,0 +1,48 @@
+# DINOv3 ViT-S/16 (LVD-1689M) — LoRA Q/V r=8 sur TOUTES les couches.
+# Copie ligne à ligne de dinov3_vitb16_lvd_lora8.yaml (production r=8, F1=0.4835±0.0011
+# à 100% pour ViT-B) — seuls le modèle (dinov3_vits16_lvd, dim=384, 6 têtes, 12 blocs)
+# et l'embedding_dim changent.
+# ⚠ DIVERGENCE CONVENTION ALPHA (à valider — cf. consigne) :
+#   - ViT-B (production + ablation r8 + datacurve spatial) : alpha=16.0 (scaling=2.0),
+#     tags de run `r8a16` (dinov3_lora_datacurve_r8a16.yaml : « NE PAS revenir à
+#     alpha=8.0 » ; 8.0 ≠ 2r).
+#   - ViT-L (configs/dinov3_vitl16_lvd_lora.yaml) : alpha=8.0 (scaling=1.0).
+#   → On suit ici la convention majoritaire production r8a16. Alternative : alpha=8.0
+#     (alignement sur le ViT-L) — changer UNE ligne ci-dessous, le tag de run encode
+#     r ET alpha (datacurve_one_run.py), pas de collision.
+
+model:
+  name: dinov3_vits16_lvd
+  num_classes: 11
+  norm: imagenet
+
+regime: lora
+
+lora:
+  r: 8
+  alpha: 16.0
+  target_modules: [q, v]
+  n_full_ft_blocks: 0       # 0 = LoRA partout, aucun bloc full FT
+  dropout: 0.0
+
+optim:
+  weight_decay: 0.05
+  lr:
+    lora: 1.0e-4
+    full_late: 5.0e-5   # groupe vide (n_full_ft_blocks=0), jamais utilisé
+    norm: 1.0e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0        # pas de LP-FT (comme MIDOG)
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]

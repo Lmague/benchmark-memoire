@@ -14,7 +14,7 @@ VIT_NAMES = {"vitb16"}
 # Backbones SSL frozen (build_frozen_extractor) rendus fine-tunables via un wrapper
 # nn.Module {backbone, head} — régimes frozen|mhsa|full|explora_like (pas de 'scratch' :
 # init aléatoire n'a pas de sens pour un backbone pré-entraîné).
-SSL_FT_NAMES = {"dinov3_vitb16_lvd", "dinov3_vitl16_lvd", "dinov3_vith16plus_lvd", "simdinov2_vitb16", "simdinov2_vitl16"}
+SSL_FT_NAMES = {"dinov3_vits16_lvd", "dinov3_vitb16_lvd", "dinov3_vitl16_lvd", "dinov3_vith16plus_lvd", "simdinov2_vitb16", "simdinov2_vitl16"}
 
 _TIMM_ID = {"resnet50": "resnet50", "vitb16": "vit_base_patch16_224"}
 
@@ -561,6 +561,17 @@ def build_frozen_extractor(name: str, checkpoint: str | None = None):
             raise ImportError("dinov3_vitb16_lvd nécessite transformers>=4.56.0")
         m = AutoModel.from_pretrained("facebook/dinov3-vitb16-pretrain-lvd1689m")
         return m, _dinov3_hf_forward, 768, "imagenet"
+    if name == "dinov3_vits16_lvd":
+        # HuggingFace (reproductibilité notebook legacy) : transformers.AutoModel + pooler_output
+        # Réf. : facebook/dinov3-vits16-pretrain-lvd1689m, dim=384, 6 têtes, 12 blocs,
+        # norm ImageNet. ViT-S/16 : ~22M params (~4× moins cher que ViT-B/16 par échantillon).
+        try:
+            from transformers import AutoModel
+        except ImportError:
+            raise ImportError(
+                "dinov3_vits16_lvd nécessite transformers>=4.56.0 : pip install transformers")
+        m = AutoModel.from_pretrained("facebook/dinov3-vits16-pretrain-lvd1689m")
+        return m, _dinov3_hf_forward, 384, "imagenet"
     if name == "dinov3_vitl16_lvd":
         # HuggingFace (reproductibilité notebook legacy) : transformers.AutoModel + pooler_output
         # Réf. : facebook/dinov3-vitl16-pretrain-lvd1689m, dim=1024, norm ImageNet
