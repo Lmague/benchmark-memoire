@@ -104,6 +104,15 @@ __pycache__/
 !/scripts/slurm_lora_simdinov2_vitl.sh
 !/scripts/slurm_lora_rank_ablation.sh
 !/scripts/migrate_lora3models_run_dirs.sh
+# DINOv3 ViT-S/16 — frozen + LoRA r=8 (2026-08) :
+!/scripts/slurm_extract_vits16.sh
+!/scripts/slurm_lora_dinov3_vits16.sh
+# Self-distillation contexte→tuile (2026-08-29) — voir scripts/context_distill_README.md :
+!/scripts/context_crop.py
+!/scripts/context_distill.py
+!/scripts/slurm_context_crop.sh
+!/scripts/slurm_context_distill.sh
+!/scripts/context_distill_README.md
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/
