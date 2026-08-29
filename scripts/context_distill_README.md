@@ -120,15 +120,27 @@ sauvegarde — principe des "global crops" DINO/DINOv2 : le champ de vision rée
 (512/1024/2048px dans l'espace pixel de l'ortho), mais le tenseur réseau reste de
 taille constante. Conséquence directe :
 
-- **Poids de stockage identique à `tiles.zip`** quel que soit `--context-size` —
-  **mesuré** sur les 9 vrais crops produits pendant la validation (§13, contexte
-  1024px→224px) : **126 170 octets/PNG en moyenne** (min 123 937, max 128 314),
-  contre ~99 Ko pour les tuiles 224px d'origine correspondantes (légèrement plus lourd
-  : un contexte redimensionné par LANCZOS conserve plus de texture haute fréquence
-  qu'une tuile native). Extrapolé aux 49281 tuiles train (11cls, RHOL exclu, cf. §3) :
-  `context_<size>.zip` ≈ **6,2 Go** — mesure sur 9 fichiers, pas les 49281, mais
-  cohérente avec l'estimation initiale (train uniquement — le contexte n'est PAS
-  nécessaire pour val/test, cf. §7).
+- **Poids de stockage du même ordre de grandeur que `tiles.zip`** quel que soit
+  `--context-size` — **mesuré sur le corpus complet** (49433 tuiles train, run réel
+  du 2026-08-29, transféré sur Narval) :
+
+  | Zip | Taille réelle |
+  |---|---|
+  | `context_512.zip` | 6,0 Go |
+  | `context_1024.zip` | 6,1 Go |
+  | `context_2048.zip` | **2,7 Go** |
+  | **Total (les 3 tailles)** | **≈14,8 Go** |
+
+  Contre-intuitif au premier abord : `context_2048.zip` est **plus léger** que
+  512/1024, pas plus lourd. Explication : plus la fenêtre source est grande, plus le
+  redimensionnement LANCZOS vers 224px moyenne (lisse) l'image — un contexte 2048px
+  condense ~9× plus de pixels sources dans le même 224×224 qu'un contexte 512px
+  (~2,3×), donc moins de détail haute fréquence survit et le PNG résultant se
+  compresse mieux. Pas un bug ; confirmé par une inspection visuelle du principe
+  (LANCZOS = filtre passe-bas avant sous-échantillonnage). Estimation initiale
+  (§ précédente version de ce document, extrapolée sur 9 échantillons à 1024px
+  seulement) : ~6,2 Go/taille — correcte pour 512/1024, sous-estimait l'écart avec
+  2048px faute d'avoir mesuré cette taille avant le run complet.
 - **Coût mémoire/calcul du teacher identique entre R1/R2/R3** (toujours une image
   224×224 en entrée) — d'où `--mem=64G` uniforme dans `slurm_context_distill.sh`, PAS
   de bump à 128G pour 2048px (divergence assumée par rapport à l'énoncé initial, qui
@@ -253,10 +265,13 @@ devinée côté entraînement.
   canonique : **tout s'exécute sans erreur**. Métriques du smoke test NON
   significatives (9 échantillons, train=val=test) — sert uniquement à valider
   l'absence de bug, pas la performance du modèle.
+- **`context_crop.py` sur le corpus complet** : exécuté le 2026-08-29 (49433 tuiles
+  train, 15 orthos, `--context-sizes 512,1024,2048`), zippé et transféré sur
+  `$SCRATCH` (`/scratch/lmague/`) — tailles réelles en §6. Durée d'exécution locale
+  non chronométrée précisément par cette session (lancée par l'utilisateur dans son
+  propre terminal).
 - **Non fait** (hors périmètre "pas de GPU") : entraînement réel sur Narval, mesure du
-  temps GPU réel, validation du budget mémoire 64G sous charge réelle, run complet de
-  `context_crop.py` sur les 15 orthos train (~10-30 min CPU estimés par extrapolation
-  d'un seul ortho, non mesuré sur le corpus complet).
+  temps GPU réel, validation du budget mémoire 64G sous charge réelle.
 
 ## 14. `--design B`
 
