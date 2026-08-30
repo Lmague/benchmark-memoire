@@ -41,7 +41,7 @@ teacher). Réutilise DIRECTEMENT (pas de réimplémentation) :
     — extraction Design A (tuile seule), MÊME code que le pipeline LoRA canonique.
 
 ── Schéma de labels ────────────────────────────────────────────────────────────
-``splits_spatial/*/train.csv`` (et val/test) sont en schéma BRUT 12 classes (RHOL
+``spatial_datacurve/splits/*/train.csv`` (et val/test) sont en schéma BRUT 12 classes (RHOL
 présent au train, absent du val/test) — vérifié empiriquement (152 lignes RHOL dans
 train.csv, 0 dans val/test). Ce script filtre RHOL et remappe 12→11 classes EXACTEMENT
 comme ``scripts/datacurve_one_run.py`` (même table ``LABEL_REMAP_12TO11``, réutilisée

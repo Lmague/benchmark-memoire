@@ -121,7 +121,7 @@ fi
 # 3 seeds séquentiels sur la même allocation GPU — tuiles+contexte déjà extraits
 # une seule fois ci-dessus (convention slurm_lora_rank_ablation.sh).
 for SEED in 0 1 2; do
-    SPATIAL_CSV_DIR="$CODE_DIR/splits_spatial/frac100_seed${SEED}"
+    SPATIAL_CSV_DIR="$CODE_DIR/spatial_datacurve/splits/frac100_seed${SEED}"
     [[ ! -f "$SPATIAL_CSV_DIR/train.csv" ]] && {
         echo "[ERROR] split spatial absent: $SPATIAL_CSV_DIR/train.csv — seed=$SEED sauté" >&2
         continue

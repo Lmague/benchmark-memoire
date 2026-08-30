@@ -11,7 +11,7 @@ explicitement.
 Un student DINOv3 ViT-B/16 LVD + LoRA apprend à encoder une **tuile 224px** en
 s'aidant d'une **fenêtre de contexte spatial** (512/1024/2048px, la même tuile mais
 vue plus large de son ortho-mère). But : mieux généraliser sur le hold-out **spatial**
-(`splits_spatial/`), en particulier sur les classes confondues à petite échelle
+(`spatial_datacurve/splits/`), en particulier sur les classes confondues à petite échelle
 (LICH/MOSS/SEDG). Loss (toujours) = `focal(classif) + λ · distill(proj(feat_tuile), teacher(contexte))`.
 
 Trois axes de variation, indépendants (`context_distill.py --design {A,B} --teacher {externe|ema_self} --context-size {512,1024,2048}`).
@@ -47,7 +47,7 @@ forcément un design déployable, cf. §14.
 
 ## 3. Ce qui est déjà établi (sourcé, à ne pas refaire)
 
-- **Split d'évaluation** : `splits_spatial/frac100_seed{0,1,2}/{train,val,test}.csv` —
+- **Split d'évaluation** : `spatial_datacurve/splits/frac100_seed{0,1,2}/{train,val,test}.csv` —
   hold-out par **orthomosaïque entière** (train/val/test disjoints par ortho). Vérifié :
   `train.csv` est **bit-identique** (md5) entre les 3 seeds à frac100 — pas de sous-
   échantillonnage stochastique à 100%, donc **un seul passage de `context_crop.py`
@@ -72,7 +72,7 @@ forcément un design déployable, cf. §14.
     par seed). C'est le **comparateur pertinent pour R1 et ses variantes de contexte
     (512/1024/2048px)** (même split spatial),
     **pas** le chiffre split-aléatoire 0.4835 ci-dessus. `n_train=49281` =
-    49433 (lignes de `splits_spatial/frac100_seed0/train.csv`) − 152 (lignes RHOL) —
+    49433 (lignes de `spatial_datacurve/splits/frac100_seed0/train.csv`) − 152 (lignes RHOL) —
     cohérent avec le filtrage RHOL fait par `context_distill.py` (§3, schéma de
     labels).
 
@@ -118,7 +118,7 @@ la convention `tiles.zip` déjà utilisée par tous les `slurm_*.sh` du dépôt 
 
 ```bash
 python scripts/context_crop.py \
-    --split-csv splits_spatial/frac100_seed0/train.csv \
+    --split-csv spatial_datacurve/splits/frac100_seed0/train.csv \
     --context-sizes 512,1024,2048 --out-size 224 --out-dir out/context
 
 cd out/context && for d in context_*; do zip -qr "../../${d}.zip" "$d"; done
@@ -193,7 +193,7 @@ pour ne pas faire passer une décision d'implémentation pour une exigence de l'
 
 ```bash
 python scripts/context_crop.py \
-    --split-csv splits_spatial/frac100_seed0/train.csv \
+    --split-csv spatial_datacurve/splits/frac100_seed0/train.csv \
     --context-sizes 512,1024,2048 --out-size 224 --out-dir out/context
 cd out/context && for d in context_*; do zip -qr "../../${d}.zip" "$d"; done
 scp ../../context_{512,1024,2048}.zip narval:$SCRATCH/
@@ -255,7 +255,7 @@ variantes de contexte (15 runs), au lieu de 15 jobs séparés.
 
 ## 10. Non-fuite spatiale
 
-`splits_spatial/` sépare train/val/test par **ortho entière**. Une fenêtre de contexte
+`spatial_datacurve/splits/` sépare train/val/test par **ortho entière**. Une fenêtre de contexte
 est découpée dans le **même raster** que sa tuile (jamais un autre), donc un contexte
 de train ne peut, par construction, jamais piocher des pixels d'un ortho val/test —
 aucune fuite additionnelle introduite par `context_crop.py`.
@@ -348,7 +348,7 @@ l'extraction finale, pas seulement à l'entraînement :
 
 ```bash
 python scripts/context_crop.py \
-    --split-csv splits_spatial/frac100_seed0/val.csv splits_spatial/frac100_seed0/test.csv \
+    --split-csv spatial_datacurve/splits/frac100_seed0/val.csv spatial_datacurve/splits/frac100_seed0/test.csv \
     --context-sizes 1024 --out-size 224 --out-dir out/context   # MÊME --out-dir que le run train
 cd out/context && zip -qr ../../context_1024.zip context_1024   # ré-zippe avec val/test inclus
 scp ../../context_1024.zip narval:$SCRATCH/                     # écrase l'ancien (train seul)
@@ -424,3 +424,42 @@ forward, donc a priori plus léger. Si le job OOM malgré tout : replier sur
 `--gres=gpu:a100:1` + `--mem=60G` (A100 complet, 40 Go, queue plus lente — commenté
 dans le script). **À vérifier sur le premier run réel** — c'est un jugement raisonné
 par analogie, pas une mesure.
+
+## 17. Incident (2026-08-30) : `splits_spatial/` n'a jamais existé sur Narval
+
+Le premier run réel de R1 (job 2073957) s'est terminé "avec succès" (exit 0) mais
+**sans rien faire** — les 3 seeds ont été sautés avec
+`[ERROR] split spatial absent: /home/lmague/benchmark-memoire/splits_spatial/frac100_seed{0,1,2}/train.csv`.
+
+**Cause racine** : `splits_spatial/` (le répertoire utilisé PARTOUT dans ce code
+depuis le début, hérité tel quel du prompt de mission initial) n'est **pas
+whitelisté** dans `.gitignore` (`git check-ignore -v` confirme, catch-all `/*`) —
+il n'a donc **jamais été commité**, jamais poussé sur GitHub, et n'existe pas dans
+le clone `$HOME/benchmark-memoire` sur Narval. Le job n'a pas planté (le `for SEED`
+continue sur erreur, cf. `slurm_context_distill.sh`) — il a juste tourné à vide
+pendant tout le temps alloué. **Aucune alerte visible dans le `.out`**, seulement
+dans le `.err` — à vérifier systématiquement en plus du `.out`.
+
+**Ce qui existe RÉELLEMENT sur Narval** : `spatial_datacurve/splits/` — un répertoire
+**différent**, généré par `spatial_datacurve/make_spatial_datacurve.py` ("v2",
+2026-08-13, un jour après `splits_spatial/` du 2026-08-12), whitelisté dans
+`.gitignore` (`!/spatial_datacurve/`) et donc bien présent sur Narval. C'est aussi
+la source de `results/spatial_datacurve_CANONICAL.csv` (le comparateur utilisé
+partout dans ce document, §3) — via `scripts/rapport/probe_spatial_canonical.py`,
+qui re-probe les embeddings des runs `lora_spatial_v2/` entraînés sur ce split.
+
+**Vérifié avant de corriger (2026-08-30)** : `spatial_datacurve/splits/frac100_seed{0,1,2}/
+{train,val,test}.csv` et `splits_spatial/frac100_seed{0,1,2}/{train,val,test}.csv`
+contiennent **exactement les mêmes lignes** (diff sur fichiers triés = 0 différence,
+pour les 3 seeds) — seul l'ORDRE des lignes diffère (d'où des md5 différents sur les
+fichiers non triés). Même ortho split train/val/test (15/8/9), même absence de
+recouvrement d'ortho train↔val/test dans les deux. **Aucune donnée n'est en cause,
+aucun résultat déjà cité dans ce document n'est invalidé** — seul le CHEMIN était
+faux. Tous les scripts (`context_crop.py`, `context_distill.py`, `slurm_*.sh`,
+ce README) ont été corrigés pour pointer vers `spatial_datacurve/splits/`. Les
+crops de contexte déjà produits localement (`out/context/context_*`) restent
+valides tels quels (mêmes tuiles, mêmes chemins relatifs).
+
+**Pourquoi ça n'a pas été détecté avant** : jamais testé sur Narval avant ce run
+(contrainte de la mission — pas de GPU local, donc pas de moyen de découvrir cette
+absence plus tôt que le premier vrai `sbatch`).
