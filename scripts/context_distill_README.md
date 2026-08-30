@@ -14,17 +14,24 @@ vue plus large de son ortho-mère). But : mieux généraliser sur le hold-out **
 (`splits_spatial/`), en particulier sur les classes confondues à petite échelle
 (LICH/MOSS/SEDG). Loss (toujours) = `focal(classif) + λ · distill(proj(feat_tuile), teacher(contexte))`.
 
-Trois axes de variation, indépendants (`context_distill.py --design {A,B} --teacher {externe|ema_self} --context-size {512,1024,2048}`) :
+Trois axes de variation, indépendants (`context_distill.py --design {A,B} --teacher {externe|ema_self} --context-size {512,1024,2048}`).
+
+**⚠️ Convention de nommage (pour éviter la confusion vécue le 2026-08-29)** : R1/R2/R3
+désignent ici les **3 lignes du tableau de l'utilisateur** ("Le plan final"), PAS des
+tailles de contexte. Les variantes de taille de contexte (512/1024/2048px, toutes en
+Design A + teacher DINOv3-L) sont désignées SANS numéro — "contexte 512px" /
+"contexte 1024px" / "contexte 2048px" — précisément pour ne jamais entrer en
+collision avec R1/R2/R3 :
 
 | Run | Teacher | Design | Question posée |
 |---|---|---|---|
-| **R1 (principal)** | DINOv3-L/16 LVD gelé, externe | A (contexte au train seulement, 1 tuile à l'inférence) | Self-distillation contexte→tuile de base |
-| R2 | idem R1 | A | Effet de la taille de contexte (512px) |
-| R3 | idem R1 | A | Effet de la taille de contexte (2048px) |
-| **EMA self-teacher** | copie EMA du student lui-même (`ema_self`) | A | Le gain vient-il d'un teacher externe plus riche, ou juste d'un signal de self-distillation ? |
-| **Design B** | idem R1 (DINOv3-L, INCHANGÉ) | B (contexte au train ET à l'inférence) | Le contexte aide-t-il EN PLUS au moment de prédire (pas seulement à l'entraînement) ? |
+| **R1 (principal)** | DINOv3-L/16 LVD gelé, externe, contexte **1024px** | A (contexte au train seulement, 1 tuile à l'inférence) | Self-distillation contexte→tuile de base |
+| **R2** | idem R1 (DINOv3-L, contexte 1024px, INCHANGÉ) | **B** (tuile+contexte à l'inférence) | Le contexte aide-t-il EN PLUS au moment de prédire (pas seulement à l'entraînement) ? |
+| **R3** | copie **EMA** du student lui-même (`ema_self`), contexte 1024px | A | Le gain vient-il d'un teacher externe plus riche, ou juste d'un signal de self-distillation ? |
+| *(extension, hors tableau)* contexte 512px | idem R1 | A | Effet de la taille de contexte (plus petite) |
+| *(extension, hors tableau)* contexte 2048px | idem R1 | A | Effet de la taille de contexte (plus grande) |
 
-Design A : à l'inférence, un seul modèle, une seule entrée (la tuile). Design B :
+Design A : à l'inférence, un seul modèle, une seule entrée (la tuile). Design B (R2) :
 même modèle mais deux entrées (tuile+contexte) — "borne supérieure théorique", pas
 forcément un design déployable, cf. §14.
 
@@ -62,7 +69,8 @@ forcément un design déployable, cf. §14.
   - **Courbe spatiale frac100 (LoRA r=8, 3 seeds)** — lu et calculé le 2026-08-29
     depuis `results/spatial_datacurve_CANONICAL.csv` (lignes `tag=frac100`) :
     seeds `[0.4885, 0.4807, 0.4789]` → **mean=0.4827, std=0.0042** (`n_train=49281`
-    par seed). C'est le **comparateur pertinent pour R1/R2/R3** (même split spatial),
+    par seed). C'est le **comparateur pertinent pour R1 et ses variantes de contexte
+    (512/1024/2048px)** (même split spatial),
     **pas** le chiffre split-aléatoire 0.4835 ci-dessus. `n_train=49281` =
     49433 (lignes de `splits_spatial/frac100_seed0/train.csv`) − 152 (lignes RHOL) —
     cohérent avec le filtrage RHOL fait par `context_distill.py` (§3, schéma de
@@ -151,7 +159,7 @@ taille constante. Conséquence directe :
   (§ précédente version de ce document, extrapolée sur 9 échantillons à 1024px
   seulement) : ~6,2 Go/taille — correcte pour 512/1024, sous-estimait l'écart avec
   2048px faute d'avoir mesuré cette taille avant le run complet.
-- **Coût mémoire/calcul du teacher identique entre R1/R2/R3** (toujours une image
+- **Coût mémoire/calcul du teacher identique entre les tailles de contexte** (toujours une image
   224×224 en entrée) — d'où `--mem` uniforme dans `slurm_context_distill.sh` (RAM
   système, pas VRAM) quel que soit `--context-size`, PAS de bump à 128G pour 2048px
   (divergence assumée par rapport à l'énoncé initial, qui anticipait un contexte à
@@ -179,7 +187,7 @@ l'expose pas sans monkey-patcher les embeddings internes (jugé trop risqué pou
 chemin de code partagé par tout le pipeline canonique). Choix documenté explicitement
 pour ne pas faire passer une décision d'implémentation pour une exigence de l'énoncé.
 
-## 9. Comment lancer (ordre R1 → R2/R3)
+## 9. Comment lancer
 
 ### Étape 0 — préparer le contexte (une fois, en local, §5)
 
@@ -202,8 +210,24 @@ A100 complet) : les tuiles+contexte sont extraits une fois, les 3 seeds tournent
 l'un après l'autre dessus. Résultats :
 `$SCRATCH/context_distill/runs/dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed{0,1,2}/metrics.json`.
 
-### Étape 2 — SI R1 bat la baseline spatiale (frac100, LoRA r=8 : F1=0.4827±0.0042,
-`results/spatial_datacurve_CANONICAL.csv`, cf. §3) → R2 (512px) et R3 (2048px)
+### R2 (Design B) et R3 (EMA self-teacher) — cf. §14-15
+
+R2 nécessite un prérequis (contexte val/test, cf. §14) ; R3 aucun. Les deux peuvent
+tourner **en même temps que R1**, ce sont des jobs indépendants — pas d'ordre
+imposé (2026-08-29 : abandon d'une gate "attendre R1" suggérée initialement par
+Claude, l'utilisateur préfère tout lancer ensemble) :
+
+```bash
+sbatch scripts/slurm_context_distill.sh 1024 A ema_self   # R3, aucun prérequis
+sbatch scripts/slurm_context_distill.sh 1024 B             # R2, cf. §14 pour le prérequis
+```
+
+### Extension optionnelle (hors tableau) — effet de la taille de contexte
+
+Pas dans le tableau de l'utilisateur, mais construit dès le départ (mission
+initiale) : R1 avec un contexte plus petit (512px) ou plus grand (2048px), toujours
+teacher DINOv3-L + Design A. À lancer si la courbe 512→1024→2048 intéresse, sans
+gate particulière non plus :
 
 ```bash
 sbatch scripts/slurm_context_distill.sh 512    # 1 job, 3 seeds
@@ -213,21 +237,9 @@ sbatch scripts/slurm_context_distill.sh 2048   # 1 job, 3 seeds
 Puis tracer la courbe 512→1024→2048 (`f1_macro_pres_test`, `balanced_accuracy_test`
 depuis chaque `metrics.json`).
 
-### Étape 3 — Contrôles (indépendants de 1-2, à lancer quand tu veux, cf. §14-15)
-
-EMA self-teacher (aucun prérequis supplémentaire) :
-```bash
-sbatch scripts/slurm_context_distill.sh 1024 A ema_self
-```
-
-Design B (prérequis : contexte val/test, cf. §15) :
-```bash
-sbatch scripts/slurm_context_distill.sh 1024 B
-```
-
 Chaque `sbatch` ci-dessus = **1 job = 3 seeds séquentiels** (pas d'argument seed —
-retiré du script, cf. §16). 5 jobs au total pour couvrir R1+R2+R3+EMA+DesignB
-(15 runs), au lieu de 15 jobs séparés.
+retiré du script, cf. §16). 5 jobs au total pour couvrir R1, R2, R3 et les 2
+variantes de contexte (15 runs), au lieu de 15 jobs séparés.
 
 ### Hyperparamètres par défaut (`configs/context_distill_dinov3b.yaml`)
 
@@ -311,7 +323,54 @@ devinée côté entraînement.
   temps GPU réel, validation du slice MIG 20 Go sous charge réelle (cf. §16), mesure
   du surcoût réel du 3e forward (student sur contexte) sous Design B.
 
-## 14. EMA self-teacher (`--teacher ema_self`)
+## 14. R2 — Design B (`--design B`)
+
+Ajouté le 2026-08-29. **Contrainte de conception (validée avant implémentation,
+cf. discussion du 2026-08-29) : Design B garde l'architecture de R1 STRICTEMENT
+INTACTE** (teacher DINOv3-L externe, distillation, λ, focal — rien ne change) et
+modifie **UNE SEULE chose** : la tête de classification prend
+`[feat_tuile ; feat_contexte]` (2×768) au lieu de `feat_tuile` seule, les deux
+features venant du **même backbone LoRA student** (poids partagés, deux forwards
+par batch). La branche de distillation reste identique à R1 (seule `feat_tuile` est
+projetée et comparée au teacher).
+
+Pourquoi ce choix plutôt qu'une architecture plus simple (fusion pure, sans
+teacher/distillation) : la question posée par Design B est *"le contexte aide-t-il
+EN PLUS à l'inférence"* — cette question n'a de sens que si R1 et R2 ne diffèrent
+que par CETTE variable. Simplifier l'architecture (supprimer le teacher) aurait
+fait varier trois choses à la fois (entrée d'inférence, présence du teacher,
+objectif d'entraînement), rendant un éventuel gain ininterprétable.
+
+**Prérequis supplémentaire (contrairement à R1, R3, et aux variantes de contexte
+512/2048px) : le contexte doit exister pour VAL ET TEST aussi, pas seulement
+train** — puisque R2 en a besoin à l'évaluation (early-stopping par epoch) et à
+l'extraction finale, pas seulement à l'entraînement :
+
+```bash
+python scripts/context_crop.py \
+    --split-csv splits_spatial/frac100_seed0/val.csv splits_spatial/frac100_seed0/test.csv \
+    --context-sizes 1024 --out-size 224 --out-dir out/context   # MÊME --out-dir que le run train
+cd out/context && zip -qr ../../context_1024.zip context_1024   # ré-zippe avec val/test inclus
+scp ../../context_1024.zip narval:$SCRATCH/                     # écrase l'ancien (train seul)
+```
+
+Puis :
+
+```bash
+sbatch scripts/slurm_context_distill.sh 1024 B
+```
+
+`slurm_context_distill.sh` vérifie la présence du contexte val avant de lancer
+l'entraînement (échec explicite sinon, plutôt qu'un plantage tardif et confus).
+
+Extraction/sonde : `context_distill.py` utilise une fonction dédiée
+(`_extract_fused_embeddings`, PAS `_extract_backbone_embeddings` réutilisée par
+Design A) qui recharge le backbone (même mécanisme `load_finetuned_ssl_backbone`)
+puis forward tuile+contexte pour train/val/test, concatène (N, 1536), et passe ça à
+la MÊME sonde canonique (`_run_probe_with_balanced_acc`, agnostique à la
+dimensionnalité des features).
+
+## 15. R3 — EMA self-teacher (`--teacher ema_self`)
 
 Ajouté le 2026-08-29 à la demande de l'utilisateur (isoler la source du gain de R1 :
 teacher externe plus riche, ou juste signal de self-distillation). Teacher = copie
@@ -338,53 +397,6 @@ sbatch scripts/slurm_context_distill.sh 1024 A ema_self
 
 Aucun prérequis supplémentaire (même contexte que R1, aucun teacher externe à
 charger — en fait UN téléchargement HF de moins que R1).
-
-## 15. Design B (`--design B`)
-
-Ajouté le 2026-08-29. **Contrainte de conception (validée avant implémentation,
-cf. discussion du 2026-08-29) : Design B garde l'architecture de R1 STRICTEMENT
-INTACTE** (teacher DINOv3-L externe, distillation, λ, focal — rien ne change) et
-modifie **UNE SEULE chose** : la tête de classification prend
-`[feat_tuile ; feat_contexte]` (2×768) au lieu de `feat_tuile` seule, les deux
-features venant du **même backbone LoRA student** (poids partagés, deux forwards
-par batch). La branche de distillation reste identique à R1 (seule `feat_tuile` est
-projetée et comparée au teacher).
-
-Pourquoi ce choix plutôt qu'une architecture plus simple (fusion pure, sans
-teacher/distillation) : la question posée par Design B est *"le contexte aide-t-il
-EN PLUS à l'inférence"* — cette question n'a de sens que si R1 et Design B ne
-diffèrent que par CETTE variable. Simplifier l'architecture (supprimer le teacher)
-aurait fait varier trois choses à la fois (entrée d'inférence, présence du teacher,
-objectif d'entraînement), rendant un éventuel gain ininterprétable.
-
-**Prérequis supplémentaire (contrairement à R1/R2/R3/EMA) : le contexte doit exister
-pour VAL ET TEST aussi, pas seulement train** — puisque Design B en a besoin à
-l'évaluation (early-stopping par epoch) et à l'extraction finale, pas seulement à
-l'entraînement :
-
-```bash
-python scripts/context_crop.py \
-    --split-csv splits_spatial/frac100_seed0/val.csv splits_spatial/frac100_seed0/test.csv \
-    --context-sizes 1024 --out-size 224 --out-dir out/context   # MÊME --out-dir que le run train
-cd out/context && zip -qr ../../context_1024.zip context_1024   # ré-zippe avec val/test inclus
-scp ../../context_1024.zip narval:$SCRATCH/                     # écrase l'ancien (train seul)
-```
-
-Puis :
-
-```bash
-sbatch scripts/slurm_context_distill.sh 1024 B
-```
-
-`slurm_context_distill.sh` vérifie la présence du contexte val avant de lancer
-l'entraînement (échec explicite sinon, plutôt qu'un plantage tardif et confus).
-
-Extraction/sonde : `context_distill.py` utilise une fonction dédiée
-(`_extract_fused_embeddings`, PAS `_extract_backbone_embeddings` réutilisée par
-Design A) qui recharge le backbone (même mécanisme `load_finetuned_ssl_backbone`)
-puis forward tuile+contexte pour train/val/test, concatène (N, 1536), et passe ça à
-la MÊME sonde canonique (`_run_probe_with_balanced_acc`, agnostique à la
-dimensionnalité des features).
 
 ## 16. Structure des jobs (2026-08-29, révisé à la demande de l'utilisateur)
 
