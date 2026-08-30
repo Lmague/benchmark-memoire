@@ -50,14 +50,14 @@ enregistrée dans le manifeste (``context_row0/col0``, ``clamped``) — le scrip
 distillation n'a pas à deviner.
 
 ── Fuite spatiale ────────────────────────────────────────────────────────────────
-Le split spatial (splits_spatial/) sépare train/val/test par ORTHOMOSAÏQUE ENTIÈRE.
+Le split spatial (spatial_datacurve/splits/) sépare train/val/test par ORTHOMOSAÏQUE ENTIÈRE.
 Une fenêtre de contexte est découpée dans le MÊME raster que sa tuile — jamais dans un
 autre — donc un contexte de train ne peut, par construction, jamais piocher des pixels
 d'un ortho test. Pas de fuite additionnelle introduite par ce script.
 
 ── Usage ──────────────────────────────────────────────────────────────────────────
     python scripts/context_crop.py \\
-        --split-csv splits_spatial/frac100_seed0/train.csv \\
+        --split-csv spatial_datacurve/splits/frac100_seed0/train.csv \\
         --context-sizes 512,1024,2048 \\
         --out-size 224 \\
         --out-dir out/context \\
@@ -101,7 +101,7 @@ def _parse_split_csvs(paths: list[str]) -> dict[str, dict[int, tuple[str, str]]]
     """Lit un ou plusieurs CSV ``(filepath,label)`` → ``{ortho: {tile_count: (relpath, classe)}}``.
 
     ``filepath`` attendu : ``arctic_vegetation/<ortho>/<CLASSE>/tile_XXXXX.png``
-    (convention fixée par tilerization.py / splits_spatial). Lève si un filepath ne
+    (convention fixée par tilerization.py / spatial_datacurve/splits). Lève si un filepath ne
     matche pas ce format — mieux vaut échouer bruyamment que deviner.
     """
     needed: dict[str, dict[int, tuple[str, str]]] = defaultdict(dict)
@@ -267,7 +267,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--split-csv", nargs="+", required=True,
                     help="un ou plusieurs CSV (filepath,label) du split spatial, ex. "
-                         "splits_spatial/frac100_seed0/train.csv (Design A : train UNIQUEMENT, "
+                         "spatial_datacurve/splits/frac100_seed0/train.csv (Design A : train UNIQUEMENT, "
                          "le contexte n'est pas utilisé à l'inférence).")
     ap.add_argument("--context-sizes", default="1024",
                     help="tailles de fenêtre en pixels natifs de l'ortho, séparées par virgule "

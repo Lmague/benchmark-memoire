@@ -16,7 +16,7 @@
 # de 20230724_alder39_m3m = 28369 fenêtres / 31s, cf. scripts/context_distill_README.md
 # §Validation) :
 #   python scripts/context_crop.py \
-#     --split-csv splits_spatial/frac100_seed0/train.csv \
+#     --split-csv spatial_datacurve/splits/frac100_seed0/train.csv \
 #     --context-sizes 512,1024,2048 --out-size 224 --out-dir out/context
 #   cd out/context && for d in context_*; do zip -qr "../../${d}.zip" "$d"; done
 #   scp context_512.zip context_1024.zip context_2048.zip narval:$SCRATCH/
@@ -63,7 +63,7 @@ cd "$CODE_DIR"
 mkdir -p "$OUT_DIR" logs
 
 python scripts/context_crop.py \
-    --split-csv splits_spatial/frac100_seed0/train.csv \
+    --split-csv spatial_datacurve/splits/frac100_seed0/train.csv \
     --context-sizes 512,1024,2048 \
     --out-size 224 \
     --out-dir "$OUT_DIR" \
