@@ -36,7 +36,7 @@ forcément un design déployable, cf. §14.
 | [context_distill.py](context_distill.py) | Boucle d'entraînement + extraction + sonde canonique |
 | [../configs/context_distill_dinov3b.yaml](../configs/context_distill_dinov3b.yaml) | Config modèle/LoRA/optim/train (teacher et contexte restent des flags CLI) |
 | [slurm_context_crop.sh](slurm_context_crop.sh) | Job Narval CPU (optionnel — voir §5) |
-| [slurm_context_distill.sh](slurm_context_distill.sh) | Job Narval GPU (1× A100 40 Go) |
+| [slurm_context_distill.sh](slurm_context_distill.sh) | Job Narval GPU (1 job = 3 seeds séquentiels, slice MIG `a100_3g.20gb`) |
 
 ## 3. Ce qui est déjà établi (sourcé, à ne pas refaire)
 
@@ -152,9 +152,10 @@ taille constante. Conséquence directe :
   seulement) : ~6,2 Go/taille — correcte pour 512/1024, sous-estimait l'écart avec
   2048px faute d'avoir mesuré cette taille avant le run complet.
 - **Coût mémoire/calcul du teacher identique entre R1/R2/R3** (toujours une image
-  224×224 en entrée) — d'où `--mem=64G` uniforme dans `slurm_context_distill.sh`, PAS
-  de bump à 128G pour 2048px (divergence assumée par rapport à l'énoncé initial, qui
-  anticipait un contexte à résolution native).
+  224×224 en entrée) — d'où `--mem` uniforme dans `slurm_context_distill.sh` (RAM
+  système, pas VRAM) quel que soit `--context-size`, PAS de bump à 128G pour 2048px
+  (divergence assumée par rapport à l'énoncé initial, qui anticipait un contexte à
+  résolution native).
 - Le "token d'échelle" (§8) devient le SEUL vecteur d'information sur le GSD effectif
   de la vue (puisque le tenseur lui-même ne le révèle plus directement).
 
@@ -190,26 +191,23 @@ cd out/context && for d in context_*; do zip -qr "../../${d}.zip" "$d"; done
 scp ../../context_{512,1024,2048}.zip narval:$SCRATCH/
 ```
 
-### Étape 1 — R1 (contexte 1024px, principal), 3 seeds en parallèle
+### Étape 1 — R1 (contexte 1024px, principal), 1 job, 3 seeds séquentiels
 
 ```bash
-sbatch scripts/slurm_context_distill.sh 0        # context_size=1024 par défaut
-sbatch scripts/slurm_context_distill.sh 1
-sbatch scripts/slurm_context_distill.sh 2
+sbatch scripts/slurm_context_distill.sh        # context_size=1024, design=A, teacher=dinov3_vitl16_lvd (défauts)
 ```
 
-Résultats : `$SCRATCH/context_distill/runs/dinov3_vitb16_lvd_ctxdistill_ctx1024_r2a4_frac100_seed{0,1,2}/metrics.json`.
+Un seul job, une seule allocation GPU (slice MIG `a100_3g.20gb`, cf. §16 — pas un
+A100 complet) : les tuiles+contexte sont extraits une fois, les 3 seeds tournent
+l'un après l'autre dessus. Résultats :
+`$SCRATCH/context_distill/runs/dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed{0,1,2}/metrics.json`.
 
 ### Étape 2 — SI R1 bat la baseline spatiale (frac100, LoRA r=8 : F1=0.4827±0.0042,
 `results/spatial_datacurve_CANONICAL.csv`, cf. §3) → R2 (512px) et R3 (2048px)
 
 ```bash
-sbatch scripts/slurm_context_distill.sh 0 512
-sbatch scripts/slurm_context_distill.sh 1 512
-sbatch scripts/slurm_context_distill.sh 2 512
-sbatch scripts/slurm_context_distill.sh 0 2048
-sbatch scripts/slurm_context_distill.sh 1 2048
-sbatch scripts/slurm_context_distill.sh 2 2048
+sbatch scripts/slurm_context_distill.sh 512    # 1 job, 3 seeds
+sbatch scripts/slurm_context_distill.sh 2048   # 1 job, 3 seeds
 ```
 
 Puis tracer la courbe 512→1024→2048 (`f1_macro_pres_test`, `balanced_accuracy_test`
@@ -219,17 +217,17 @@ depuis chaque `metrics.json`).
 
 EMA self-teacher (aucun prérequis supplémentaire) :
 ```bash
-sbatch scripts/slurm_context_distill.sh 0 1024 A ema_self
-sbatch scripts/slurm_context_distill.sh 1 1024 A ema_self
-sbatch scripts/slurm_context_distill.sh 2 1024 A ema_self
+sbatch scripts/slurm_context_distill.sh 1024 A ema_self
 ```
 
 Design B (prérequis : contexte val/test, cf. §15) :
 ```bash
-sbatch scripts/slurm_context_distill.sh 0 1024 B
-sbatch scripts/slurm_context_distill.sh 1 1024 B
-sbatch scripts/slurm_context_distill.sh 2 1024 B
+sbatch scripts/slurm_context_distill.sh 1024 B
 ```
+
+Chaque `sbatch` ci-dessus = **1 job = 3 seeds séquentiels** (pas d'argument seed —
+retiré du script, cf. §16). 5 jobs au total pour couvrir R1+R2+R3+EMA+DesignB
+(15 runs), au lieu de 15 jobs séparés.
 
 ### Hyperparamètres par défaut (`configs/context_distill_dinov3b.yaml`)
 
@@ -310,8 +308,8 @@ devinée côté entraînement.
   extraction fusionnée confirmée `(9, 1536)` sur train/val/test, sonde exécutée sans
   erreur.
 - **Non fait** (hors périmètre "pas de GPU") : entraînement réel sur Narval, mesure du
-  temps GPU réel, validation du budget mémoire 64G sous charge réelle, mesure du
-  surcoût réel du 3e forward (student sur contexte) sous Design B.
+  temps GPU réel, validation du slice MIG 20 Go sous charge réelle (cf. §16), mesure
+  du surcoût réel du 3e forward (student sur contexte) sous Design B.
 
 ## 14. EMA self-teacher (`--teacher ema_self`)
 
@@ -335,9 +333,7 @@ Contexte : **1024px, comme R1** (confirmé par l'utilisateur) — isole une seul
 variable (le teacher) par rapport à R1, comparaison la plus propre.
 
 ```bash
-sbatch scripts/slurm_context_distill.sh 0 1024 A ema_self
-sbatch scripts/slurm_context_distill.sh 1 1024 A ema_self
-sbatch scripts/slurm_context_distill.sh 2 1024 A ema_self
+sbatch scripts/slurm_context_distill.sh 1024 A ema_self
 ```
 
 Aucun prérequis supplémentaire (même contexte que R1, aucun teacher externe à
@@ -377,9 +373,7 @@ scp ../../context_1024.zip narval:$SCRATCH/                     # écrase l'anci
 Puis :
 
 ```bash
-sbatch scripts/slurm_context_distill.sh 0 1024 B
-sbatch scripts/slurm_context_distill.sh 1 1024 B
-sbatch scripts/slurm_context_distill.sh 2 1024 B
+sbatch scripts/slurm_context_distill.sh 1024 B
 ```
 
 `slurm_context_distill.sh` vérifie la présence du contexte val avant de lancer
@@ -391,3 +385,30 @@ Design A) qui recharge le backbone (même mécanisme `load_finetuned_ssl_backbon
 puis forward tuile+contexte pour train/val/test, concatène (N, 1536), et passe ça à
 la MÊME sonde canonique (`_run_probe_with_balanced_acc`, agnostique à la
 dimensionnalité des features).
+
+## 16. Structure des jobs (2026-08-29, révisé à la demande de l'utilisateur)
+
+`slurm_context_distill.sh` a changé deux fois pendant cette expérience — les deux
+choix sont documentés ici pour éviter la confusion si une ancienne version traîne
+quelque part.
+
+**Job = 1 config × 3 seeds séquentiels** (version actuelle), PAS 3 jobs séparés (1
+par seed, version précédente) : l'utilisateur n'est pas pressé et préfère minimiser
+le nombre d'allocations GPU plutôt que paralléliser pour un temps d'horloge plus
+court. Une seule extraction de tuiles+contexte par job (au lieu de 3), les 3 seeds
+réutilisent la même allocation — convention déjà utilisée ailleurs dans le dépôt
+(`slurm_lora_rank_ablation.sh`, `slurm_datacurve_spatial.sh`). Plus aucun argument
+`seed` en CLI : `$1`/`$2`/`$3` = context_size/design/teacher.
+
+**Slice MIG `a100_3g.20gb` (20 Go), PAS un A100 complet** — GPU minimal jugé
+suffisant, sur demande explicite de l'utilisateur ("le moins de GPU possible").
+Raisonnement (documenté en tête de `slurm_context_distill.sh`, PAS mesuré sur ce
+script précis) : le teacher (externe ou EMA) ne fait qu'un FORWARD (jamais de
+backward, jamais d'état optimizer) — nettement moins coûteux qu'un entraînement
+complet. Le précédent le plus proche mesuré dans ce dépôt (`slurm_lora_dinov3_vitl.sh`)
+ENTRAÎNE (forward+backward+optimizer LoRA) un DINOv3-L **complet** dans un slice
+`a100_3g.20gb` — mon student est plus petit (DINOv3-B) et le teacher n'ajoute qu'un
+forward, donc a priori plus léger. Si le job OOM malgré tout : replier sur
+`--gres=gpu:a100:1` + `--mem=60G` (A100 complet, 40 Go, queue plus lente — commenté
+dans le script). **À vérifier sur le premier run réel** — c'est un jugement raisonné
+par analogie, pas une mesure.
