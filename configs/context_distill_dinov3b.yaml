@@ -27,10 +27,11 @@ lora:
   dropout: 0.0
 
 data:
-  batch_size: 64      # marge mémoire : student LoRA + teacher ViT-L gelé (forward seul,
-                       # pas d'état optimizer) partagent le même A100 40 Go. Réduire si OOM
-                       # sur R3 (contexte 2048px — sans effet direct puisque context_crop.py
-                       # sauve à out-size=224, mais le teacher ViT-L reste le poste dominant).
+  batch_size: 64      # marge mémoire : student LoRA + teacher gelé (forward seul, pas
+                       # d'état optimizer) partagent le même slice MIG a100_3g.20gb (cf.
+                       # slurm_context_distill.sh). Réduire si OOM, quelle que soit la
+                       # taille de contexte demandée (context_crop.py sauve toujours à
+                       # out-size=224, donc sans effet direct sur ce budget mémoire).
   num_workers: 8
   image_size: 224
 

@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Self-distillation contexte→tuile — DINOv3 student + LoRA, 3 variantes (R1/EMA/Design B).
+"""Self-distillation contexte→tuile — DINOv3 student + LoRA, 3 axes de variation.
+
+Correspond au tableau "plan final" (R1/R2/R3) de l'utilisateur — R1 = teacher externe
+DINOv3-L + Design A (défauts CLI ci-dessous), R2 = ``--design B``, R3 = ``--teacher
+ema_self``. Voir ``scripts/context_distill_README.md`` §1 pour la table complète et
+la convention de nommage (R1/R2/R3 désignent CES 3 lignes, jamais une taille de
+contexte, pour éviter la confusion vécue le 2026-08-29).
 
 Un student DINOv3 ViT-B/16 LVD + LoRA apprend à encoder une TUILE (224px) en
 s'aidant d'une fenêtre de CONTEXTE spatial plus large (512/1024/2048px, produite
@@ -17,7 +23,7 @@ par ``scripts/context_crop.py``). Trois axes de variation, indépendants :
      rapport à A, cf. §Design B ci-dessous.
 2. ``--teacher`` — QUI encode le contexte pour la distillation.
    - Un backbone frozen externe (ex. ``dinov3_vitl16_lvd``, le teacher "riche" par
-     défaut, R1/R2/R3 de la mission initiale).
+     défaut — R1 du tableau, et sa base pour R2/Design B).
    - ``ema_self`` — pas de modèle externe : le teacher est une copie EMA (momentum)
      du backbone du STUDENT lui-même (même archi DINOv3-B), mise à jour après
      chaque step. Isole si le gain vient d'un teacher plus riche (DINOv3-L) ou

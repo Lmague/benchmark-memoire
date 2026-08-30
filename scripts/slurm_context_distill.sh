@@ -34,22 +34,27 @@
 # dans CE job, sur la même A100, avec les tuiles+contexte extraits UNE SEULE fois
 # (convention scripts/slurm_lora_rank_ablation.sh, scripts/slurm_datacurve_spatial.sh).
 #
-# Ordre recommandé (cf. scripts/context_distill_README.md) :
-#   1. R1 (1024px, DINOv3-L, Design A — l'expérience principale, 3 seeds) :
+# R1/R2/R3 ci-dessous = les 3 lignes du tableau "plan final" de l'utilisateur (PAS
+# des tailles de contexte) — cf. scripts/context_distill_README.md §1 pour la
+# convention de nommage complète. Aucun ordre imposé entre elles, jobs indépendants :
+#   - R1 (1024px, DINOv3-L, Design A — l'expérience principale) :
 #        sbatch scripts/slurm_context_distill.sh
-#   2. SI R1 bat la baseline spatiale (F1=0.4827±0.0042, frac100 LoRA r=8, mesuré
-#      2026-08-29 depuis results/spatial_datacurve_CANONICAL.csv, cf. README §3) :
+#   - R2 (Design B — prérequis contexte val/test, cf. README §14) :
+#        sbatch scripts/slurm_context_distill.sh 1024 B
+#   - R3 (EMA self-teacher — aucun prérequis) :
+#        sbatch scripts/slurm_context_distill.sh 1024 A ema_self
+#   - Extension optionnelle, hors tableau (effet de la taille de contexte, comparée
+#     à la baseline spatiale F1=0.4827±0.0042, frac100 LoRA r=8, mesuré 2026-08-29
+#     depuis results/spatial_datacurve_CANONICAL.csv, cf. README §3) :
 #        sbatch scripts/slurm_context_distill.sh 512
 #        sbatch scripts/slurm_context_distill.sh 2048
-#   3. Contrôles (indépendants de 1-2) :
-#        sbatch scripts/slurm_context_distill.sh 1024 A ema_self
-#        sbatch scripts/slurm_context_distill.sh 1024 B     # prérequis contexte val/test, cf. README §15
 #
 # PRÉ-REQUIS :
 #   - $SCRATCH/tiles.zip                      (tuiles 224px, convention existante)
 #   - $SCRATCH/context_<size>.zip   (produit par scripts/context_crop.py EN LOCAL puis
-#     transféré — cf. slurm_context_crop.sh). Design B : ce zip doit AUSSI contenir
-#     les crops val/test, pas seulement train (contrairement à R1/R2/R3/EMA).
+#     transféré — cf. slurm_context_crop.sh). R2 (Design B) : ce zip doit AUSSI
+#     contenir les crops val/test, pas seulement train (contrairement à R1/R3 et aux
+#     variantes de contexte 512/2048px).
 #   - $SCRATCH/hf_cache/models--facebook--dinov3-vitb16-pretrain-lvd1689m/
 #   - $SCRATCH/hf_cache/models--facebook--dinov3-vitl16-pretrain-lvd1689m/ (sauf si
 #     $3=ema_self, auquel cas aucun teacher externe n'est chargé)
