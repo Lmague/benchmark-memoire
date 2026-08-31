@@ -118,6 +118,8 @@ __pycache__/
 !/scripts/context_fused_probe_controls.py
 !/scripts/slurm_context_fused_probe_controls.sh
 !/scripts/slurm_context_fused_matrix.sh
+!/scripts/context_distill_extract_sig.py
+!/scripts/slurm_context_distill_extract_sig.sh
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/
