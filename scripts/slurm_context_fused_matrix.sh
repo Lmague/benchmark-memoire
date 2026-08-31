@@ -29,10 +29,10 @@
 #   - R2/tile > R1/tile   → l'entraînement R2 (avec la tête concat) a amélioré le
 #                           backbone lui-même (surprise intéressante).
 #
-# ⚠️ CAVEAT contrôle 2 : le checkpoint LoRA r=2 vient de l'ablation rangs
-# (results/lora_rank_ablation_CANONICAL.json, entraîné sur le split ALÉATOIRE) —
-# c'est le seul plain-LoRA r2a4 disponible. Le backbone est ici un extracteur de
-# features : l'écart de split d'entraînement est un confound mineur, à mentionner.
+# ⚠️ Contrôle 2a : le checkpoint LoRA r=2 vient de l'ablation rangs
+# (results/lora_rank_ablation_CANONICAL.json), entraîné sur le split canonique v3
+# (spatial, ortho-disjoint) — train d'assignation v3 vs train spatial-datacurve
+# frac100_seed0 pour R2. Même val/test (le v3) pour tous → comparaison d'éval valide.
 #
 # Sorties : $SCRATCH/context_distill/controls/fused_probe_{tag}_seed0.json
 #
@@ -135,10 +135,11 @@ run_probe() {  # $1=tag  $2=reps  $3..=args supplémentaires (--frozen | --ckpt-
 run_probe frozen both --frozen
 
 # ── Contrôle 2a : LoRA r=2 plain (ablation rangs, SANS distillation) ──
-# Caveat : entraîné sur le split ALÉATOIRE (base.yaml csv_dir=splits, pas d'override
-# dans slurm_lora_rank_ablation.sh). Match le RANG de R2 (r2), pas son split.
+# Entraîné sur le split canonique v3 (spatial, ortho-disjoint). Match le RANG de
+# R2 (r2) ; train = assignation v3, alors que R2 utilise le train spatial-datacurve
+# frac100_seed0. Même val/test (le v3) pour tous → comparaison d'évaluation valide.
 if [[ -f "$LORA_R2_CKPT" ]]; then
-    run_probe lora_r2a4_random both --ckpt-path "$LORA_R2_CKPT"
+    run_probe lora_r2a4_v3train both --ckpt-path "$LORA_R2_CKPT"
 else
     echo "[WARN] checkpoint LoRA r2 absent : $LORA_R2_CKPT — contrôle 2a sauté" >&2
 fi
