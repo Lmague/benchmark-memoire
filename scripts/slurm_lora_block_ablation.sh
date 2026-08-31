@@ -36,7 +36,7 @@ TAG="${VARIANTES[$SLURM_ARRAY_TASK_ID]}"
 CONFIG="configs/dinov3_vitb16_lvd_lora_r8_${TAG}.yaml"
 FRAC=1.00
 
-CODE_DIR="$HOME/Documents/Mémoire"
+CODE_DIR="$HOME/benchmark-memoire"
 VENV="$HOME/ENV/bin/activate"
 OUT_DIR="$SCRATCH/sota_screening/lora_block_ablation"
 
