@@ -21,7 +21,7 @@
 #SBATCH --error=logs/lw_vitb16_lvd_%j.err
 #SBATCH --account=def-bouguess_gpu
 
-CODE_DIR="$HOME/Documents/Mémoire"
+CODE_DIR="$HOME/benchmark-memoire"
 VENV="$HOME/ENV/bin/activate"
 
 export HF_HOME="$SCRATCH/hf_cache"
