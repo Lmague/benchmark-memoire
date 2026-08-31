@@ -109,6 +109,8 @@ def main() -> None:
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--frozen", action="store_true", help="DINOv3-B gelé, aucun ckpt")
     src.add_argument("--ckpt-path", default=None, help="checkpoint LoRA (baseline spatiale)")
+    ap.add_argument("--reps", choices=("both", "tile", "fused"), default="both",
+                    help="représentations à sonder (défaut both ; R2 en tuile seule : --reps tile)")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -131,6 +133,10 @@ def main() -> None:
     results = {"tag": args.tag, "seed": args.seed, "model": model_key,
                "src": src_desc, "schema": "11cls_no_rhol", "split": "spatial"}
     for rep, fused in (("tile", False), ("fused", True)):
+        if args.reps == "tile" and fused:
+            continue
+        if args.reps == "fused" and not fused:
+            continue
         feats = {}
         for s in ("train", "val", "test"):
             E, L = _extract(model, forward_fn, cfg, s, args.context_dir, fused,
