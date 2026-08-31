@@ -1,0 +1,114 @@
+{
+  "frozen_baseline": {
+    "rankme": 357.5727233886719,
+    "anisotropy": 0.5872923135757446,
+    "dim": 768.0,
+    "alpha_req": 1.6550182449131818,
+    "nesum": 5.84809684753418,
+    "rankme_norm": 0.4655894835789998
+  },
+  "models": {
+    "dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100": {
+      "tile_s0_tile": {
+        "rankme": 340.18634033203125,
+        "anisotropy": 0.3311755955219269,
+        "dim": 768.0,
+        "alpha_req": 1.7514204654659387,
+        "nesum": 4.436255931854248,
+        "rankme_norm": 0.442950963973999
+      },
+      "tile_s1_tile": {
+        "rankme": 359.5094299316406,
+        "anisotropy": 0.3299562633037567,
+        "dim": 768.0,
+        "alpha_req": 1.6911747276683873,
+        "nesum": 4.740311622619629,
+        "rankme_norm": 0.46811123689015705
+      },
+      "tile_s2_tile": {
+        "rankme": 328.4283447265625,
+        "anisotropy": 0.38561660051345825,
+        "dim": 768.0,
+        "alpha_req": 1.7565557720002514,
+        "nesum": 4.022069931030273,
+        "rankme_norm": 0.4276410738627116
+      }
+    },
+    "dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100": {
+      "tile_s0_tile": {
+        "rankme": 350.657470703125,
+        "anisotropy": 0.33273500204086304,
+        "dim": 768.0,
+        "alpha_req": 1.742646513694812,
+        "nesum": 4.629428863525391,
+        "rankme_norm": 0.45658524831136066
+      },
+      "tile_s1_tile": {
+        "rankme": 366.0521240234375,
+        "anisotropy": 0.33895859122276306,
+        "dim": 768.0,
+        "alpha_req": 1.6846310615489544,
+        "nesum": 5.092439651489258,
+        "rankme_norm": 0.47663036982218426
+      },
+      "tile_s2_tile": {
+        "rankme": 350.1712341308594,
+        "anisotropy": 0.3291482925415039,
+        "dim": 768.0,
+        "alpha_req": 1.7196703309642107,
+        "nesum": 4.463711261749268,
+        "rankme_norm": 0.45595212777455646
+      }
+    },
+    "dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100": {
+      "fused_s0_fused": {
+        "rankme": 723.495361328125,
+        "anisotropy": 0.3439272344112396,
+        "dim": 1536.0,
+        "alpha_req": 1.748681962994703,
+        "nesum": 4.902427673339844,
+        "rankme_norm": 0.47102562586466473
+      },
+      "tile_only_s0_tile_only": {
+        "rankme": 345.23651123046875,
+        "anisotropy": 0.42247340083122253,
+        "dim": 768.0,
+        "alpha_req": 1.7565553028092897,
+        "nesum": 4.626993656158447,
+        "rankme_norm": 0.44952670733133954
+      },
+      "fused_s1_fused": {
+        "rankme": 665.796630859375,
+        "anisotropy": 0.40280091762542725,
+        "dim": 1536.0,
+        "alpha_req": 1.7993065824070205,
+        "nesum": 3.745253086090088,
+        "rankme_norm": 0.43346134821573895
+      },
+      "tile_only_s1_tile_only": {
+        "rankme": 330.68603515625,
+        "anisotropy": 0.46260708570480347,
+        "dim": 768.0,
+        "alpha_req": 1.7532772897042208,
+        "nesum": 3.9083218574523926,
+        "rankme_norm": 0.4305807749430339
+      },
+      "fused_s2_fused": {
+        "rankme": 715.3718872070312,
+        "anisotropy": 0.3897848427295685,
+        "dim": 1536.0,
+        "alpha_req": 1.7198893709133174,
+        "nesum": 4.074399471282959,
+        "rankme_norm": 0.4657369057337443
+      },
+      "tile_only_s2_tile_only": {
+        "rankme": 343.9335021972656,
+        "anisotropy": 0.46122899651527405,
+        "dim": 768.0,
+        "alpha_req": 1.7143860996273879,
+        "nesum": 4.299380302429199,
+        "rankme_norm": 0.44783008098602295
+      }
+    }
+  }
+}

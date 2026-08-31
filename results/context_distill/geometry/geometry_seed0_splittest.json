@@ -1,0 +1,53 @@
+{
+  "split": "test",
+  "subsample_n": 20000,
+  "n_pairs": 10000,
+  "models": {
+    "dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed0": {
+      "tag": "dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed0",
+      "design": "A",
+      "ckpt": "/scratch/lmague/context_distill/checkpoints/dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed0_best.pth",
+      "split": "test",
+      "tile": {
+        "rankme": 340.18634033203125,
+        "anisotropy": 0.3311755955219269,
+        "dim": 768,
+        "alpha_req": 1.7671819198406107,
+        "nesum": 4.43626070022583
+      }
+    },
+    "dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed0": {
+      "tag": "dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed0",
+      "design": "A",
+      "ckpt": "/scratch/lmague/context_distill/checkpoints/dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed0_best.pth",
+      "split": "test",
+      "tile": {
+        "rankme": 350.657470703125,
+        "anisotropy": 0.3327350318431854,
+        "dim": 768,
+        "alpha_req": 1.7418919974037539,
+        "nesum": 4.629433631896973
+      }
+    },
+    "dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed0": {
+      "tag": "dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed0",
+      "design": "B",
+      "ckpt": "/scratch/lmague/context_distill/checkpoints/dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed0_best.pth",
+      "split": "test",
+      "fused": {
+        "rankme": 723.495361328125,
+        "anisotropy": 0.3439272344112396,
+        "dim": 1536,
+        "alpha_req": 1.7639814795129205,
+        "nesum": 4.902432441711426
+      },
+      "tile_only": {
+        "rankme": 345.23651123046875,
+        "anisotropy": 0.4224734306335449,
+        "dim": 768,
+        "alpha_req": 1.772086404254261,
+        "nesum": 4.6269989013671875
+      }
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "tag": "lora_r8a16_spatial",
+  "seed": 0,
+  "model": "dinov3_vitb16_lvd",
+  "src": "ckpt=/scratch/lmague/sota_screening/lora_spatial_v2/frac100/checkpoints/dinov3_vitb16_lvd_lora_r8a16_frac100_seed0_best.pth",
+  "schema": "11cls_no_rhol",
+  "split": "spatial",
+  "tile": {
+    "best_C": 0.001,
+    "f1_macro_pres_val": 0.48894630844939707,
+    "f1_macro_pres_test": 0.4886573622509708,
+    "f1_macro_8cls_test": 0.6719038730950848,
+    "accuracy_test": 0.7246846232526424,
+    "balanced_accuracy_val": 0.4929064585082269,
+    "balanced_accuracy_test": 0.49169331987240666,
+    "f1_per_class_test": {
+      "ALDE": 0.9615784008307373,
+      "ARCA": 0.0,
+      "BIRC": 0.8419991938734381,
+      "DRYI": 0.0,
+      "LICH": 0.6455813953488372,
+      "MOSS": 0.5341892269048284,
+      "PETF": 0.5140961857379768,
+      "RUBC": 0.0,
+      "SEDG": 0.6313077088254241,
+      "TUSS": 0.75,
+      "WILL": 0.4964788732394366
+    }
+  },
+  "fused": {
+    "best_C": 0.001,
+    "f1_macro_pres_val": 0.47636943144630683,
+    "f1_macro_pres_test": 0.49445834733702776,
+    "f1_macro_8cls_test": 0.6798802275884133,
+    "accuracy_test": 0.733890214797136,
+    "balanced_accuracy_val": 0.48428116987192155,
+    "balanced_accuracy_test": 0.49097549962299375,
+    "f1_per_class_test": {
+      "ALDE": 0.9669012249152984,
+      "ARCA": 0.0,
+      "BIRC": 0.8489959839357429,
+      "DRYI": 0.0,
+      "LICH": 0.6123128119800333,
+      "MOSS": 0.5569749616760348,
+      "PETF": 0.5788359788359788,
+      "RUBC": 0.0,
+      "SEDG": 0.660352422907489,
+      "TUSS": 0.7537895511405445,
+      "WILL": 0.4608788853161844
+    }
+  }
+}
