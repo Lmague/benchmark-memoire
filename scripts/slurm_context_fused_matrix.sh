@@ -134,11 +134,24 @@ run_probe() {  # $1=tag  $2=reps  $3..=args supplémentaires (--frozen | --ckpt-
 # ── Contrôle 1 : DINOv3-B GELÉ (fusion pure, aucun entraînement) ──
 run_probe frozen both --frozen
 
-# ── Contrôle 2 : LoRA r=2 plain (ablation rangs, SANS distillation) ──
+# ── Contrôle 2a : LoRA r=2 plain (ablation rangs, SANS distillation) ──
+# Caveat : entraîné sur le split ALÉATOIRE (base.yaml csv_dir=splits, pas d'override
+# dans slurm_lora_rank_ablation.sh). Match le RANG de R2 (r2), pas son split.
 if [[ -f "$LORA_R2_CKPT" ]]; then
-    run_probe lora_r2a4 both --ckpt-path "$LORA_R2_CKPT"
+    run_probe lora_r2a4_random both --ckpt-path "$LORA_R2_CKPT"
 else
-    echo "[WARN] checkpoint LoRA r2 absent : $LORA_R2_CKPT — contrôle 2 sauté" >&2
+    echo "[WARN] checkpoint LoRA r2 absent : $LORA_R2_CKPT — contrôle 2a sauté" >&2
+fi
+
+# ── Contrôle 2b : LoRA r8a16 SPATIAL (v2, SANS distillation) ──
+# Match le SPLIT spatial de R2 (même frac100_seed0). Rang r8 vs r2 ≈ négligeable
+# (0.4829 vs 0.4838, lora_rank_ablation). C'est le contrôle le plus propre pour
+# isoler la DISTILLATION.
+LORA_SP_CKPT="$SCRATCH/sota_screening/lora_spatial_v2/frac100/checkpoints/dinov3_vitb16_lvd_lora_r8a16_frac100_seed${SEED}_best.pth"
+if [[ -f "$LORA_SP_CKPT" ]]; then
+    run_probe lora_r8a16_spatial both --ckpt-path "$LORA_SP_CKPT"
+else
+    echo "[WARN] checkpoint LoRA spatial r8a16 absent : $LORA_SP_CKPT — contrôle 2b sauté" >&2
 fi
 
 # ── R1 : Design A teacher L seed0 — entraîné par distillation, sondé tuile + fusionné ──
