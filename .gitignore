@@ -113,6 +113,8 @@ __pycache__/
 !/scripts/slurm_context_crop.sh
 !/scripts/slurm_context_distill.sh
 !/scripts/context_distill_README.md
+!/scripts/context_distill_geometry.py
+!/scripts/slurm_context_distill_geometry.sh
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/
