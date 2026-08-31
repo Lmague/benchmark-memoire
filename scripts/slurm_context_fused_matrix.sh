@@ -49,7 +49,7 @@
 #SBATCH --gres=gpu:a100_3g.20gb:1
 #SBATCH --mem=40G
 #SBATCH --cpus-per-task=8
-#SBATCH --time=03:00:00
+#SBATCH --time=06:00:00
 #SBATCH --output=logs/context_fused_matrix_%j.out
 #SBATCH --error=logs/context_fused_matrix_%j.err
 #SBATCH --account=def-bouguess_gpu
@@ -116,6 +116,12 @@ EOF
 
 run_probe() {  # $1=tag  $2=reps  $3..=args supplémentaires (--frozen | --ckpt-path X)
     local TAG="$1"; local REPS="$2"; shift 2
+    # Repartable : saute un contrôle dont le JSON de sortie existe déjà.
+    local OUT_JSON="$OUT_DIR/controls/fused_probe_${TAG}_seed${SEED}.json"
+    if [[ -f "$OUT_JSON" ]]; then
+        echo "[skip] $OUT_JSON existe déjà — contrôle $TAG sauté"
+        return 0
+    fi
     echo ""
     echo "─── $TAG (reps=$REPS) ───"
     python scripts/context_fused_probe_controls.py \
