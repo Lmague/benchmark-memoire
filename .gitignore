@@ -115,6 +115,8 @@ __pycache__/
 !/scripts/context_distill_README.md
 !/scripts/context_distill_geometry.py
 !/scripts/slurm_context_distill_geometry.sh
+!/scripts/context_fused_probe_controls.py
+!/scripts/slurm_context_fused_probe_controls.sh
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/
