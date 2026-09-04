@@ -5,16 +5,12 @@ Date : 2026-08-14 · Runs : LoRA DINOv3-B r=8 α=16, 21 runs sur Narval
 
 ## Statut
 
-- **20 runs sur 21 terminés.** `frac100_seed2` a échoué (dossier vide, pas de
-  metrics.json) : le job a atteint le mur des 6 h après les 2 premiers seeds
-  (prédit — frac100 ≈ 2 h/seed × 3 > 6 h).
-- Les 2 seeds terminés à 100 % donnent 0,485 ± 0,005, cohérent avec le canonique
-  0,4835 ± 0,0011 (même recette, même train).
-- **Reprise** (quand voulu) : resoumettre le script — `--skip-if-done` reprend
-  uniquement le seed manquant (les 20 autres sont protégés par la sentinelle done) :
-  ```bash
-  sbatch spatial_datacurve/slurm_datacurve_spatial_v2.sh
-  ```
+- **21 runs sur 21 terminés** (mise à jour 2026-08-14 soir). `frac100_seed2`,
+  qui avait échoué au mur des 6 h (prédit — frac100 ≈ 2 h/seed × 3 > 6 h), a été
+  relancé via le job 915054 et a produit son `metrics.json`.
+- Les 3 seeds à 100 % donnent **0,483 ± 0,005** (0,4883 / 0,4812 / 0,4797),
+  cohérent avec le canonique 0,4835 ± 0,0011 (même recette, même train — le
+  spatial à 100 % EST le train canonique).
 
 ## Résultats (F1-macro test, moyenne inter-seed ± écart-type)
 

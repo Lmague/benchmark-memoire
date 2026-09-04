@@ -8,12 +8,15 @@
 # si la courbe le justifie, R2 Design B entraîné à 512/2048 suit en second pallier
 # (sbatch scripts/slurm_context_distill.sh <size> B, cf. NEEDS_HUMAN.md).
 #
-# Pour chaque taille : extraction frozen fusionnée [tile ; ctx] (3 splits), puis
-# 3+3 probes canoniques (fused / ctx seul / contexte permuté ×3) via
-# scripts/context_size_sweep.py (machinerie de context_bouguessa_controls.py).
+# Pour chaque taille : EXTRACTION SEULE des features frozen fusionnées [tile ; ctx]
+# (3 splits) → $SCRATCH/context_distill/sig_embeddings/<tag>_frac100_seed0/.
+# Les PROBES (fused / ctx seul / contexte permuté) tournent ensuite dans un JOB CPU
+# SÉPARÉ : sbatch scripts/slurm_context_size_sweep_probes.sh (machinerie de
+# scripts/context_bouguessa_controls.py) — convention « extraction GPU / probes CPU ».
 #
-# Sorties : $SCRATCH/context_distill/sig_embeddings/dinov3_vitb16_lvd_FROZEN_fused_ctx<size>_frac100_seed0/
-#           $SCRATCH/context_distill/controls_bouguessa/frozen_ctx<size>_seed0_*.json
+# Sorties :
+#   - $SCRATCH/context_distill/sig_embeddings/dinov3_vitb16_lvd_FROZEN_fused_ctx<size>_frac100_seed0/
+#   - (après le job CPU) $SCRATCH/context_distill/controls_bouguessa/frozen_ctx<size>_seed0_*.json
 #
 # PRÉ-REQUIS :
 #   - $SCRATCH/tiles.zip
@@ -92,10 +95,14 @@ for SIZE in $SIZES; do
         --context-dir "$CONTEXT_DIR" \
         --context-size "$SIZE" \
         --out-dir "$OUT_DIR" \
-        --workers 2
-    [[ $? -ne 0 ]] && echo "[WARN] sweep ${SIZE}px échoué" >&2
+        --skip-probes
+    [[ $? -ne 0 ]] && echo "[WARN] extraction ${SIZE}px échouée" >&2
 done
 
 echo ""
-echo "[slurm] sweep terminé → $OUT_DIR/controls_bouguessa/"
-ls -la "$OUT_DIR/controls_bouguessa/" 2>/dev/null
+echo "[slurm] extractions terminées → $OUT_DIR/sig_embeddings/"
+ls -la "$OUT_DIR/sig_embeddings/" 2>/dev/null | grep FROZEN || true
+echo ""
+echo "[slurm] Prochaines étapes :"
+echo "  1) sbatch scripts/slurm_context_size_sweep_probes.sh   # probes CPU (fused/ctx/perm)"
+echo "  2) scp -r narval:\$SCRATCH/context_distill/controls_bouguessa results/context_distill/"

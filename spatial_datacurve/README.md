@@ -91,10 +91,12 @@ Comment comparer quand même les fractions (protocole d'évaluation recommandé)
    résultat attendu, pas un artefact. La décomposition par la double métrique
    explique d'où vient l'écart (volume seul vs couverture d'habitats).
 
-## Utilisation (phase d'entraînement, PAS encore lancée)
+## Utilisation (phase d'entraînement : TERMINÉE — 21/21 runs, 2026-08-14)
 
 Le pipeline d'entraînement existant (`scripts/datacurve_one_run.py`) entraîne sur
 la TOTALITÉ d'un CSV en passant `--fraction 1.0` ; chaque split spatial est donc
 un run `--fraction 1.0` sur `spatial_datacurve/splits/fracXXX_seed{S}/train.csv`.
-Voir `scripts/slurm_datacurve_spatial.sh` (v1) comme modèle — il faut adapter les
-chemins vers `spatial_datacurve/` et le manifest pour l'agrégation.
+Exécuté via `slurm_datacurve_spatial_v2.sh` (21 runs, y compris la relance de
+`frac100_seed2` au-delà du mur de 6 h). Résultats : voir `RESULTS_REPORT.md` et
+`lora_spatial_v2/results_spatial_summary.csv` ; intégrés à
+`rapport_bouguessa/datacurves.pdf` §3.
