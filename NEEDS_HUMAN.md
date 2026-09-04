@@ -13,7 +13,8 @@ Demande Bouguessa (mail début sept.) : (1) contexte seul, (2) contexte permuté
    `$SCRATCH/context_distill/sig_embeddings/` (extraits par
    `slurm_context_distill_extract_sig.sh`). Aucun GPU, aucun zip à dézipper.
    Puis rapatrier : `scp -r narval:$SCRATCH/context_distill/controls_bouguessa results/context_distill/`
-2. **Tailles de contexte, pallier frozen** — deux jobs séquentiels :
+2. **Tailles de contexte, pallier frozen — UN SEUL JOB** (`sbatch scripts/slurm_context_size_sweep.sh`,
+   extrait ET sonde les 3 tailles en une fois, repartable) :
    a. EN LOCAL d'abord : générer les crops val/test manquants (train crops
       512/1024/2048 déjà sur `$SCRATCH` ; 1024 a déjà val/test) :
       ```bash
@@ -24,10 +25,9 @@ Demande Bouguessa (mail début sept.) : (1) contexte seul, (2) contexte permuté
                        && zip -qr ../../context_2048_valtest.zip context_2048
       scp context_512_valtest.zip context_2048_valtest.zip narval:$SCRATCH/
       ```
-   b. Sur Narval : `sbatch scripts/slurm_context_size_sweep.sh` (extraction GPU
-      seule, fusionne les zips train+val/test dans le job) PUIS
-      `sbatch scripts/slurm_context_size_sweep_probes.sh` (probes CPU : fused /
-      tile / ctx / perm×3 par taille).
+   b. Sur Narval : `sbatch scripts/slurm_context_size_sweep.sh` — un job qui fait
+      TOUT (extraction GPU fusionnée par taille + probes CPU fused/tile/ctx/perm×3,
+      les 3 tailles, skip-if-done).
 3. **Optionnel** (si la courbe frozen justifie R2 entraîné à 512/2048) — reconstruire
    les zips complets puis soumettre les entraînements :
    ```bash
