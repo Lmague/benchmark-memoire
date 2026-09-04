@@ -26,13 +26,15 @@ Bonne journée,
 
 Traitement : points 1 et 2 par sonde canonique sur les embeddings déjà extraits des
 runs R2 (Design B, fusion 1536 = [tuile ; contexte], `results/context_distill/sig_embeddings/`)
-— `scripts/context_bouguessa_controls.py` → `results/context_distill/controls_bouguessa/`
+— JOB CPU Narval `scripts/slurm_context_bouguessa_controls.sh` (machinerie
+`scripts/context_bouguessa_controls.py`) → `results/context_distill/controls_bouguessa/`
 + rapport `results/context_distill/CONTROLES_BOUGUESSA.md`. Tailles de contexte :
-pallier frozen (sans entraînement) via `scripts/context_size_sweep.py` +
-`scripts/slurm_context_size_sweep.sh` (prérequis local : crops val/test 512/2048 —
-cf. `NEEDS_HUMAN.md`) ; pallier entraîné (R2 à 512/2048) en option si la courbe le
-justifie. Message clé de la mise en garde : « commencer à rédiger » — la priorité
-dévient le manuscrit, pas de nouvelles expériences lourdes.
+pallier frozen (sans entraînement) en deux jobs Narval — extraction GPU
+(`scripts/slurm_context_size_sweep.sh`, prérequis local : crops val/test 512/2048)
+puis probes CPU (`scripts/slurm_context_size_sweep_probes.sh`) ; pallier entraîné
+(R2 à 512/2048) en option si la courbe le justifie. Message clé de la mise en garde :
+« commencer à rédiger » — la priorité devient le manuscrit, pas de nouvelles
+expériences lourdes.
 
 ---
 

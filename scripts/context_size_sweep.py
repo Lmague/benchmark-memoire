@@ -122,6 +122,10 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--max-iter", type=int, default=2000)
     ap.add_argument("--variants", default=None)
+    ap.add_argument("--skip-probes", action="store_true",
+                    help="extraction seule (les probes sont ensuite lancés en JOB CPU "
+                         "séparé via scripts/context_bouguessa_controls.py — cf. "
+                         "slurm_context_size_sweep_probes.sh)")
     args = ap.parse_args()
 
     from src.config import load_config
@@ -129,6 +133,10 @@ def main() -> None:
 
     tag = _extract_and_save(cfg, args.context_dir, args.out_dir, args.context_size,
                             cfg.data.batch_size, cfg.data.num_workers)
+    if args.skip_probes:
+        print(f"[sweep ctx{args.context_size}] --skip-probes : extraction seule terminée "
+              f"({tag}). Probes = job CPU séparé (slurm_context_size_sweep_probes.sh).", flush=True)
+        return
     sig_dir = _os.path.join(args.out_dir, "sig_embeddings")
 
     variants = ([v.strip() for v in args.variants.split(",")] if args.variants

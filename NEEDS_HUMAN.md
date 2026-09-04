@@ -2,27 +2,32 @@
 
 Format : un point par section, daté en titre. Résolu → déplacer en bas dans "Résolu".
 
-## 2026-09-02 — Sweep des tailles de contexte (512/1024/2048) : crops val/test locaux puis jobs Narval
+## 2026-09-02 — Contrôles Bouguessa (contexte) : jobs Narval à soumettre
 
-Demande Bouguessa (mail début sept.) : regarder les tailles de contexte avant de
-passer à des DINOv3 plus grands. Pallier frozen (sans entraînement) préparé :
-`scripts/context_size_sweep.py` + `scripts/slurm_context_size_sweep.sh` (extraction
-frozen fusionnée + sonde canonique fused / ctx-seul / ctx-permuté, machinerie de
-`scripts/context_bouguessa_controls.py` — les points 1-2 du mail sur R2 sont calculés
-en LOCAL, sans Narval). Accès cluster requis (`lmague@narval3`) :
+Demande Bouguessa (mail début sept.) : (1) contexte seul, (2) contexte permuté,
+(3) tailles de contexte 512/1024/2048. Préparé, **accès cluster requis** (`lmague@narval3`) :
 
-1. **EN LOCAL** — générer les crops val/test manquants (les train crops 512/1024/2048
-   sont déjà sur `$SCRATCH` ; 1024 a déjà val/test) :
-   ```bash
-   python scripts/context_crop.py \
-       --split-csv spatial_datacurve/splits/frac100_seed0/val.csv spatial_datacurve/splits/frac100_seed0/test.csv \
-       --context-sizes 512,2048 --out-size 224 --out-dir out/context
-   cd out/context && zip -qr ../../context_512_valtest.zip context_512 \
-                    && zip -qr ../../context_2048_valtest.zip context_2048
-   scp context_512_valtest.zip context_2048_valtest.zip narval:$SCRATCH/
-   ```
-2. **Sur Narval** — le pallier frozen : `sbatch scripts/slurm_context_size_sweep.sh`
-   (fusionne les zips train+val/test dans le job, ~12 h slice MIG, repartable par JSON).
+1. **Points 1-2 sur R2 — JOB CPU pur** (`sbatch scripts/slurm_context_bouguessa_controls.sh`,
+   ~2 h sur 4 workers, repartable) : sonde canonique (fused / contexte-seul /
+   contexte-permuté ×5 / tile) sur les sig_embeddings DÉJÀ présents sur
+   `$SCRATCH/context_distill/sig_embeddings/` (extraits par
+   `slurm_context_distill_extract_sig.sh`). Aucun GPU, aucun zip à dézipper.
+   Puis rapatrier : `scp -r narval:$SCRATCH/context_distill/controls_bouguessa results/context_distill/`
+2. **Tailles de contexte, pallier frozen** — deux jobs séquentiels :
+   a. EN LOCAL d'abord : générer les crops val/test manquants (train crops
+      512/1024/2048 déjà sur `$SCRATCH` ; 1024 a déjà val/test) :
+      ```bash
+      python scripts/context_crop.py \
+          --split-csv spatial_datacurve/splits/frac100_seed0/val.csv spatial_datacurve/splits/frac100_seed0/test.csv \
+          --context-sizes 512,2048 --out-size 224 --out-dir out/context
+      cd out/context && zip -qr ../../context_512_valtest.zip context_512 \
+                       && zip -qr ../../context_2048_valtest.zip context_2048
+      scp context_512_valtest.zip context_2048_valtest.zip narval:$SCRATCH/
+      ```
+   b. Sur Narval : `sbatch scripts/slurm_context_size_sweep.sh` (extraction GPU
+      seule, fusionne les zips train+val/test dans le job) PUIS
+      `sbatch scripts/slurm_context_size_sweep_probes.sh` (probes CPU : fused /
+      tile / ctx / perm×3 par taille).
 3. **Optionnel** (si la courbe frozen justifie R2 entraîné à 512/2048) — reconstruire
    les zips complets puis soumettre les entraînements :
    ```bash
@@ -34,6 +39,9 @@ en LOCAL, sans Narval). Accès cluster requis (`lmague@narval3`) :
    sbatch scripts/slurm_context_distill.sh 512 B
    sbatch scripts/slurm_context_distill.sh 2048 B
    ```
+
+⚠️ Avant tout sbatch : `git push` ici puis `git pull` sur Narval (`$HOME/benchmark-memoire`)
+— cf. incident 2026-08-30 (§17 du README contexte) : un script non poussé = job à vide.
 
 ## 2026-08-27 — Soumettre les jobs SLURM DINOv3 ViT-S/16 (Frozen + LoRA r=8) sur Narval
 
