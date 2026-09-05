@@ -43,6 +43,27 @@ Demande Bouguessa (mail début sept.) : (1) contexte seul, (2) contexte permuté
 ⚠️ Avant tout sbatch : `git push` ici puis `git pull` sur Narval (`$HOME/benchmark-memoire`)
 — cf. incident 2026-08-30 (§17 du README contexte) : un script non poussé = job à vide.
 
+## 2026-09-05 — Sweep contexte FROZEN multi-backbones (DINOv3-S/L, SimDINOv2-B/L) — 1 job
+
+Question (« avant de passer à des modèles DINOv3 plus grands ») : le gain contexte à
+512px tient-il à d'autres échelles de modèle ? → 3 courbes (512/1024/2048) × 4
+backbones en FROZEN (aucun entraînement), puis ON DÉCIDE quoi entraîner.
+
+Sur Narval (après git pull) :
+```bash
+sbatch scripts/slurm_context_frozen_models.sh        # 4 modèles × 3 tailles, ~8-10 h GPU MIG
+```
+- Extraction GPU (skip-if-done) + probes CPU (fused/tile/ctx/perm×3, skip-if-json).
+- SimDINOv2 : checkpoints `$SCRATCH/checkpoints/simdinov2_vitb_inat21plantae.pth` et
+  `.../vitl_inat21plantae.pth` (présents — déjà utilisés par les runs FT).
+- Sorties : `$SCRATCH/context_distill/controls_bouguessa/frozen_<model>_ctx<size>_seed0_*.json`
+- Rapatriement : `rsync -avz --progress lmague@narval.alliancecan.ca:/scratch/lmague/context_distill/controls_bouguessa/ results/context_distill/controls_bouguessa/`
+- Modèles en cours sur Narval (à vérifier `squeue -u lmague`) : le sweep B final + les 4 modèles.
+
+**Ensuite** : entraîner R2 (Design B) aux tailles/modèles que les courbes justifient
+(`sbatch scripts/slurm_context_distill.sh <taille> B` — pour SimDINOv2 il faudra un
+config student adapté, pas fait).
+
 ## 2026-08-27 — Soumettre les jobs SLURM DINOv3 ViT-S/16 (Frozen + LoRA r=8) sur Narval
 
 Infrastructure prête et vérifiée par relecture (code, configs, scripts SLURM — cf. `AGENT_MEMORY.md` 2026-08-27) : aucun accès GPU/cluster depuis la session qui a fait la relecture, donc rien n'a pu être exécuté. Reste à faire, humain requis (accès Narval `lmague@narval3`) :
