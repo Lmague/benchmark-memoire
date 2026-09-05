@@ -98,6 +98,8 @@ def _build_variant(feats: dict, variant: str) -> dict:
 
 def _run_one(args_tuple):
     (seed, variant, sig_dir, tag, out_dir, max_iter, json_prefix) = args_tuple
+    out_dir = _os.path.join(out_dir, "controls_bouguessa")
+    _os.makedirs(out_dir, exist_ok=True)
     out_path = _os.path.join(out_dir, f"{json_prefix}_seed{seed}_{variant}.json")
     if _os.path.exists(out_path):
         return out_path, "skip (déjà fait)"
