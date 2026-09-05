@@ -166,3 +166,4 @@ __pycache__/
 !/RECONCILIATION.md
 !/known_issues.md
 !/scripts/submit_size_sweep_valtest.sh
+!/scripts/slurm_context_frozen_models.sh
