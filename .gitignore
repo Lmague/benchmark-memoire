@@ -165,3 +165,4 @@ __pycache__/
 !/CHANGELOG.md
 !/RECONCILIATION.md
 !/known_issues.md
+!/scripts/submit_size_sweep_valtest.sh
