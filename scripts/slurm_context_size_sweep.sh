@@ -99,7 +99,7 @@ for SIZE in $SIZES; do
         echo "[slurm] Merge val/test (${SIZE}px) ..."
         unzip -q "$SCRATCH/context_${SIZE}_valtest.zip" -d "$SLURM_TMPDIR/"
     fi
-    N_TILES=$(ls "$CONTEXT_DIR" 2>/dev/null | wc -l)
+    N_TILES=$(find "$CONTEXT_DIR" -name "*.png" 2>/dev/null | wc -l)
     echo "[slurm] context_${SIZE} : $N_TILES crops"
     if [[ "$N_TILES" -lt 79000 ]]; then
         echo "[WARN] ${SIZE}px : $N_TILES crops < 79k attendus (49433 train + 13209 val + 17598 test) — vérifier les zips" >&2
@@ -129,9 +129,15 @@ EOF
     [[ $? -ne 0 ]] && echo "[WARN] extraction ${SIZE}px échouée" >&2
 
     echo "─── [2/2] probes CPU −${SIZE}px (fused/tile/ctx/perm×3) ───"
-    TAG="dinov3_vitb16_lvd_FROZEN_fused_ctx${SIZE}_frac100_seed0"
-    if [[ ! -f "$SIG_DIR/$TAG/test.npy" ]]; then
-        echo "[WARN] $SIG_DIR/$TAG/test.npy absent — probes ${SIZE}px sautés (extraction échouée ?)" >&2
+    # ⚠️ Contrairement à une impression naturelle, le tag SONDE est SANS suffixe
+    # _seed0 : context_bouguessa_controls._load_split ajoute déjà "_seed{seed}" au
+    # tag (convention R2, où le tag par défaut est sans seed). Le dossier
+    # d'extraction, lui, est nommé _sig_tag() = "…_frac100_seed0". Donc :
+    #   sonde lit  ${SIG_DIR}/${TAG}_seed0/test.npy
+    #   =          ${SIG_DIR}/…_FROZEN_fused_ctx${SIZE}_frac100_seed0/test.npy  ✓
+    TAG="dinov3_vitb16_lvd_FROZEN_fused_ctx${SIZE}_frac100"
+    if [[ ! -f "$SIG_DIR/${TAG}_seed0/test.npy" ]]; then
+        echo "[WARN] $SIG_DIR/${TAG}_seed0/test.npy absent — probes ${SIZE}px sautés (extraction échouée ?)" >&2
         continue
     fi
     python scripts/context_bouguessa_controls.py \
