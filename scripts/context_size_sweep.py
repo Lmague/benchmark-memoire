@@ -48,23 +48,28 @@ from context_distill import _run_probe_with_balanced_acc
 from context_fused_probe_controls import _extract  # extraction tuile⊕contexte, protocole identique aux runs
 
 
-def _sig_tag(context_size: int) -> str:
-    return f"dinov3_vitb16_lvd_FROZEN_fused_ctx{context_size}_frac100_seed0"
+def _sig_tag(model_tag: str, context_size: int) -> str:
+    """Tag du dossier sig_embeddings pour (modèle, taille). ``model_tag`` est un
+    suffixe court propre au backbone (ex. ``dinov3_vits16``, ``simdinov2_vitb16``),
+    PAS le nom complet — le nom complet peut contenir des suffixes FT.
+    """
+    return f"{model_tag}_FROZEN_fused_ctx{context_size}_frac100_seed0"
 
 
 def _extract_and_save(cfg, context_dir: str, out_dir: str, context_size: int,
+                      model_tag: str, checkpoint: str | None,
                       batch_size: int, num_workers: int) -> str:
     """Extraction frozen fusionnée des 3 splits → layout sig_embeddings. Retourne le tag."""
     from src.models import build_frozen_extractor
 
-    tag = _sig_tag(context_size)
+    tag = _sig_tag(model_tag, context_size)
     d = _os.path.join(out_dir, "sig_embeddings", tag)
     _os.makedirs(d, exist_ok=True)
     if all(_os.path.exists(_os.path.join(d, f"{s}.npy")) for s in ("train", "val", "test")):
         print(f"[sweep] sig_embeddings déjà présents : {d} — extraction sautée", flush=True)
         return tag
 
-    model, forward_fn, _dim, _norm_key = build_frozen_extractor(cfg.model.name, None)
+    model, forward_fn, _dim, _norm_key = build_frozen_extractor(cfg.model.name, checkpoint)
     for s in ("train", "val", "test"):
         t0 = time.time()
         E, L = _extract(model, forward_fn, cfg, s, context_dir, fused=True,
@@ -76,8 +81,9 @@ def _extract_and_save(cfg, context_dir: str, out_dir: str, context_size: int,
 
 
 def _probe_task(args_tuple):
-    (variant, sig_dir, tag, out_dir, max_iter, context_size) = args_tuple
-    out_path = _os.path.join(out_dir, "controls_bouguessa", f"frozen_ctx{context_size}_seed0_{variant}.json")
+    (variant, sig_dir, tag, out_dir, max_iter, context_size, model_tag) = args_tuple
+    out_path = _os.path.join(out_dir, "controls_bouguessa",
+                             f"frozen_{model_tag}_ctx{context_size}_seed0_{variant}.json")
     if _os.path.exists(out_path):
         return out_path, "skip (déjà fait)"
     t0 = time.time()
@@ -87,18 +93,19 @@ def _probe_task(args_tuple):
                     np.load(_os.path.join(sig_dir, tag, f"{s}_labels.npy")))
     var = _build_variant(feats, variant)
     del feats
+    d = var["train"][0].shape[1] // 2
     metrics = _run_probe_with_balanced_acc(
         {"val": var["val"], "test": var["test"]}, var["train"], C_GRID, max_iter)
     del var
     result = {
-        "tag": f"frozen_ctx{context_size}",
+        "tag": f"frozen_{model_tag}_ctx{context_size}",
         "seed": 0,
         "variant": variant,
         "perm_seed": 1000 + int(variant.rsplit("perm", 1)[1])
         if variant.startswith("fused_ctxperm") else None,
-        "dim": 1536 if (variant == "fused" or variant.startswith("fused_ctxperm")) else 768,
-        "model": "dinov3_vitb16_lvd FROZEN (aucun entraînement), contexte redimensionné 224",
-        "src": _sig_tag(context_size),
+        "dim": 2 * d if (variant == "fused" or variant.startswith("fused_ctxperm")) else d,
+        "model": f"{model_tag} FROZEN (aucun entraînement), contexte redimensionné 224",
+        "src": tag,
         "schema": "11cls_no_rhol",
         "split": "spatial_v3",
         "protocol": "StandardScaler float32 + make_canonical_lr lbfgs multinomial, "
@@ -117,6 +124,12 @@ def main() -> None:
     ap.add_argument("--config", required=True)
     ap.add_argument("--context-dir", required=True)
     ap.add_argument("--context-size", type=int, required=True, help="512|1024|2048 (pour le nommage)")
+    ap.add_argument("--model-tag", required=True,
+                    help="suffixe court du backbone (ex. dinov3_vits16, dinov3_vitl16, "
+                         "simdinov2_vitb16, simdinov2_vitl16) — préfixe des dossiers/tags")
+    ap.add_argument("--checkpoint", default=None,
+                    help="chemin absolu du .pth pour les backbones qui l'exigent (SimDINOv2 : "
+                         "$SCRATCH/checkpoints/simdinov2_*.pth). None pour DINOv3 (HF).")
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--perm-reps", type=int, default=3)
     ap.add_argument("--workers", type=int, default=2)
@@ -132,17 +145,20 @@ def main() -> None:
     cfg = load_config(args.config)
 
     tag = _extract_and_save(cfg, args.context_dir, args.out_dir, args.context_size,
+                            args.model_tag, args.checkpoint,
                             cfg.data.batch_size, cfg.data.num_workers)
     if args.skip_probes:
-        print(f"[sweep ctx{args.context_size}] --skip-probes : extraction seule terminée "
-              f"({tag}). Probes = job CPU séparé (slurm_context_size_sweep_probes.sh).", flush=True)
+        print(f"[sweep {args.model_tag} ctx{args.context_size}] --skip-probes : "
+              f"extraction seule terminée ({tag}). Probes = job CPU séparé "
+              f"(slurm_context_size_sweep_probes.sh).", flush=True)
         return
     sig_dir = _os.path.join(args.out_dir, "sig_embeddings")
 
     variants = ([v.strip() for v in args.variants.split(",")] if args.variants
                 else ["fused", "ctx"] + [f"fused_ctxperm{p}" for p in range(args.perm_reps)])
-    tasks = [(v, sig_dir, tag, args.out_dir, args.max_iter, args.context_size) for v in variants]
-    print(f"[sweep ctx{args.context_size}] {len(tasks)} probes : {variants} "
+    tasks = [(v, sig_dir, tag, args.out_dir, args.max_iter, args.context_size, args.model_tag)
+             for v in variants]
+    print(f"[sweep {args.model_tag} ctx{args.context_size}] {len(tasks)} probes : {variants} "
           f"(workers={args.workers})", flush=True)
 
     with ProcessPoolExecutor(max_workers=args.workers) as ex:

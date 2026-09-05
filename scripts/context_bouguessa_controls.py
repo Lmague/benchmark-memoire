@@ -69,20 +69,23 @@ def _load_split(sig_dir: str, tag: str, seed: int, split: str):
 
 
 def _build_variant(feats: dict, variant: str) -> dict:
-    """Construit les (E, L) de la variante demandée depuis la fusion 1536.
+    """Construit les (E, L) de la variante demandée depuis la fusion [tile ; ctx]
+    (2×dim — 1536 pour ViT-B, 2048 pour ViT-L/SimDINOv2-L, 768 pour ViT-S).
+    La moitié est déduite de ``E.shape[1] // 2`` : aucune dimension codée en dur.
 
     - fused          : tel quel (temoin de reproduction)
-    - tile           : colonnes 0:768
-    - ctx            : colonnes 768:1536  (Bouguessa #1 : contexte seul)
+    - tile           : colonnes 0:d
+    - ctx            : colonnes d:2d  (Bouguessa #1 : contexte seul)
     - fused_ctxperm{p} : fusionné où les LIGNES du bloc contexte sont permutées
       indépendamment dans chaque split (graine PERM_SEED_BASE+p)  (Bouguessa #2)
     """
     if variant == "fused":
         return {s: feats[s] for s in feats}
+    d = feats["train"][0].shape[1] // 2
     if variant == "tile":
-        return {s: (feats[s][0][:, :768], feats[s][1]) for s in feats}
+        return {s: (feats[s][0][:, :d], feats[s][1]) for s in feats}
     if variant == "ctx":
-        return {s: (feats[s][0][:, 768:], feats[s][1]) for s in feats}
+        return {s: (feats[s][0][:, d:], feats[s][1]) for s in feats}
     if variant.startswith("fused_ctxperm"):
         p = int(variant.rsplit("perm", 1)[1])
         out = {}
@@ -90,7 +93,7 @@ def _build_variant(feats: dict, variant: str) -> dict:
             rng = np.random.default_rng(PERM_SEED_BASE + p)
             idx = rng.permutation(E.shape[0])
             E2 = E.copy()
-            E2[:, 768:] = E[idx, 768:]
+            E2[:, d:] = E[idx, d:]
             out[s] = (E2, L)
         return out
     raise ValueError(f"variante inconnue : {variant}")
@@ -108,17 +111,18 @@ def _run_one(args_tuple):
     var = _build_variant(feats, variant)
     del feats
     E_tr, L_tr = var["train"]
+    features_dim = E_tr.shape[1]
     metrics = _run_probe_with_balanced_acc(
         {"val": var["val"], "test": var["test"]}, (E_tr, L_tr), C_GRID, max_iter)
     del var, E_tr
     result = {
-        "tag": "r2_dB_tL",
+        "tag": f"{json_prefix}_seed{seed}",
         "seed": seed,
         "variant": variant,
         "perm_seed": PERM_SEED_BASE + int(variant.rsplit("perm", 1)[1])
         if variant.startswith("fused_ctxperm") else None,
-        "dim": metrics.get("dim", None) or _probe_dim(variant),
-        "model": "dinov3_vitb16_lvd (LoRA r2a4 blocs 6-11, Design B, contexte 1024)",
+        "dim": features_dim,
+        "model": _model_desc(tag),
         "src": f"{tag}_seed{seed} (sig_embeddings, fusion float16→float32)",
         "schema": "11cls_no_rhol",
         "split": "spatial_v3",
@@ -137,6 +141,23 @@ def _probe_dim(variant: str) -> int:
     if variant == "fused" or variant.startswith("fused_ctxperm"):
         return 1536
     return 768
+
+
+_MODEL_DESC = {
+    "dinov3_vitb16_lvd": "DINOv3 ViT-B/16 LVD",
+    "dinov3_vits16_lvd": "DINOv3 ViT-S/16 LVD",
+    "dinov3_vitl16_lvd": "DINOv3 ViT-L/16 LVD",
+    "simdinov2_vitb16": "SimDINOv2 ViT-B/16",
+    "simdinov2_vitl16": "SimDINOv2 ViT-L/16",
+}
+
+
+def _model_desc(tag: str) -> str:
+    """Décrit le modèle depuis le tag sig_embeddings (<model_tag>_FROZEN_fused_ctx<size>_...).
+    Retombe sur le tag brut si le préfixe n'est pas dans la table."""
+    model_tag = tag.split("_FROZEN_")[0]
+    base = _MODEL_DESC.get(model_tag, model_tag)
+    return f"{base} FROZEN (aucun entraînement), contexte redimensionné 224"
 
 
 def main() -> None:
