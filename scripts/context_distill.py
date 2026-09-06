@@ -119,7 +119,7 @@ import numpy as np
 sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))  # racine dépôt
 sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))  # scripts/ (sibling import)
 
-_TEACHER_TAG = {"dinov3_vitl16_lvd": "tL", "ema_self": "tEMA"}
+_TEACHER_TAG = {"dinov3_vitl16_lvd": "tL", "ema_self": "tEMA", "simdinov2_vitl16": "tSL"}
 
 
 def _teacher_tag(name: str) -> str:
@@ -129,6 +129,20 @@ def _teacher_tag(name: str) -> str:
     plus long) — ne JAMAIS lever ici, seul le garde-fou de collision doit bloquer.
     """
     return _TEACHER_TAG.get(name, name)
+
+
+def _resolve_ckpt(cfg, key: str) -> str | None:
+    """Résout un chemin de checkpoint : abs si déjà absolu, sinon contre
+    ``cfg.paths.ckpt_dir`` (Narval : ``${SCRATCH}/checkpoints``, cf. base.yaml).
+    Même convention que train.py — les configs des backbones SimDINOv2 donnent un
+    nom RELATIF (``simdinov2_vitb_inat21plantae.pth``)."""
+    ck = cfg.raw.get(key)
+    if not ck:
+        return None
+    if _os.path.isabs(ck):
+        return ck
+    base = cfg.paths.ckpt_dir or ""
+    return _os.path.join(base, ck) if base else ck
 
 
 # ─────────────────────────────────────────────────────────────────── Dataset
@@ -460,7 +474,8 @@ def _predict_fused(classifier, loader, device):
 
 # ─────────────────────────────────────────────────────────────────── Probe (extraction + LR)
 
-def _extract_fused_embeddings(model_key, ckpt_path, cfg, context_dir, splits=("train", "val", "test")):
+def _extract_fused_embeddings(model_key, ckpt_path, cfg, context_dir, splits=("train", "val", "test"),
+                              pretrain_checkpoint: str | None = None):
     """Design B : extrait les features FUSIONNÉES (tuile+contexte concat., 2×embed_dim)
     pour la sonde canonique. Recharge le backbone via ``load_finetuned_ssl_backbone``
     (IDENTIQUE à Design A — le merge LoRA ne dépend pas du design), mais forward
@@ -468,13 +483,16 @@ def _extract_fused_embeddings(model_key, ckpt_path, cfg, context_dir, splits=("t
     contexte qu'au train, Design B en a besoin partout (cf. docstring module).
     Retourne des labels DÉJÀ en 11cls (contrairement à ``_extract_backbone_embeddings``
     qui renvoie du 12cls brut) — ne PAS appeler ``_apply_11cls_remap`` sur le résultat.
+    ``pretrain_checkpoint`` : requis pour les backbones SimDINOv2 (même .pth que
+    ``build_model`` — sinon ``load_finetuned_ssl_backbone`` échouerait au build).
     """
     import torch
     from src.models import load_finetuned_ssl_backbone
     from src.utils import get_device
 
     device = get_device()
-    backbone, forward_fn, _dim, _norm_key = load_finetuned_ssl_backbone(model_key, None, ckpt_path)
+    backbone, forward_fn, _dim, _norm_key = load_finetuned_ssl_backbone(
+        model_key, pretrain_checkpoint, ckpt_path)
     backbone = backbone.to(device).eval()
 
     out = {}
@@ -554,6 +572,13 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", required=True)
     ap.add_argument("--student", default=None, help="override cfg.model.name (défaut: valeur du config)")
+    ap.add_argument("--checkpoint", default=None,
+                    help="chemin .pth pré-entraîné du student (REQUIS pour SimDINOv2 — "
+                         "override de cfg.checkpoint, résolu contre cfg.paths.ckpt_dir sinon)")
+    ap.add_argument("--teacher-checkpoint", default=None,
+                    help="chemin .pth du teacher (requis si --teacher est un backbone SimDINOv2 — "
+                         "override de cfg.teacher_checkpoint, résolu contre cfg.paths.ckpt_dir sinon; "
+                         "ignoré pour DINOv3-HF / ema_self)")
     ap.add_argument("--teacher", default="dinov3_vitl16_lvd",
                     help="nom d'un backbone frozen (ex. dinov3_vitl16_lvd) OU 'ema_self' "
                          "pour un momentum-teacher = copie EMA du backbone du student "
@@ -595,6 +620,11 @@ def main() -> None:
     if args.batch_size is not None:
         cfg.data.batch_size = args.batch_size
 
+    # Checkpoints pré-entraînés : priorité CLI > config (résolu contre paths.ckpt_dir).
+    # REQUIS pour tout backbone SimDINOv2 (student ET teacher SimL) ; ignorés sinon.
+    student_ckpt = args.checkpoint or _resolve_ckpt(cfg, "checkpoint")
+    teacher_ckpt = args.teacher_checkpoint or _resolve_ckpt(cfg, "teacher_checkpoint")
+
     utils.set_seed(args.seed, deterministic=cfg.train.deterministic)
     device = utils.get_device()
     if device.type != "cuda":
@@ -628,7 +658,10 @@ def main() -> None:
 
     # ── Student : backbone LoRA construit D'ABORD (fournit embed_dim, requis avant
     # de dimensionner proj/scale_mlp ET avant de savoir teacher_dim si EMA) ────────
-    classifier, groups = build_model(cfg.model.name, "lora", cfg.model.num_classes, lora=cfg.lora)
+    if student_ckpt is not None:
+        print(f"[context_distill] student pretrain checkpoint={student_ckpt}")
+    classifier, groups = build_model(cfg.model.name, "lora", cfg.model.num_classes,
+                                     lora=cfg.lora, checkpoint=student_ckpt)
     embed_dim = classifier.head.in_features
     if args.design == "B":
         classifier, groups = _replace_head_for_fusion(classifier, groups, embed_dim, cfg.model.num_classes)
@@ -642,11 +675,27 @@ def main() -> None:
         teacher, ema_pairs = build_ema_teacher(classifier)
         teacher_fwd = classifier._forward_fn
     else:
-        teacher, teacher_fwd, teacher_dim, teacher_norm_key = build_frozen_extractor(args.teacher)
+        if teacher_ckpt is not None:
+            print(f"[context_distill] teacher pretrain checkpoint={teacher_ckpt}")
+        teacher, teacher_fwd, teacher_dim, teacher_norm_key = build_frozen_extractor(
+            args.teacher, teacher_ckpt)
         teacher = teacher.to(device).eval()
         for p in teacher.parameters():
             p.requires_grad_(False)
         ema_pairs = None
+
+    # ⚠️ Garde-fou norme train/éval (Design B seulement) : le contexte est normalisé
+    # AU TRAIN avec la norme du TEACHER (_make_train_loader → ctx_tf), mais À L'ÉVAL
+    # avec celle du STUDENT (_make_eval_loader_with_context → cfg.model.norm). Sans
+    # danger tant qu'elles coïncident (DINOv3-B+DINOv3-L = ImageNet ; SimB+SimL =
+    # simdino_inat). Avec un teacher hors famille (ex. DINOv3-L + student SimDINOv2),
+    # le même tenseur de contexte serait vu dans deux espaces différents → skew.
+    if args.design == "B" and args.teacher != "ema_self" and teacher_norm_key != cfg.model.norm:
+        raise ValueError(
+            f"Design B : norme du teacher ({teacher_norm_key!r}) ≠ norme du student "
+            f"({cfg.model.norm!r}) — le contexte serait normalisé differemment au train "
+            "et à l'éval (skew). Choisir un teacher de la MÊME famille de normalisation "
+            "(ex. simdinov2_vitl16 pour un student simdinov2_vitb16, ou --teacher ema_self).")
 
     # ── Tête de projection (branche distillation), dimensionnée sur teacher_dim ──
     proj, scale_mlp = build_projection_head(embed_dim, teacher_dim)
@@ -750,21 +799,23 @@ def main() -> None:
     if args.design == "B":
         print("\n[context_distill] extraction + sonde canonique (Design B : tuile+contexte fusionnés)")
         feats_all = _extract_fused_embeddings(cfg.model.name, best_ckpt, cfg, args.context_dir,
-                                              splits=("train", "val", "test"))
+                                              splits=("train", "val", "test"),
+                                              pretrain_checkpoint=student_ckpt)
         feats_vt = {"val": feats_all["val"], "test": feats_all["test"]}
         feats_tr = feats_all["train"]
     else:
         print("\n[context_distill] extraction + sonde canonique (Design A : tuile 224 seule)")
         feats_vt_12 = _extract_backbone_embeddings(cfg.model.name, best_ckpt, cfg,
-                                                   pretrain_checkpoint=None, splits=("val", "test"))
+                                                   pretrain_checkpoint=student_ckpt, splits=("val", "test"))
         feats_vt = {s: _apply_11cls_remap(E, L) for s, (E, L) in feats_vt_12.items()}
         feats_tr_12 = _extract_backbone_embeddings(cfg.model.name, best_ckpt, cfg,
-                                                   pretrain_checkpoint=None, splits=("train",))
+                                                   pretrain_checkpoint=student_ckpt, splits=("train",))
         feats_tr = _apply_11cls_remap(*feats_tr_12["train"])
 
     metrics = _run_probe_with_balanced_acc(feats_vt, feats_tr, list(cfg.probe.C_grid), cfg.probe.max_iter)
     metrics.update({
         "tag": tag, "student": cfg.model.name, "teacher": args.teacher,
+        "student_checkpoint": student_ckpt, "teacher_checkpoint": teacher_ckpt,
         "ema_momentum": args.ema_momentum if args.teacher == "ema_self" else None,
         "context_size": args.context_size, "design": args.design,
         "lora_r": cfg.lora.r, "lora_alpha": cfg.lora.alpha,

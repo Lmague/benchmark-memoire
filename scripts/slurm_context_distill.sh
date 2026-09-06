@@ -30,7 +30,8 @@
 #
 # Usage : $1 = context_size (512|1024|2048, défaut 1024 = R1). $2 = design (A|B,
 # défaut A). $3 = teacher (nom d'un backbone frozen, défaut dinov3_vitl16_lvd ; ou
-# 'ema_self'). PAS d'argument seed — les 3 seeds (0,1,2) tournent séquentiellement
+# 'ema_self'). $4 = config YAML (défaut configs/context_distill_dinov3b.yaml).
+# PAS d'argument seed — les 3 seeds (0,1,2) tournent séquentiellement
 # dans CE job, sur la même A100, avec les tuiles+contexte extraits UNE SEULE fois
 # (convention scripts/slurm_lora_rank_ablation.sh, scripts/slurm_datacurve_spatial.sh).
 #
@@ -43,6 +44,11 @@
 #        sbatch scripts/slurm_context_distill.sh 1024 B
 #   - R3 (EMA self-teacher — aucun prérequis) :
 #        sbatch scripts/slurm_context_distill.sh 1024 A ema_self
+#   - Student SimDINOv2-B (iNat21 Plantae) + teacher SimL, Design B, contexte
+#     512px (l'expérience demandée 2026-09 — cf. README §18 ; checkpoints pris
+#     dans le config: context_distill_simdinov2b.yaml) :
+#        sbatch scripts/slurm_context_distill.sh 512 B simdinov2_vitl16 \
+#               configs/context_distill_simdinov2b.yaml
 #   - Extension optionnelle, hors tableau (effet de la taille de contexte, comparée
 #     à la baseline spatiale F1=0.4827±0.0042, frac100 LoRA r=8, mesuré 2026-08-29
 #     depuis results/spatial_datacurve_CANONICAL.csv, cf. README §3) :
@@ -58,6 +64,10 @@
 #   - $SCRATCH/hf_cache/models--facebook--dinov3-vitb16-pretrain-lvd1689m/
 #   - $SCRATCH/hf_cache/models--facebook--dinov3-vitl16-pretrain-lvd1689m/ (sauf si
 #     $3=ema_self, auquel cas aucun teacher externe n'est chargé)
+#   - Student SimDINOv2 (configs/context_distill_simdinov2b.yaml) :
+#     $SCRATCH/checkpoints/simdinov2_vitb_inat21plantae.pth (student) ET
+#     $SCRATCH/checkpoints/simdinov2_vitl_inat21plantae.pth (teacher SimL) —
+#     PAS de HF (le dépôt sslplant est déjà cloné par les runs frozen).
 # ═══════════════════════════════════════════════════════════════════════════════
 #SBATCH --job-name=context_distill
 #SBATCH --gres=gpu:a100_3g.20gb:1
@@ -71,7 +81,7 @@
 CONTEXT_SIZE="${1:-1024}"
 DESIGN="${2:-A}"
 TEACHER="${3:-dinov3_vitl16_lvd}"
-CONFIG="configs/context_distill_dinov3b.yaml"
+CONFIG="${4:-configs/context_distill_dinov3b.yaml}"
 CODE_DIR="$HOME/benchmark-memoire"
 VENV="$HOME/ENV/bin/activate"
 OUT_DIR="$SCRATCH/context_distill"
@@ -110,8 +120,17 @@ CONTEXT_ZIP="$SCRATCH/context_${CONTEXT_SIZE}.zip"
 }
 echo "[slurm] Extraction contexte ($CONTEXT_ZIP) → $SLURM_TMPDIR ..."
 unzip -q "$CONTEXT_ZIP" -d "$SLURM_TMPDIR/"
+# Design B (et toute taille où le contexte val/test est requis à l'inférence) :
+# merger le zip val/test s'il existe — même convention que slurm_context_frozen_models.sh
+# (le context_<size>.zip ne porte QUE le train ; val/test vit dans *_valtest.zip).
+if [[ -n "$DESIGN" && "$DESIGN" == "B" && -f "$SCRATCH/context_${CONTEXT_SIZE}_valtest.zip" ]]; then
+    echo "[slurm] Design B : merge val/test ($SCRATCH/context_${CONTEXT_SIZE}_valtest.zip) ..."
+    unzip -q -o "$SCRATCH/context_${CONTEXT_SIZE}_valtest.zip" -d "$SLURM_TMPDIR/"
+fi
 CONTEXT_DIR="$SLURM_TMPDIR/context_${CONTEXT_SIZE}"
 [[ ! -d "$CONTEXT_DIR" ]] && { echo "[ERROR] $CONTEXT_DIR absent après unzip"; exit 1; }
+N_CROPS=$(find "$CONTEXT_DIR" -name "*.png" 2>/dev/null | wc -l)
+echo "[slurm] context_${CONTEXT_SIZE} : $N_CROPS crops au total"
 
 EMA_ARGS=()
 if [[ "$TEACHER" == "ema_self" ]]; then

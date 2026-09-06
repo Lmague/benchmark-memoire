@@ -117,3 +117,34 @@ features FROZEN fusionnées [tile ; ctx] (skip-if-done, repartable). SimDINOv2-L
 un SimL frozen pourrait franchir **0.51** — résultat fort : « contexte + iNat ≥
 fine-tuning LoRA ». Relance du job multi-modèles pour ce seul modèle :
 `sbatch scripts/slurm_context_frozen_models.sh "simdinov2_vitl16|frozen_simdinov2_vitl16.yaml|/scratch/lmague/checkpoints/simdinov2_vitl_inat21plantae.pth"`
+
+---
+
+# Expérience 2026-09 — affiner SimDINOv2-B @512 (fusion entraînée)
+
+**Ajouté 2026-09.** Après la lecture du sweep frozen ci-dessus ET du papier
+[Gomes et al. (2026), *Efficient Spatiotemporal Vegetation Pixel Classification With
+Vision Transformers*, IEEE JSTARS](https://doi.org/10.1109/JSTARS.2026.3694818), la
+prochaine étape la plus porteuse est croisée :
+
+- **Frozen, SimB@512 = 0.5059** (le meilleur backbone×taille du tableau) ;
+- **Design B entraîné** (tête apprise [tuile;contexte]) a porté DINOv3-B de 0.478→0.508 —
+  en passant de la sonde linéaire frozen à une fusion APPRISE, le gain enfreint le
+  plafond des 0.51 frozen.
+
+⇒ **Affiner un student SimDINOv2-B (LoRA, distillation contexte→tuile) + tête fusionnée
+Design B, contexte 512px.** Le papier Gomes appuie aussi 512 : sur imagerie **aérienne**
+(Serra do Cipó, drone/hautes résolution comme Arctic-TVC), `agrandir le contexte au-delà
+d'un seuil dégrade` (fenêtre trop large englobe plusieurs canopées). Notre courbe
+512>1024≫2048 retombe exactement sur ce résultat.
+
+**Config livrée** : [`configs/context_distill_simdinov2b.yaml`](../../configs/context_distill_simdinov2b.yaml)
+(student SimB + teacher **SimL** — impératif : même norme `simdino_inat`, sinon skew
+train/éval sous Design B ; cf. README §18). Patchs `context_distill.py` (plomberie
+checkpoints student+teacher) et `slurm_context_distill.sh` (§4 = config, merge valtest).
+
+**Lancement** :
+```bash
+sbatch scripts/slurm_context_distill.sh 512 B simdinov2_vitl16 configs/context_distill_simdinov2b.yaml
+```
+Résultats → `$SCRATCH/context_distill/runs/simdinov2_vitb16_ctxdistill_dB_tSL_ctx512_r2a4_frac100_seed{0,1,2}/metrics.json`.

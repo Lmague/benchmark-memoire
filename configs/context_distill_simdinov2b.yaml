@@ -1,0 +1,60 @@
+# Self-distillation contexte→tuile (Design A/B) — student SimDINOv2 ViT-B/16 (iNat21 Plantae) + LoRA.
+# Pairing recommandé : teacher SimDINOv2 ViT-L/16 (même famille de normalisation `simdino_inat`),
+# contexte 512px, Design B (tuile+contexte à l'inférence). Ce choix de teacher N'EST PAS
+# interchangeable avec DINOv3-L : un teacher hors famille provoquerait un skew train/éval sur le
+# contexte sous Design B (norme teacher au train vs norme student à l'éval) — garde-fou explicite
+# dans scripts/context_distill.py (ValueError). Motif : SimL est le MEILLEUR extracteur de
+# contexte seul du sweep frozen (ctx-seul 0.4941) ET partage le pré-entraînement plantae de SimB.
+#
+# Checkpoints SimDINOv2 : noms RELATIFS résolus contre cfg.paths.ckpt_dir (Narval :
+# ${SCRATCH}/checkpoints — même convention que configs/frozen_simdinov2_vitb16.yaml et train.py).
+# Vérifier leur présence sur Narval avant sbatch :
+#   ls -la $SCRATCH/checkpoints/simdinov2_vit{b,l}_inat21plantae.pth
+checkpoint: "simdinov2_vitb_inat21plantae.pth"
+teacher_checkpoint: "simdinov2_vitl_inat21plantae.pth"
+
+model:
+  name: simdinov2_vitb16
+  num_classes: 11
+  norm: simdino_inat
+
+regime: lora
+
+lora:
+  r: 2
+  alpha: 4.0
+  target_modules: [q, v]
+  n_full_ft_blocks: 0
+  lora_block_indices: [6, 7, 8, 9, 10, 11]
+  dropout: 0.0
+
+data:
+  batch_size: 64      # marge mémoire : student LoRA + teacher gelé (forward seul, pas
+                       # d'état optimizer) partagent le même slice MIG a100_3g.20gb (cf.
+                       # slurm_context_distill.sh). Réduire si OOM.
+  num_workers: 8
+  image_size: 224
+
+optim:
+  weight_decay: 0.05
+  lr:
+    lora: 1.0e-4
+    full_late: 5.0e-5   # groupe vide (n_full_ft_blocks=0), jamais utilisé
+    norm: 1.0e-5
+    head: 1.0e-4
+    proj: 1.0e-4        # tête de projection 768(+32)->1024 + MLP d'échelle
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0
+  amp_dtype: bfloat16   # requis par context_distill.py (pas de GradScaler implémenté)
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
+  max_iter: 2000
