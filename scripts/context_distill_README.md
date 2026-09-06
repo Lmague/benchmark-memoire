@@ -463,3 +463,61 @@ valides tels quels (mêmes tuiles, mêmes chemins relatifs).
 **Pourquoi ça n'a pas été détecté avant** : jamais testé sur Narval avant ce run
 (contrainte de la mission — pas de GPU local, donc pas de moyen de découvrir cette
 absence plus tôt que le premier vrai `sbatch`).
+
+## 18. Expérience 2026-09 — student SimDINOv2-B, contexte 512px, Design B
+
+Ajouté 2026-09. Objectif : croiser les DEUX meilleures conclusions du sweep multi-backbone
+frozen — (a) **SimDINOv2-B@512 est le pic frozen** (fused 0.5059), (b) la fusion **Design B
+entraînée** (tête apprise [tuile;contexte], qui a porté DINOv3-B à 0.508) dépasse la sonde
+linéaire frozen — en AFFINANT un student **SimDINOv2-B** avec la distillation contexte→tuile
++ tête fusionnée.
+
+**Config : `configs/context_distill_simdinov2b.yaml`** — student SimDINOv2-B (iNat21
+Plantae) + LoRA r=2 α=4 blocs 6-11 (mêmes hyperparams que le DINOv3-B de R1/R2).
+Deux clés NOUVELLES résolues contre `cfg.paths.ckpt_dir` (Narval = `${SCRATCH}/checkpoints`) :
+`checkpoint: simdinov2_vitb_inat21plantae.pth` (student) et
+`teacher_checkpoint: simdinov2_vitl_inat21plantae.pth` (teacher SimL).
+
+**Teacher SimDINOv2-L, PAS DINOv3-L — deux raisons :**
+1. **Norme (bloquant)** : la fenêtre de contexte est normalisée au TRAIN avec la norme du
+   teacher mais à L'ÉVAL avec celle du student (`_make_train_loader`/`_make_eval_loader_with_context`).
+   SimB+SimL → les deux `simdino_inat` (pas de skew) ; SimB+DINOv3-L → `imagenet`≠`simdino_inat`
+   → **garde-fou explicite dans `context_distill.py`** : Design B lève une `ValueError` si
+   `teacher_norm_key != cfg.model.norm` (DINOv3-L acceptable seulement sous Design A, où le
+   contexte n'est utilisé qu'au train).
+2. **Même famille** : SimL est le meilleur extracteur de contexte SEUL du sweep frozen
+   (ctx-seul 0.4941 @512) et partage le pré-entraînement plantae de SimB.
+
+**Lancement (Design B @512, 3 seeds séquentiels, 1 job MIG a100_3g.20gb) :**
+
+```bash
+sbatch scripts/slurm_context_distill.sh 512 B simdinov2_vitl16 configs/context_distill_simdinov2b.yaml
+```
+
+`slurm_context_distill.sh` accepte maintenant **$4 = config** (défaut : la config DINOv3-B),
+et sous Design B fusionne `context_512.zip` (train, ~49433 crops) **+**
+`context_512_valtest.zip` (val=13209 + test=17598) dans le même `$CONTEXT_DIR` — même
+convention que `slurm_context_frozen_models.sh`. Le `.pth` teacher SimL (1,24 Go) est déjà
+dans `$SCRATCH/checkpoints/` (utilisé par le sweep frozen).
+
+Résultats attendus : `$SCRATCH/context_distill/runs/
+simdinov2_vitb16_ctxdistill_dB_tSL_ctx512_r2a4_frac100_seed{0,1,2}/metrics.json`.
+
+### 18bis. Soutien littéraire — taille de contexte aérien (papier local)
+
+Gomes et al., *Efficient Spatiotemporal Vegetation Pixel Classification With Vision
+Transformers*, IEEE JSTARS vol. 19, 2026, DOI 10.1109/JSTARS.2026.3694818 — PDF dans
+`Papiers/Efficient Spatiotemporal Vegetation PixelClassification With Vision Transformers.pdf`.
+Leur §VI-B (scalability) sur **Serra do Cipó (imagerie aérienne UAV)** trouve le MÊME
+comportement que notre sweep 512→1024→2048 :
+
+> "for the Serra do Cipó dataset (aerial UAV imagery), increasing the square context window
+> beyond a certain threshold proved detrimental … [optimal] peaked at 13×13 … As the window
+> expanded, accuracy degraded … excessively large square context windows may inadvertently
+> encompass multiple canopies … which may lead to less discriminative features."
+
+TÂCHE aérien → petit contexte optimal ; TÂCHE au sol (Itirapina, surface proche) → grand
+contexte optimal. Notre Arctic-TVC est du drone VHR (~1,5 mm/px) → se range côté Serra do
+Cipó : **512px = meilleur contexte ; 2048px dégrade la discriminabilité** (appui indépendant
+à la courbe 512>1024≫2048 observée sur les 5 backbones frozen et à la décision de n'affiner
+que @512).
