@@ -68,3 +68,52 @@ baseline tuile-seule. Donc :
   (produits sur `$SCRATCH/context_distill/controls_bouguessa/`, à rapatrier).
 - Machine : `scripts/context_bouguessa_controls.py` (sonde canonique, BLAS mono-thread,
   parallélisation par processus, repartable par JSON).
+
+---
+
+# Sweep frozen multi-backbones × tailles (512/1024/2048) — extension Bouguessa
+
+*Date : 2026-09-05. Job Narval `slurm_context_frozen_models.sh` (DINOv3-S/L,
+SimDINOv2-B/L + B déjà fait par `slurm_context_size_sweep.sh`). Sonde canonique sur
+features FROZEN fusionnées [tile ; ctx] (skip-if-done, repartable). SimDINOv2-L :
+**à lancer** (job relance, modèle seul).*
+
+## F1-macro test (seed0, 11 cls, split spatial v3)
+
+| Modèle | taille | fused | tile | ctx seul | Δctx (fused−tile) | perm.moy |
+|---|---|---|---|---|---|---|
+| **ViT-B** (LVD) | 512 | 0.4953 | 0.4716 | 0.4592 | +0.0237 | 0.4697 |
+| | 1024 | 0.4862 | 0.4716 | 0.3879 | +0.0145 | 0.4680 |
+| | 2048 | 0.4715 | 0.4716 | 0.2960 | −0.0001 | 0.4690 |
+| **ViT-S** (LVD) | 512 | 0.4810 | 0.4693 | 0.4399 | +0.0117 | 0.4621 |
+| | 1024 | 0.4831 | 0.4693 | 0.3666 | +0.0138 | 0.4653 |
+| | 2048 | 0.4664 | 0.4693 | 0.2795 | −0.0029 | 0.4651 |
+| **ViT-L** (LVD) | 512 | 0.4973 | 0.4791 | 0.4646 | +0.0182 | 0.4761 |
+| | 1024 | 0.4830 | 0.4791 | 0.3781 | +0.0039 | 0.4770 |
+| | 2048 | 0.4636 | 0.4791 | 0.3131 | −0.0155 | 0.4753 |
+| **SimDINOv2-B** (iNat) | 512 | **0.5059** | 0.4717 | **0.4931** | **+0.0342** | 0.4680 |
+| | 1024 | 0.4913 | 0.4717 | 0.4402 | +0.0196 | 0.4702 |
+| | 2048 | 0.4789 | 0.4717 | 0.3598 | +0.0072 | 0.4725 |
+| **SimDINOv2-L** (iNat) | *à tester* | | 0.? | | | |
+
+## Lectures
+
+1. **SimDINOv2-B domine toutes les tailles** : fused 512 = **0.5059**, quasiment le
+   niveau de **R2 entraîné** (0.508 @ 1024) — **sans aucun entraînement** (gelé +
+   sonde). Le pré-entraînement iNat plantes est bien plus adapté à la toundra que
+   DINOv3-LVD frozen (+0.033 vs ViT-B @512).
+2. **Le Δcontexte de SimB est le plus grand (+0.034 @512)**, et son **contexte seul
+   (0.4931)** est très au-dessus des autres (0.44-0.46) : SimDINOv2-B décode le
+   voisinage incomparablement mieux.
+3. **Le pattern 512 > 1024 ≫ 2048 est robuste** aux 4 backbones — confirme la lecture
+   « contexte large = contexte flou » (le 2048, lissé par le resize 224, n'apporte
+   rien : Δctx ≈ 0 voire négatif).
+4. **Le permuté reste ≈ tile (0.46-0.48)** pour tous → le gain vient bien de
+   l'appariement spatial (contrôle Bouguessa n°2 validé aussi multi-backbones).
+
+## Prochaine étape logique
+
+**SimDINOv2-L** (300 M, même pré-entraînement iNat) : SimB battant ViT-L de +0.03,
+un SimL frozen pourrait franchir **0.51** — résultat fort : « contexte + iNat ≥
+fine-tuning LoRA ». Relance du job multi-modèles pour ce seul modèle :
+`sbatch scripts/slurm_context_frozen_models.sh "simdinov2_vitl16|frozen_simdinov2_vitl16.yaml|/scratch/lmague/checkpoints/simdinov2_vitl_inat21plantae.pth"`
