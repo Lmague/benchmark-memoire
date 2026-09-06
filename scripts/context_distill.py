@@ -331,9 +331,12 @@ def ema_update(pairs, momentum: float) -> None:
 
 
 def student_forward(classifier, proj, scale_mlp, x, log_scale):
-    """Design A : ``(logits, proj_out, feat_tuile)``. ``log_scale`` : tenseur ``(B, 1)``."""
+    """Design A : ``(logits, proj_out, feat_tuile)``. ``log_scale`` : tenseur ``(B, 1)``.
+    ``proj=None`` (λ=0) → ``proj_out=None`` : pas de branche de distillation."""
     feat = classifier._forward_fn(classifier.backbone, x)
     logits = classifier.head(feat)
+    if proj is None:
+        return logits, None, feat
     se = scale_mlp(log_scale)
     proj_out = proj(_torch_cat(feat, se))
     return logits, proj_out, feat
@@ -344,10 +347,13 @@ def student_forward_fused(classifier, proj, scale_mlp, tile, ctx, log_scale):
     (poids partagés, deux forwards), concatène les deux CLS pour la classification.
     La branche de distillation reste identique à Design A (seule ``feat_tile`` est
     projetée et comparée au teacher) — cf. docstring module §Design B.
+    ``proj=None`` (λ=0) → ``proj_out=None`` : pas de branche de distillation.
     """
     feat_tile = classifier._forward_fn(classifier.backbone, tile)
     feat_ctx = classifier._forward_fn(classifier.backbone, ctx)
     logits = classifier.head(_torch_cat(feat_tile, feat_ctx))
+    if proj is None:
+        return logits, None, feat_tile, feat_ctx
     se = scale_mlp(log_scale)
     proj_out = proj(_torch_cat(feat_tile, se))
     return logits, proj_out, feat_tile, feat_ctx
@@ -392,9 +398,9 @@ def train_one_epoch(classifier, proj, scale_mlp, teacher, teacher_fwd, loader, o
                     ema_pairs=None, ema_momentum: float = 0.999, log_every: int = 50):
     import torch
     classifier.train()
-    proj.train()
-    scale_mlp.train()
-    teacher.eval()  # même en mode EMA : le teacher n'est jamais mis à jour par backprop
+    if proj is not None:
+        proj.train()
+        scale_mlp.train()
 
     total_cls, total_dist, n = 0.0, 0.0, 0
     t0 = time.time()
@@ -406,8 +412,12 @@ def train_one_epoch(classifier, proj, scale_mlp, teacher, teacher_fwd, loader, o
         if tile.shape[0] != log_scale.shape[0]:
             log_scale = torch.full((tile.shape[0], 1), log_scale_value, device=device)
 
-        with torch.no_grad(), torch.autocast(device_type=device.type, dtype=torch.bfloat16):
-            teacher_feat = teacher_fwd(teacher, ctx).float()
+        # λ<=0 → pas de teacher du tout (teacher=None) : aucun forward de distillation,
+        # entraînement purement supervisé (fusion seule) — cf. main().
+        teacher_feat = None
+        if teacher is not None:
+            with torch.no_grad(), torch.autocast(device_type=device.type, dtype=torch.bfloat16):
+                teacher_feat = teacher_fwd(teacher, ctx).float()
 
         optimizer.zero_grad(set_to_none=True)
         with torch.autocast(device_type=device.type, dtype=torch.bfloat16):
@@ -417,8 +427,12 @@ def train_one_epoch(classifier, proj, scale_mlp, teacher, teacher_fwd, loader, o
             else:
                 logits, proj_out, _feat = student_forward(classifier, proj, scale_mlp, tile, log_scale)
             loss_cls = criterion_cls(logits, y)
-            loss_dist = distill_loss(proj_out.float(), teacher_feat, distill_kind)
-            loss = loss_cls + lambda_distill * loss_dist
+            if proj_out is not None and teacher_feat is not None:
+                loss_dist = distill_loss(proj_out.float(), teacher_feat, distill_kind)
+                loss = loss_cls + lambda_distill * loss_dist
+            else:
+                loss_dist = None
+                loss = loss_cls
         loss.backward()
         if grad_clip > 0:
             params = [p for g in optimizer.param_groups for p in g["params"]]
@@ -430,11 +444,12 @@ def train_one_epoch(classifier, proj, scale_mlp, teacher, teacher_fwd, loader, o
             scheduler.step()
 
         total_cls += loss_cls.item()
-        total_dist += loss_dist.item()
+        total_dist += (loss_dist.item() if loss_dist is not None else 0.0)
         n += 1
         if log_every and i % log_every == 0:
-            print(f"    batch {i:>5}/{len(loader)} loss_cls={loss_cls.item():.4f} "
-                  f"loss_distill={loss_dist.item():.4f} ({time.time() - t0:.0f}s)", flush=True)
+            d_str = f"loss_distill={loss_dist.item():.4f} " if loss_dist is not None else ""
+            print(f"    batch {i:>5}/{len(loader)} loss_cls={loss_cls.item():.4f} {d_str}"
+                  f"({time.time() - t0:.0f}s)", flush=True)
     return total_cls / max(1, n), total_dist / max(1, n)
 
 
@@ -668,8 +683,20 @@ def main() -> None:
     classifier = classifier.to(device)
 
     # ── Teacher : externe gelé OU copie EMA du student (APRÈS classifier.to(device),
-    # cf. docstring build_ema_teacher — évite tout risque lié à Module.to()) ───────
-    if args.teacher == "ema_self":
+    # cf. docstring build_ema_teacher — évite tout risque lié à Module.to()).
+    # λ<=0 → AUCUN teacher : la distillation est désactivée (entraînement purement
+    # supervisé sur la tête [tuile]+[contexte] sous Design B). Le contexte est alors
+    # normalisé avec la norme du STUDENT au train comme à l'éval (cohérent par
+    # construction — pas de teacher, pas de skew possible). ──────────────────────
+    if args.lambda_distill <= 0:
+        teacher = None
+        teacher_fwd = None
+        teacher_dim = None
+        teacher_norm_key = cfg.model.norm
+        ema_pairs = None
+        print("[context_distill] lambda_distill<=0 → AUCUN teacher (pas de distillation, "
+              "fusion seule). Contexte normalisé avec la norme student.")
+    elif args.teacher == "ema_self":
         teacher_dim = embed_dim
         teacher_norm_key = cfg.model.norm
         teacher, ema_pairs = build_ema_teacher(classifier)
@@ -690,21 +717,27 @@ def main() -> None:
     # danger tant qu'elles coïncident (DINOv3-B+DINOv3-L = ImageNet ; SimB+SimL =
     # simdino_inat). Avec un teacher hors famille (ex. DINOv3-L + student SimDINOv2),
     # le même tenseur de contexte serait vu dans deux espaces différents → skew.
-    if args.design == "B" and args.teacher != "ema_self" and teacher_norm_key != cfg.model.norm:
+    if (args.design == "B" and args.lambda_distill > 0
+            and args.teacher != "ema_self" and teacher_norm_key != cfg.model.norm):
         raise ValueError(
             f"Design B : norme du teacher ({teacher_norm_key!r}) ≠ norme du student "
             f"({cfg.model.norm!r}) — le contexte serait normalisé differemment au train "
             "et à l'éval (skew). Choisir un teacher de la MÊME famille de normalisation "
-            "(ex. simdinov2_vitl16 pour un student simdinov2_vitb16, ou --teacher ema_self).")
+            "(ex. simdinov2_vitl16 pour un student simdinov2_vitb16, ou --teacher ema_self, "
+            "ou --lambda-distill 0 pour désactiver toute distillation).")
 
-    # ── Tête de projection (branche distillation), dimensionnée sur teacher_dim ──
-    proj, scale_mlp = build_projection_head(embed_dim, teacher_dim)
-    proj = proj.to(device)
-    scale_mlp = scale_mlp.to(device)
-    groups = dict(groups)
-    groups["proj"] = list(proj.parameters()) + list(scale_mlp.parameters())
-
-    all_params = list(classifier.parameters()) + list(proj.parameters()) + list(scale_mlp.parameters())
+    # ── Tête de projection (branche distillation), dimensionnée sur teacher_dim.
+    # λ<=0 → aucune tête de projection (pas de distillation) : proj/scale_mlp = None. ──
+    if args.lambda_distill > 0:
+        proj, scale_mlp = build_projection_head(embed_dim, teacher_dim)
+        proj = proj.to(device)
+        scale_mlp = scale_mlp.to(device)
+        groups = dict(groups)
+        groups["proj"] = list(proj.parameters()) + list(scale_mlp.parameters())
+        all_params = list(classifier.parameters()) + list(proj.parameters()) + list(scale_mlp.parameters())
+    else:
+        proj, scale_mlp = None, None
+        all_params = list(classifier.parameters())
     n_total = sum(p.numel() for p in all_params)
     n_train = sum(p.numel() for p in all_params if p.requires_grad)
     print(f"[context_distill] student params total={n_total:,} entraînables={n_train:,} "
@@ -776,8 +809,8 @@ def main() -> None:
                 "epoch": epoch,
                 "tag": tag,
                 "model_state_dict": classifier.state_dict(),  # backbone.*/head.* pur, cf. build_projection_head
-                "proj_state_dict": proj.state_dict(),
-                "scale_mlp_state_dict": scale_mlp.state_dict(),
+                "proj_state_dict": proj.state_dict() if proj is not None else None,
+                "scale_mlp_state_dict": scale_mlp.state_dict() if scale_mlp is not None else None,
                 "best_metric": best_metric, "metric_name": metric_name, "history": history,
                 "context_size": args.context_size, "design": args.design, "teacher": args.teacher,
             }, best_ckpt)
@@ -789,8 +822,8 @@ def main() -> None:
             break
 
     torch.save({"tag": tag, "model_state_dict": classifier.state_dict(),
-               "proj_state_dict": proj.state_dict(),
-               "scale_mlp_state_dict": scale_mlp.state_dict(),
+               "proj_state_dict": proj.state_dict() if proj is not None else None,
+               "scale_mlp_state_dict": scale_mlp.state_dict() if scale_mlp is not None else None,
                "history": history}, last_ckpt)
     if not _os.path.exists(best_ckpt):
         best_ckpt = last_ckpt

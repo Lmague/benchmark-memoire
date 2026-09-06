@@ -521,3 +521,40 @@ contexte optimal. Notre Arctic-TVC est du drone VHR (~1,5 mm/px) → se range c�
 Cipó : **512px = meilleur contexte ; 2048px dégrade la discriminabilité** (appui indépendant
 à la courbe 512>1024≫2048 observée sur les 5 backbones frozen et à la décision de n'affiner
 que @512).
+
+## 18ter. Résultats SimB@512 entraîné (Design B) + variante SANS teacher (λ=0)
+
+Premier run réel (job 2549240, 2026-09, 3 seeds séquentiels, teacher SimL, λ=1.0) :
+
+| seed | f1_macro_pres_test | best_C |
+|---|---|---|
+| 0 | 0.5028 | 0.001 |
+| 1 | 0.5043 | 0.001 |
+| 2 | (à compléter) | |
+
+**Lecture** : le fine-tuning + distillation **n'a pas battu le frozen SimB@512 (0.5059, seed0,
+sans entraînement)** — moyenne 2 seeds ≈ 0.5036, écart < σ inter-seed (≈0.008, AGENTS.md §4.4).
+Constat cohérent avec le §18 et la question « le teacher est-il utile ? » :
+- **En Design B, la distillation est INERTE** : la loss distill plafonne (~0.12-0.13) sans
+  aider la classification (val F1 stagne → early stop 15-20/50 epochs). Le teacher SimL a
+  coûté un forward ViT-L gelé par batch pour zéro gain.
+- **SimDINOv2-B frozen est déjà au plafond** (0.5059) — beaucoup moins de marge que
+  DINOv3-B (frozen 0.4953 → R2 entraîné 0.508, +0.013). Résultat négatif UTILE pour le
+  manuscrit : « contexte + iNat frozen ≈ meilleure fusion entraînée, à coût GPU nul ».
+
+**Conséquence pipeline** (patché 2026-09) : `--lambda-distill ≤ 0` désactive **vraiment** le
+teacher — plus de chargement du .pth, plus de forward de distillation, plus de tête proj
+(`teacher=None`, `proj=None`) ; le contexte est alors normalisé avec la norme student au
+train comme à l'éval (cohérent par construction). `slurm_context_distill.sh` accepte
+**$5=λ** et **$6=lora_rank** (alpha=2r automatique) :
+
+```bash
+# SANS teacher — prouver que λ=0 ≥ λ=1 en Design B (le vrai test de l'utilité du teacher)
+sbatch scripts/slurm_context_distill.sh 512 B simdinov2_vitl16 \
+       configs/context_distill_simdinov2b.yaml 0
+
+# Avec LoRA r=8 au lieu de r=2 (r=2 vient de l'ablation DINOv3 ; SimDINOv2 pourrait
+# avoir besoin de plus de capacité — cf. configs/simdinov2_vitb16_lora.yaml, r=8)
+sbatch scripts/slurm_context_distill.sh 512 B simdinov2_vitl16 \
+       configs/context_distill_simdinov2b.yaml 1.0 8
+```

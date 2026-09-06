@@ -49,6 +49,15 @@
 #     dans le config: context_distill_simdinov2b.yaml) :
 #        sbatch scripts/slurm_context_distill.sh 512 B simdinov2_vitl16 \
 #               configs/context_distill_simdinov2b.yaml
+#   - Même expérience SANS distillation (λ=0 — AUCUN teacher chargé, fusion seule,
+#     pour prouver que le teacher n'apporte rien en Design B ; cf. README §18ter) :
+#        sbatch scripts/slurm_context_distill.sh 512 B simdinov2_vitl16 \
+#               configs/context_distill_simdinov2b.yaml 0
+#   - Même expérience avec LoRA r=8 (override cfg.lora.r, alpha=2r) :
+#        sbatch scripts/slurm_context_distill.sh 512 B simdinov2_vitl16 \
+#               configs/context_distill_simdinov2b.yaml 1.0 8
+#   Usage paramètres : $1=context_size $2=design $3=teacher $4=config $5=lambda
+#   $6=lora_rank (vide = config).
 #   - Extension optionnelle, hors tableau (effet de la taille de contexte, comparée
 #     à la baseline spatiale F1=0.4827±0.0042, frac100 LoRA r=8, mesuré 2026-08-29
 #     depuis results/spatial_datacurve_CANONICAL.csv, cf. README §3) :
@@ -82,6 +91,8 @@ CONTEXT_SIZE="${1:-1024}"
 DESIGN="${2:-A}"
 TEACHER="${3:-dinov3_vitl16_lvd}"
 CONFIG="${4:-configs/context_distill_dinov3b.yaml}"
+LAMBDA_DISTILL="${5:-1.0}"      # λ de distillation ; 0 = AUCUN teacher (fusion seule)
+LORA_RANK="${6:-}"              # override cfg.lora.r (vide = config) ; alpha=2r automatique
 CODE_DIR="$HOME/benchmark-memoire"
 VENV="$HOME/ENV/bin/activate"
 OUT_DIR="$SCRATCH/context_distill"
@@ -175,13 +186,24 @@ EOF
     echo ""
     echo "─── seed=$SEED context_size=$CONTEXT_SIZE design=$DESIGN teacher=$TEACHER ───"
 
+    # λ=0 → AUCUN teacher : inutile de charger le .pth SimL ni de forwarder (plus
+    # rapide ET preuve que le teacher est inerte en Design B — cf. README §18ter).
+    if [[ "$LAMBDA_DISTILL" != "0" && "$TEACHER" == "simdinov2_vitl16" ]]; then
+        grep -q "teacher_checkpoint:" "$CONFIG" || {
+            echo "[WARN] teacher SimL : config $CONFIG sans clé teacher_checkpoint — "
+            echo "       context_distill.py lèvera une erreur au chargement." >&2
+        }
+    fi
+
     python scripts/context_distill.py \
         --config "$CFG_OVERRIDE" \
         --teacher "$TEACHER" \
+        --lambda-distill "$LAMBDA_DISTILL" \
         --context-size "$CONTEXT_SIZE" \
         --context-dir "$CONTEXT_DIR" \
         --design "$DESIGN" \
         "${EMA_ARGS[@]}" \
+        ${LORA_RANK:+--lora-rank "$LORA_RANK"} \
         --seed "$SEED" \
         --out-dir "$OUT_DIR" \
         --skip-if-done
