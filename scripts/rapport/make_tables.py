@@ -1318,6 +1318,25 @@ def t_ctx_controls():
     contexte permuté (5 réplicats), 3 seeds — sonde canonique sur sig_embeddings."""
     import statistics
     base = p("results", "context_distill", "controls_bouguessa")
+    need = [f"r2_dB_tL_seed{s}_{v}.json"
+            for s in (0, 1, 2) for v in ("fused", "tile", "ctx")] + \
+           [f"r2_dB_tL_seed{s}_fused_ctxperm{q}.json"
+            for s in (0, 1, 2) for q in range(5)]
+    missing = [f for f in need if not os.path.exists(os.path.join(base, f))]
+    if missing:
+        # Contrôles recalculables en local (sig_embeddings présents) :
+        # python3 scripts/context_bouguessa_controls.py --workers 2
+        write("t_ctx_controls",
+              ["\\begin{table}[htbp]", "\\centering",
+               "\\caption{Contrôles Bouguessa sur R2 --- calcul en cours "
+               "(\\texttt{scripts/context\\_bouguessa\\_controls.py}) ; "
+               f"{len(missing)}/{len(need)} fichiers manquants. Valeurs publiées "
+               "dans \\texttt{results/context\\_distill/CONTROLES\\_BOUGUESSA.md}.}",
+               "\\begin{tabular}{@{}l@{}}", "\\toprule",
+               "En attente \\\\", "\\bottomrule", "\\end{tabular}"],
+              "\\texttt{results/context\\_distill/controls\\_bouguessa/}.")
+        print(f"  [ATTENTE] t_ctx_controls : {len(missing)} fichiers manquants")
+        return
     rec = {}
     for s in (0, 1, 2):
         rec[(s, "fused")] = json.load(open(os.path.join(
@@ -1381,13 +1400,15 @@ def t_ctx_sweep():
             for var in ("fused", "tile", "ctx"):
                 fp = os.path.join(base, f"frozen_{key}_ctx{size}_seed0_{var}.json")
                 if not os.path.exists(fp) and key == "dinov3_vitb16_lvd":
-                    fp = p("results", "context_distill", "controls",
-                           f"frozen_ctx{size}_seed0_{var}.json")
+                    # Première campagne (size_sweep) : pas d'infixe modèle = DINOv3-B.
+                    fp = os.path.join(base, f"frozen_ctx{size}_seed0_{var}.json")
                 if os.path.exists(fp):
                     rec[var] = json.load(open(fp))["f1_macro_pres_test"]
             perms = []
             for q in range(3):
                 fp = os.path.join(base, f"frozen_{key}_ctx{size}_seed0_fused_ctxperm{q}.json")
+                if not os.path.exists(fp) and key == "dinov3_vitb16_lvd":
+                    fp = os.path.join(base, f"frozen_ctx{size}_seed0_fused_ctxperm{q}.json")
                 if os.path.exists(fp):
                     perms.append(json.load(open(fp))["f1_macro_pres_test"])
             rec["perm"] = (float(statistics.mean(perms))
@@ -1418,7 +1439,7 @@ def t_ctx_sweep():
     lines += ["\\bottomrule", "\\end{tabular}"]
     write("t_ctx_sweep", lines,
           "\\texttt{results/context\\_distill/controls\\_bouguessa/" 
-          "frozen\\_*.json} (+ \\texttt{controls/frozen\\_ctx*.json} pour DINOv3-B).")
+          "frozen\\_*.json} (DINOv3-B = fichiers sans infixe modèle, première campagne).")
 
 
 def t_simb_ablation():
@@ -1486,8 +1507,12 @@ def t_simb_ablation():
         if k in ("simdinov2_vitb16_lora_r8_qkv",
                  "simdinov2_vitb16_lora_r8_b911"):
             f1 = "\\textbf{" + f1 + "}"
-        lines.append(" & ".join([esc(spec), f1, sd,
-                                  str(a.get("best_C_mode", "---")).replace(".0", ""),
+        _bc = a.get("best_C_mode", "")
+        try:
+            _bc_txt = num(float(_bc)) if _bc not in ("", None) else "---"
+        except (TypeError, ValueError):
+            _bc_txt = str(_bc)
+        lines.append(" & ".join([esc(spec), f1, sd, _bc_txt,
                                   (num(float(a["best_epoch_mean"]), 0)
                                    if a.get("best_epoch_mean") else "---"),
                                   thousands(budget)]) + " \\\\")
