@@ -1,0 +1,915 @@
+{
+  "pipeline": "Probe canonique LR lbfgs, C_grid [1e-4..10], seed=42, max_iter=2000, multi_class=multinomial",
+  "schema": "11cls (RHOL exclue)",
+  "n_models": 44,
+  "date": "2026-09-07",
+  "models": [
+    {
+      "model": "ctxdistill_dB_tL",
+      "type": "ft_fresh",
+      "display": "Contexte R2 (distil. B, fusion 1536)",
+      "f1_linear_probe": 0.508,
+      "f1_std": 0.0013,
+      "f1_seeds": [
+        0.5098,
+        0.507,
+        0.5071
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 1536,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.508
+    },
+    {
+      "model": "ctxdistill_dB_tSL_r8a16",
+      "type": "ft_fresh",
+      "display": "Contexte SimB (B, fusion 512, r8a16)",
+      "f1_linear_probe": 0.5056864288456997,
+      "f1_std": 0.007181566174082784,
+      "f1_seeds": [
+        0.5139245300453855,
+        0.5023890589505903,
+        0.5007456975411233
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 1536,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.5056864288456997
+    },
+    {
+      "model": "ctxdistill_dB_tSL_r2a4",
+      "type": "ft_fresh",
+      "display": "Contexte SimB (B, fusion 512, r2a4)",
+      "f1_linear_probe": 0.5029715042363316,
+      "f1_std": 0.0012271865983015506,
+      "f1_seeds": [
+        0.5027587566958032,
+        0.5042911548958715,
+        0.5018646011173203
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 1536,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.5029715042363316
+    },
+    {
+      "model": "ctxdistill_dA_tL",
+      "type": "ft_fresh",
+      "display": "Contexte R1 (distil. A, tuile 768)",
+      "f1_linear_probe": 0.487,
+      "f1_std": 0.0011,
+      "f1_seeds": [
+        0.4855,
+        0.4874,
+        0.488
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.487
+    },
+    {
+      "model": "ctxdistill_dA_tEMA",
+      "type": "ft_fresh",
+      "display": "Contexte R3 (distil. A, EMA)",
+      "f1_linear_probe": 0.4836,
+      "f1_std": 0.0014,
+      "f1_seeds": [
+        0.4854,
+        0.4835,
+        0.4819
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.4836
+    },
+    {
+      "model": "simdinov2_vitl16_lora",
+      "type": "ft_fresh",
+      "display": "SimDINOv2 ViT-L/16 LoRA r=8",
+      "f1_linear_probe": 0.48351473635539105,
+      "f1_std": 0.00680116179441355,
+      "f1_seeds": [
+        0.48104841360508704,
+        0.4782908286723488,
+        0.4912049667887374
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 1024,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.48351473635539105
+    },
+    {
+      "model": "dinov3_vitb16_lvd_lora_r8",
+      "type": "ft_fresh",
+      "display": "DINOv3 ViT-B/16 LoRA r=8",
+      "f1_linear_probe": 0.4835,
+      "f1_std": 0.0011,
+      "f1_seeds": [
+        0.4845,
+        0.4836,
+        0.4822
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.48345755897464043
+    },
+    {
+      "model": "dinov3_vitb16_lvd_explora",
+      "type": "ft_fresh",
+      "display": "DINOv3 ViT-B/16 ExPLoRA",
+      "f1_linear_probe": 0.4816298513998712,
+      "f1_std": 0.005447653798462923,
+      "f1_seeds": [
+        0.48432718833423344,
+        0.48514947723274093,
+        0.4754128886326397
+      ],
+      "silhouette_score": 0.036915772530007294,
+      "silhouette_std": 0.002408101181209126,
+      "nc1": 2.7713590760992006,
+      "nc2_deviation_etf": 0.6265573617937698,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.4816298513998712
+    },
+    {
+      "model": "dinov3_vith16plus_lvd",
+      "type": "frozen",
+      "f1_linear_probe": 0.48046029368423665,
+      "silhouette_score": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 1280,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "display": "DINOv3 ViT-H+/16 LVD"
+    },
+    {
+      "model": "simdinov2_vitb16_lora_r8_b911",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B LoRA r8 (blocs 9-11)",
+      "f1_linear_probe": 0.48042529942881446,
+      "f1_std": 0.0001605696199882676,
+      "f1_seeds": [
+        0.48033817634292025,
+        0.48061059938854184,
+        0.4803271225549813
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.48042529942881446
+    },
+    {
+      "model": "simdinov2_vitb16_lora_r8_b611",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B LoRA r8 (blocs 6-11)",
+      "f1_linear_probe": 0.4802315369281615,
+      "f1_std": 0.0027181579509449366,
+      "f1_seeds": [
+        0.48277917707389145,
+        0.48054533453981124,
+        0.47737009917078177
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.4802315369281615
+    },
+    {
+      "model": "dinov3_vitb16_lvd_mhsa",
+      "type": "ft_fresh",
+      "f1_linear_probe": 0.47997590269636875,
+      "f1_std": 0.001961477768451594,
+      "f1_seeds": [
+        0.48210110058472827,
+        0.4795915702835865,
+        0.47823503722079147
+      ],
+      "silhouette_score": 0.040584370493888855,
+      "silhouette_std": 0.006766936850713055,
+      "nc1": 2.2969377267994835,
+      "nc2_deviation_etf": 0.650231333030198,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "display": "DINOv3 ViT-B/16 MHSA"
+    },
+    {
+      "model": "dinov3_vitl16_lvd_lora",
+      "type": "ft_fresh",
+      "display": "DINOv3 ViT-L/16 LoRA r=8",
+      "f1_linear_probe": 0.4798996717913939,
+      "f1_std": 0.0029979683321584155,
+      "f1_seeds": [
+        0.47773784525814095,
+        0.47863906981128007,
+        0.4833221003047607
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 1024,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.4798996717913939
+    },
+    {
+      "model": "simdinov2_vitb16_lora_r2",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B LoRA r2",
+      "f1_linear_probe": 0.47929498810753124,
+      "f1_std": 0.002395178754837351,
+      "f1_seeds": [
+        0.4777046318300128,
+        0.48204974692861574,
+        0.4781305855639651
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.47929498810753124
+    },
+    {
+      "model": "dinov3_vitl16_lvd",
+      "type": "frozen",
+      "f1_linear_probe": 0.4792139302399709,
+      "silhouette_score": 0.011070538312196732,
+      "nc1": 3.476427480407807,
+      "nc2_deviation_etf": 0.9680304286199243,
+      "dim": 1024,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "display": "DINOv3 ViT-L/16 LVD"
+    },
+    {
+      "model": "simdinov2_vitb16_lora_r8_qkv",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B LoRA r8 (Q+K+V)",
+      "f1_linear_probe": 0.47879263502661296,
+      "f1_std": 0.0015317810663071716,
+      "f1_seeds": [
+        0.47704051445122403,
+        0.47945915211572737,
+        0.4798782385128875
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.47879263502661296
+    },
+    {
+      "model": "dinov3_vitb16_lvd_full",
+      "type": "ft_fresh",
+      "f1_linear_probe": 0.4786467342093253,
+      "f1_std": 0.0026732549346668234,
+      "f1_seeds": [
+        0.4767246749648701,
+        0.4816995473149287,
+        0.47751598034817716
+      ],
+      "silhouette_score": 0.03583006809155146,
+      "silhouette_std": 0.00245706621359202,
+      "nc1": 2.4432719550635245,
+      "nc2_deviation_etf": 0.7111288173980025,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "display": "DINOv3 ViT-B/16 Full"
+    },
+    {
+      "model": "simdinov2_vitb16_lora_r4",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B LoRA r4",
+      "f1_linear_probe": 0.4785255717634345,
+      "f1_std": 0.00488591584180978,
+      "f1_seeds": [
+        0.47432948772547046,
+        0.48388962552045506,
+        0.47735760204437816
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.4785255717634345
+    },
+    {
+      "model": "simdinov2_vitb16_norm_tuning",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B NormTuning",
+      "f1_linear_probe": 0.4782796646034945,
+      "f1_std": 0.00040241336290344136,
+      "f1_seeds": [
+        0.4778282506482096,
+        0.4786007948244993,
+        0.4784099483377746
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.4782796646034945
+    },
+    {
+      "model": "simdinov2_vitb16_full",
+      "type": "ft_fresh",
+      "f1_linear_probe": 0.4781627498055189,
+      "f1_std": 0.007426083454741177,
+      "f1_seeds": [
+        0.4828795175957917,
+        0.48200604243260337,
+        0.46960268938816174
+      ],
+      "silhouette_score": 0.02045677105585734,
+      "silhouette_std": 0.0010021306552486738,
+      "nc1": 3.744791734516094,
+      "nc2_deviation_etf": 0.6791806407431217,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "display": "SimDINOv2 ViT-B/16 Full"
+    },
+    {
+      "model": "simdinov2_vitb16_lora",
+      "type": "ft_fresh",
+      "display": "SimDINOv2 ViT-B/16 LoRA r=8",
+      "f1_linear_probe": 0.47806437689161124,
+      "f1_std": 0.0027509240501811093,
+      "f1_seeds": [
+        0.4760814900852624,
+        0.48120493710519185,
+        0.47690670348437936
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.47806437689161124
+    },
+    {
+      "model": "dinov3_vits16_lvd_lora_r8",
+      "type": "ft_fresh",
+      "f1_linear_probe": 0.477356,
+      "f1_std": 0.002167,
+      "f1_seeds": [
+        0.479529,
+        0.475194,
+        0.477344
+      ],
+      "silhouette_score": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 384,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "display": "DINOv3 ViT-S/16 LoRA r=8"
+    },
+    {
+      "model": "simdinov2_vitb16_lora_r8_b05",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B LoRA r8 (blocs 0-5)",
+      "f1_linear_probe": 0.47700297081984333,
+      "f1_std": 0.0023979709465699974,
+      "f1_seeds": [
+        0.4743264300474188,
+        0.478955539000904,
+        0.4777269434112073
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.47700297081984333
+    },
+    {
+      "model": "simdinov2_vitb16_lora_r16",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B LoRA r16",
+      "f1_linear_probe": 0.47689598831363783,
+      "f1_std": 0.0015644288450439427,
+      "f1_seeds": [
+        0.4753888449518405,
+        0.4785120139216817,
+        0.47678710606739133
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.47689598831363783
+    },
+    {
+      "model": "simdinov2_vitb16_lora_r8_s2",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B LoRA r8 (scaling 2)",
+      "f1_linear_probe": 0.4760162604863431,
+      "f1_std": 0.00181151004196512,
+      "f1_seeds": [
+        0.4747041618774228,
+        0.478083113307418,
+        0.47526150627418845
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.4760162604863431
+    },
+    {
+      "model": "simdinov2_vitl16",
+      "type": "frozen",
+      "f1_linear_probe": 0.47600071743326294,
+      "silhouette_score": 0.008524691686034203,
+      "nc1": 3.9130280721205426,
+      "nc2_deviation_etf": 0.8709029929499891,
+      "dim": 1024,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "display": "SimDINOv2 ViT-L/16"
+    },
+    {
+      "model": "simdinov2_vitb16_lora_r8_rslora",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B LoRA r8 (rsLoRA)",
+      "f1_linear_probe": 0.47533389937987575,
+      "f1_std": 0.002264893659270229,
+      "f1_seeds": [
+        0.47496579937183087,
+        0.4777602963855598,
+        0.4732756023822367
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.47533389937987575
+    },
+    {
+      "model": "simdinov2_vitb16_lora_r32",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B LoRA r32",
+      "f1_linear_probe": 0.47500561568178323,
+      "f1_std": 0.0016808264308325108,
+      "f1_seeds": [
+        0.47458699229241824,
+        0.4768561901019282,
+        0.4735736646510032
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.47500561568178323
+    },
+    {
+      "model": "simdinov2_vitb16_lora_r16_s2",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B LoRA r16 (scaling 2)",
+      "f1_linear_probe": 0.47488015212447166,
+      "f1_std": 0.002647684873966167,
+      "f1_seeds": [
+        0.4751264341330961,
+        0.4773960912763881,
+        0.4721179309639307
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.47488015212447166
+    },
+    {
+      "model": "simdinov2_vitb16_lora_r16_rslora",
+      "type": "ft_fresh",
+      "display": "SimDINOv2-B LoRA r16 (rsLoRA)",
+      "f1_linear_probe": 0.47365140722315896,
+      "f1_std": 0.003511837173623795,
+      "f1_seeds": [
+        0.47674895400571005,
+        0.47436910758674494,
+        0.4698361600770218
+      ],
+      "best_C": [
+        0.001,
+        0.001,
+        0.001
+      ],
+      "silhouette_score": null,
+      "silhouette_std": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "f1_macro_all": 0.47365140722315896
+    },
+    {
+      "model": "simdinov2_vitb16",
+      "type": "frozen",
+      "f1_linear_probe": 0.47225573315523817,
+      "silhouette_score": 0.008605190552771091,
+      "nc1": 3.6011536512815874,
+      "nc2_deviation_etf": 0.9099113436748408,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "display": "SimDINOv2 ViT-B/16"
+    },
+    {
+      "model": "dinov3_vitb16_lvd",
+      "type": "frozen",
+      "f1_linear_probe": 0.47121235368306935,
+      "silhouette_score": 0.006557005923241377,
+      "nc1": 3.8421320073760503,
+      "nc2_deviation_etf": 0.9644211978328074,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "display": "DINOv3 ViT-B/16 LVD"
+    },
+    {
+      "model": "vitb16_full_old",
+      "type": "ft_old",
+      "display": "ViT-B/16 IN-Full",
+      "f1_linear_probe": 0.47078365708818987,
+      "f1_std": 0.007949326824106916,
+      "f1_seeds": [
+        0.4616848110728125,
+        0.4763819117543463,
+        0.47428424843741085
+      ],
+      "silhouette_score": 0.019006864167749882,
+      "nc1": 2.811939498734855,
+      "nc2_deviation_etf": 0.7985993458555288,
+      "dim": 768,
+      "n_seeds": 3
+    },
+    {
+      "model": "simdinov2_vitb16_mhsa",
+      "type": "ft_fresh",
+      "f1_linear_probe": 0.4691083478266487,
+      "f1_std": 0.0022128720962112354,
+      "f1_seeds": [
+        0.4689599357374584,
+        0.47139169019637794,
+        0.46697341754610977
+      ],
+      "silhouette_score": 0.021083315834403038,
+      "silhouette_std": 0.0014752427612567693,
+      "nc1": 3.2812019429155725,
+      "nc2_deviation_etf": 0.7529454265490328,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3,
+      "display": "SimDINOv2 ViT-B/16 MHSA"
+    },
+    {
+      "model": "dinov3_vits16_lvd",
+      "type": "frozen",
+      "f1_linear_probe": 0.4689,
+      "silhouette_score": null,
+      "nc1": null,
+      "nc2_deviation_etf": null,
+      "dim": 384,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "display": "DINOv3 ViT-S/16 LVD"
+    },
+    {
+      "model": "vitb16_mhsa_old",
+      "type": "ft_old",
+      "display": "ViT-B/16 IN-MHSA",
+      "f1_linear_probe": 0.46887154938359094,
+      "f1_std": 0.004983680785124098,
+      "f1_seeds": [
+        0.4662102762919279,
+        0.4746209293386631,
+        0.4657834425201818
+      ],
+      "silhouette_score": 0.014661939814686775,
+      "nc1": 2.2576244860413595,
+      "nc2_deviation_etf": 0.7676380496876983,
+      "dim": 768,
+      "n_seeds": 3
+    },
+    {
+      "model": "vitb16_explora_old",
+      "type": "ft_old",
+      "display": "ViT-B/16 IN-ExPLoRA (\u2260 exclu)",
+      "f1_linear_probe": 0.4668004385269178,
+      "f1_std": 0.013869897001073888,
+      "f1_seeds": [
+        0.4508628882831456,
+        0.47613666090220136,
+        0.47340176639540665
+      ],
+      "silhouette_score": 0.01553801354020834,
+      "nc1": 2.3954874164123563,
+      "nc2_deviation_etf": 0.6996151142643385,
+      "dim": 768,
+      "n_seeds": 3
+    },
+    {
+      "model": "dinov3_vitl16_sat",
+      "type": "frozen",
+      "f1_linear_probe": 0.46204819824639976,
+      "silhouette_score": -0.0080382339656353,
+      "nc1": 3.3571734379166243,
+      "nc2_deviation_etf": 1.0583836595124185,
+      "dim": 1024,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "display": "DINOv3 ViT-L/16 SAT"
+    },
+    {
+      "model": "resnet50_fulft_sota",
+      "type": "ft_old",
+      "display": "ResNet-50 IN-FT",
+      "f1_linear_probe": 0.4571249035280751,
+      "f1_std": 0.003347215657473675,
+      "f1_seeds": [
+        0.4537356428277782,
+        0.4604284268475363,
+        0.4572106409089108
+      ],
+      "silhouette_score": 0.01706653305639823,
+      "silhouette_std": 0.003388800856916138,
+      "nc1": 2.684035903489528,
+      "nc2_deviation_etf": 0.8283520956688516,
+      "dim": 2048,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "n_seeds": 3
+    },
+    {
+      "model": "vitb16_imagenet",
+      "type": "frozen",
+      "f1_linear_probe": 0.4499673184267636,
+      "silhouette_score": -0.010164545848965645,
+      "nc1": 3.6269453953576543,
+      "nc2_deviation_etf": 0.968783875551521,
+      "dim": 768,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "display": "ViT-B/16 IN-1k"
+    },
+    {
+      "model": "scalemae_vitl16",
+      "type": "frozen",
+      "f1_linear_probe": 0.44804610126842087,
+      "silhouette_score": -0.013273793272674084,
+      "nc1": 2.5730422856440094,
+      "nc2_deviation_etf": 1.0896409278967298,
+      "dim": 1024,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "display": "ScaleMAE ViT-L/16"
+    },
+    {
+      "model": "satmae_vitl16",
+      "type": "frozen",
+      "f1_linear_probe": 0.4091129384679247,
+      "silhouette_score": -0.021711524575948715,
+      "nc1": 2.88720002559578,
+      "nc2_deviation_etf": 1.0759222796669905,
+      "dim": 1024,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "display": "SatMAE ViT-L/16"
+    },
+    {
+      "model": "resnet50_imagenet",
+      "type": "frozen",
+      "f1_linear_probe": 0.40762026192794515,
+      "silhouette_score": -0.07996620237827301,
+      "nc1": 2.0400068892272443,
+      "nc2_deviation_etf": 0.9543439475404831,
+      "dim": 2048,
+      "n_train": 49281,
+      "n_test": 17598,
+      "n_classes": 11,
+      "display": "ResNet-50 IN-1k"
+    },
+    {
+      "model": "vitb16_scratch_old",
+      "type": "ft_old",
+      "display": "ViT-B/16 IN-Scratch",
+      "f1_linear_probe": 0.3561240179544176,
+      "f1_std": 0.01325831770006351,
+      "f1_seeds": [
+        0.37045214770680546,
+        0.34428967347365275,
+        0.35363023268279475
+      ],
+      "silhouette_score": -0.058996960520744324,
+      "nc1": 1.257319809799507,
+      "nc2_deviation_etf": 1.0453097225430257,
+      "dim": 768,
+      "n_seeds": 3
+    }
+  ]
+}
