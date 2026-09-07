@@ -1,0 +1,49 @@
+# SimDINOv2 ViT-B/16 (iNat21 Plantae) — Stage A bras rsLoRA, r=8 (TOUS les blocs).
+# Généré 2026-09-07. Base : configs/simdinov2_vitb16_lora.yaml (canonique r8a8 = 0.4781).
+#
+# rsLoRA (Kalajdzievski 2023, « The Impact of Scaling on LoRA » — PAS dans la biblio
+# Fusion, 2 fausses correspondances library_add le 2026-09-07) : le scaling LoRA
+# standard α/r fait décroître l'amplitude de l'adaptation quand r grandit ; rsLoRA
+# propose α/√r. Équivalent dans notre paramétrisation scaling = alpha/r :
+#   alpha = r^{3/2}  →  scaling = √r.
+# r=8 : alpha = 8^{3/2} = 22.627417 → scaling = 2.8284 = √8.
+# Comparaison à scaling fixé : r8a8 (s=1) < r8a16 (s=2) < r8_rslora (s=2.83).
+# Tag run : simdinov2_vitb16_lora_r8a22_frac100_seed{N} (int(alpha)=22, datacurve_one_run.py).
+checkpoint: "simdinov2_vitb_inat21plantae.pth"
+model:
+  name: simdinov2_vitb16
+  num_classes: 11
+  norm: simdino_inat
+
+regime: lora
+
+lora:
+  r: 8
+  alpha: 22.627417
+  target_modules: [q, v]
+  n_full_ft_blocks: 0
+  full_ft_block_indices: []
+  lora_block_indices: null
+  dropout: 0.0
+
+optim:
+  weight_decay: 0.05
+  lr:
+    lora: 1.0e-4
+    full_late: 5.0e-5
+    norm: 1.0e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]

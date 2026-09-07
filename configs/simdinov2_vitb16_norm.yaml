@@ -1,0 +1,33 @@
+# SimDINOv2 ViT-B/16 (iNat21 Plantae) — NormTuning (régime norm_tuning, ajouté 2026-09-07).
+# Baseline PEFT minimale : LayerNorms + head seulement (~0.03-0.1 % des params),
+# aucune LoRA. Référence littéraire : DEFLECT (Marti-Escofet et al., arXiv 2504.17397,
+# 2025) — NormTuning récupère la quasi-totalité du gap frozen→oracle sur 5 tâches RS.
+# Question : si NormTuning ≈ LoRA sur SimB, le plafond est informationnel.
+# Checkpoint : poids TEACHER pré-entraînés (même que simdinov2_vitb16_lora.yaml).
+checkpoint: "simdinov2_vitb_inat21plantae.pth"
+model:
+  name: simdinov2_vitb16
+  num_classes: 11
+  norm: simdino_inat
+
+regime: norm_tuning
+
+optim:
+  weight_decay: 0.05
+  lr:
+    norm: 1.0e-4      # NormTuning : les LayerNorms SONT l'adaptation → lr lora, pas 1e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]

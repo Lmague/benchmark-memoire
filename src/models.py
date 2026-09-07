@@ -30,15 +30,16 @@ def _validate_regime(name: str, regime: str) -> None:
         if regime not in ("frozen", "full"):
             raise ValueError(f"régime '{regime}' inconnu pour '{name}' (attendu: frozen|full).")
     elif name in VIT_NAMES:
-        if regime not in ("frozen", "mhsa", "full", "explora_like", "scratch", "lora"):
+        if regime not in ("frozen", "mhsa", "full", "explora_like", "scratch", "lora",
+                          "norm_tuning"):
             raise ValueError(
                 f"régime '{regime}' inconnu pour '{name}' "
-                f"(attendu: frozen|mhsa|full|explora_like|scratch).")
+                f"(attendu: frozen|mhsa|full|explora_like|scratch|norm_tuning).")
     elif name in SSL_FT_NAMES:
-        if regime not in ("frozen", "mhsa", "full", "explora_like", "lora"):
+        if regime not in ("frozen", "mhsa", "full", "explora_like", "lora", "norm_tuning"):
             raise ValueError(
-                f"régime '{regime}' inconnu pour '{name}' (attendu: frozen|mhsa|full|explora_like — "
-                "scratch non supporté pour les backbones SSL).")
+                f"régime '{regime}' inconnu pour '{name}' (attendu: frozen|mhsa|full|explora_like|"
+                "norm_tuning — scratch non supporté pour les backbones SSL).")
     else:
         raise ValueError(f"modèle de fine-tuning inconnu : '{name}'.")
 
@@ -46,6 +47,33 @@ def _validate_regime(name: str, regime: str) -> None:
 def _set_requires_grad(model, predicate) -> None:
     for n, p in model.named_parameters():
         p.requires_grad = bool(predicate(n))
+
+
+def _norm_tuning_groups(model) -> dict:
+    """Régime ``norm_tuning`` (NormTuning, DEFLECT 2025) : LayerNorms + head seulement.
+
+    Tous les autres poids restent gelés (~0.03-0.1 % des params). Baseline PEFT
+    minimale : si elle égale LoRA, le plafond est informationnel, pas méthodologique.
+    Groupes 'norm' (LayerNorms du backbone, détectées par type) + 'head' — les LR
+    ``optim.lr.norm`` / ``optim.lr.head`` s'appliquent (mêmes noms que les groupes LoRA).
+    """
+    import torch.nn as nn
+    norm_param_names = set()
+    for mname, m in model.named_modules():
+        if isinstance(m, nn.LayerNorm):
+            for pn, _ in m.named_parameters(recurse=False):
+                norm_param_names.add(f"{mname}.{pn}" if mname else pn)
+    groups = {"norm": [], "head": []}
+    for n, p in model.named_parameters():
+        if "head" in n:
+            p.requires_grad_(True); groups["head"].append(p)
+        elif n in norm_param_names:
+            p.requires_grad_(True); groups["norm"].append(p)
+        else:
+            p.requires_grad_(False)
+    if not groups["norm"]:
+        raise ValueError("norm_tuning : aucune LayerNorm détectée (arch non supportée).")
+    return groups
 
 
 def _is_attn_param(n: str) -> bool:
@@ -438,6 +466,8 @@ def build_model(name: str, regime: str, num_classes: int, drop_path_rate: float 
         if regime == "frozen":
             _set_requires_grad(model, lambda n: "head" in n)
             return model, {"head": [p for n, p in model.named_parameters() if "head" in n]}
+        if regime == "norm_tuning":
+            return model, _norm_tuning_groups(model)
         if regime in ("explora_like", "lora"):
             return model, _explora_groups(model, lora)
         return model, _vit_groups(model, regime)
@@ -455,6 +485,8 @@ def build_model(name: str, regime: str, num_classes: int, drop_path_rate: float 
     if regime == "scratch":
         _set_requires_grad(model, lambda n: True)
         return model, {"all": [p for _, p in model.named_parameters()]}
+    if regime == "norm_tuning":
+        return model, _norm_tuning_groups(model)
     if regime in ("explora_like", "lora"):
         return model, _explora_groups(model, lora)
     return model, _vit_groups(model, regime)
