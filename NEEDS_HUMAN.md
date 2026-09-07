@@ -2,77 +2,66 @@
 
 Format : un point par section, daté en titre. Résolu → déplacer en bas dans "Résolu".
 
-## 2026-09-02 — Contrôles Bouguessa (contexte) : jobs Narval à soumettre
+## 2026-09-07 — Ablation LoRA/PEFT SimDINOv2-B : pipeline séquentiel A→B→C, à soumettre sur Narval
 
-Demande Bouguessa (mail début sept.) : (1) contexte seul, (2) contexte permuté,
-(3) tailles de contexte 512/1024/2048. Préparé, **accès cluster requis** (`lmague@narval3`) :
+Question : le « meilleur LoRA » DINOv3-B (r=2-8, blocs 6-11, α=2r) se transpose-t-il
+à SimB, et est-ce que LoRA est même la bonne méthode PEFT ? Design séquentiel :
 
-1. **Points 1-2 sur R2 — JOB CPU pur** (`sbatch scripts/slurm_context_bouguessa_controls.sh`,
-   ~2 h sur 4 workers, repartable) : sonde canonique (fused / contexte-seul /
-   contexte-permuté ×5 / tile) sur les sig_embeddings DÉJÀ présents sur
-   `$SCRATCH/context_distill/sig_embeddings/` (extraits par
-   `slurm_context_distill_extract_sig.sh`). Aucun GPU, aucun zip à dézipper.
-   Puis rapatrier : `scp -r narval:$SCRATCH/context_distill/controls_bouguessa results/context_distill/`
-2. **Tailles de contexte, pallier frozen — UN SEUL JOB** (`sbatch scripts/slurm_context_size_sweep.sh`,
-   extrait ET sonde les 3 tailles en une fois, repartable) :
-   a. EN LOCAL d'abord : générer les crops val/test manquants (train crops
-      512/1024/2048 déjà sur `$SCRATCH` ; 1024 a déjà val/test) :
-      ```bash
-      python scripts/context_crop.py \
-          --split-csv spatial_datacurve/splits/frac100_seed0/val.csv spatial_datacurve/splits/frac100_seed0/test.csv \
-          --context-sizes 512,2048 --out-size 224 --out-dir out/context
-      cd out/context && zip -qr ../../context_512_valtest.zip context_512 \
-                       && zip -qr ../../context_2048_valtest.zip context_2048
-      scp context_512_valtest.zip context_2048_valtest.zip narval:$SCRATCH/
-      ```
-   b. Sur Narval : `sbatch scripts/slurm_context_size_sweep.sh` — un job qui fait
-      TOUT (extraction GPU fusionnée par taille + probes CPU fused/tile/ctx/perm×3,
-      les 3 tailles, skip-if-done).
-3. **Optionnel** (si la courbe frozen justifie R2 entraîné à 512/2048) — reconstruire
-   les zips complets puis soumettre les entraînements :
-   ```bash
-   cd $SCRATCH && for S in 512 2048; do
-     mkdir -p m$S && unzip -q context_$S.zip -d m$S && unzip -q context_${S}_valtest.zip -d m$S
-     (cd m$S && zip -qr ../context_${S}_full.zip context_$S) && rm -rf m$S
-     mv context_$S.zip context_${S}_trainonly.zip && mv context_${S}_full.zip context_$S.zip
-   done
-   sbatch scripts/slurm_context_distill.sh 512 B
-   sbatch scripts/slurm_context_distill.sh 2048 B
-   ```
+- **Stage A — exploration large, 13 bras × 3 seeds** (`sbatch scripts/slurm_lora_simb_stageA.sh`,
+  array 0-12, ≈ 58 GPU-h) — isolation stricte des axes : seuls les 3 bras POSITION
+  restreignent les blocs, tous les autres (rang, α, type) tournent sur TOUS les blocs :
+  b611 / b05 / b911 ; rang r2a2 / r4a4 / r16a16 / r32a32 ; α r8a16 / r16a32 (scaling 2) ;
+  **rsLoRA r8_rslora / r16_rslora** (α = r^{3/2} → scaling = √r : échelles de scaling
+  1/2/2.83 à r8 et 1/2/4 à r16 — si le scaling 4 rattrape le niveau r8, le décrochage
+  r=16 de DINOv3 était un artefact de scaling, pas de rang) ; r8a8_qkv (type, OUT_DIR
+  séparé — collision de tag) ; **norm_tuning** (nouveau régime ajouté à src/models.py
+  le 2026-09-07 : LayerNorms + head seulement, ~0.03 % params, réf. DEFLECT
+  arXiv 2504.17397 ; config `configs/simdinov2_vitb16_norm.yaml`, lr.norm=1e-4 —
+  les normes SONT l'adaptation). r=3 corrigé en r=4 (demande explicite 2026-09-07).
+  Référence gratuite : canonique r8a8 tous blocs = 0.4781 ± 0.0028.
+  Note biblio : rsLoRA PAS indexé dans Fusion — tentative library_add du 2026-09-07 :
+  2 fausses correspondances (MindDiffuser doi 10.48550/arxiv.2303.14139 et LoRA-GA
+  doi 10.48550/arxiv.2407.05000 portent la raison « rsLoRA » par erreur, à nettoyer
+  dans /home/erazal/fusion/data/library/) ; ajouter rsLoRA à la main (Kalajdzievski,
+  « The Impact of Scaling on LoRA », arXiv 2023 — ID exact à vérifier sur arXiv).
+  Lecture (§4.4) : moyennes ± std, |Δ| < 0.005 = ex æquo → parsimonie.
+- **ANALYSE COMMUNE** (humain + agent) → Stage B sur mesure : configs générées par
+  `scripts/gen_simb_lora_grid.py --position <gagnant> [--qkv]`, soumission
+  `sbatch scripts/slurm_lora_simb_stageB.sh` (array 0-7 no-op au-delà de la liste,
+  liste surchargeable `--export=ALL,VARIANTS="..."`, 3 seeds, réutilise les seeds
+  déjà faits via skip-if-done).
+- **Stage C — fusion** : `scripts/merge_lora_simb.py --ckpt <tag>_best.pth --config
+  <config du run> --out <tag>_merged.pth` — fusionne les adaptateurs dans les poids
+  (via merge_lora_state_dict), 3 contrôles de non-régression (équivalence numérique
+  module ≤ 1e-4, zéro clé LoRA résiduelle, rechargement par build_frozen_extractor),
+  sortie au format `{"teacher": {"backbone.…"}}` directement exploitable pour
+  extraction/géométrie sans adaptateurs.
 
-⚠️ Avant tout sbatch : `git push` ici puis `git pull` sur Narval (`$HOME/benchmark-memoire`)
-— cf. incident 2026-08-30 (§17 du README contexte) : un script non poussé = job à vide.
+Préflight in-job (comptage params) sur les deux stages. Git push OBLIGATOIRE avant
+sbatch (incident 2026-08-30).
 
-## 2026-09-05 — Sweep contexte FROZEN multi-backbones (DINOv3-S/L, SimDINOv2-B/L) — 1 job
-
-Question (« avant de passer à des modèles DINOv3 plus grands ») : le gain contexte à
-512px tient-il à d'autres échelles de modèle ? → 3 courbes (512/1024/2048) × 4
-backbones en FROZEN (aucun entraînement), puis ON DÉCIDE quoi entraîner.
-
-Sur Narval (après git pull) :
-```bash
-sbatch scripts/slurm_context_frozen_models.sh        # 4 modèles × 3 tailles, ~8-10 h GPU MIG
-```
-- Extraction GPU (skip-if-done) + probes CPU (fused/tile/ctx/perm×3, skip-if-json).
-- SimDINOv2 : checkpoints `$SCRATCH/checkpoints/simdinov2_vitb_inat21plantae.pth` et
-  `.../vitl_inat21plantae.pth` (présents — déjà utilisés par les runs FT).
-- Sorties : `$SCRATCH/context_distill/controls_bouguessa/frozen_<model>_ctx<size>_seed0_*.json`
-- Rapatriement : `rsync -avz --progress lmague@narval.alliancecan.ca:/scratch/lmague/context_distill/controls_bouguessa/ results/context_distill/controls_bouguessa/`
-- Modèles en cours sur Narval (à vérifier `squeue -u lmague`) : le sweep B final + les 4 modèles.
-
-**Ensuite** : entraîner R2 (Design B) aux tailles/modèles que les courbes justifient
-(`sbatch scripts/slurm_context_distill.sh <taille> B` — pour SimDINOv2 il faudra un
-config student adapté, pas fait).
-
-## 2026-08-27 — Soumettre les jobs SLURM DINOv3 ViT-S/16 (Frozen + LoRA r=8) sur Narval
-
-Infrastructure prête et vérifiée par relecture (code, configs, scripts SLURM — cf. `AGENT_MEMORY.md` 2026-08-27) : aucun accès GPU/cluster depuis la session qui a fait la relecture, donc rien n'a pu être exécuté. Reste à faire, humain requis (accès Narval `lmague@narval3`) :
-
-1. `sbatch scripts/slurm_extract_vits16.sh` (extraction frozen, ~10-20 min)
-2. `sbatch scripts/slurm_lora_dinov3_vits16.sh` (LoRA r=8, 3 seeds, ~1-2h)
-3. Vérifier `ls $SCRATCH/embeddings/dinov3_vits16_lvd_{val,test,train}.npy`, ajouter `dinov3_vits16_lvd` à `configs/probe_all.yaml` et `configs/benchmark_12models.yaml` (`models:`), relancer le probe canonique, mettre à jour `all_models_canonical_merged.json`.
+*(Aucun autre point bloquant au 2026-09-07. Les trois points d'accès cluster ci-dessous sont résolus — jobs tournés et résultats rapatriés. Restent des compléments non bloquants, listés dans `results/context_distill/CONTROLES_BOUGUESSA.md` § « Trous identifiés » : matrice d'attribution du SimB entraîné, bootstrap apparié, consolidation table maître/rapports.)*
 
 ## Résolu
+
+### 2026-09-02 / 2026-09-05 — Contrôles Bouguessa + sweep frozen + SimB entraîné
+
+Date de résolution : 2026-09-06/07 (résultats sur disque).
+
+- Contrôles contexte (job `ctx_bouguessa_controls` 2354690) : contexte seul = 0.4780,
+  permuté = 0.4745 (< tuile 0.4779) → gain spatial validé. `results/context_distill/CONTROLES_BOUGUESSA.md`.
+- Sweep frozen 5 backbones × 3 tailles, SimL relance incluse : SimB @512 = 0.5059
+  (meilleur frozen-fused), SimL @512 = 0.5022 → hypothèse « SimL ≥ 0.51 » infirmée.
+- SimDINOv2-B @512 entraîné Design B (r2a4 et r8a16, 3 seeds, terminés 2026-09-06) :
+  0.5030 ± 0.0012 et 0.5057 ± 0.0072 ≈ gelé-fusionné (0.5059) → l'affinage complet
+  n'apporte rien sur SimB. Détail et trous restants :
+  `results/context_distill/CONTROLES_BOUGUESSA.md` § « Résultats — SimDINOv2-B @512 entraîné ».
+
+### 2026-08-27 — Soumettre les jobs SLURM DINOv3 ViT-S/16 (Frozen + LoRA r=8) sur Narval
+
+Date de résolution : 2026-08-27 (jobs Narval 1872073/1872074, cf. `AGENT_MEMORY.md`).
+Runs terminés et intégrés : frozen 0.4689, LoRA r=8 0.4774 ± 0.0022,
+`all_models_canonical_merged.json` (26 modèles à la date), `registry.py` à jour.
 
 ### 2026-07-15 — Retrain FT canoniques en 11cls, 3 seeds, recette Tier 1
 

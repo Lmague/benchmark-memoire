@@ -76,7 +76,15 @@ baseline tuile-seule. Donc :
 *Date : 2026-09-05. Job Narval `slurm_context_frozen_models.sh` (DINOv3-S/L,
 SimDINOv2-B/L + B déjà fait par `slurm_context_size_sweep.sh`). Sonde canonique sur
 features FROZEN fusionnées [tile ; ctx] (skip-if-done, repartable). SimDINOv2-L :
-**à lancer** (job relance, modèle seul).*
+**fait** (job relance, résultats rapatriés 2026-09-06 — 3 lignes ajoutées au tableau).*
+
+**⚠️ Mise à jour 2026-09-06 — SimDINOv2-L testé, hypothèse « SimL ≥ 0.51 » infirmée.**
+SimL @512 fused = **0.5022** (pas 0.51), @1024 = 0.4975, @2048 = 0.4733. Le gain
+saturait déjà à SimB : passer à 300 M n'ajoute rien (0.5059 → 0.5022, dans le bruit).
+La lecture « c'est le pré-entraînement aligné (iNat) qui porte le décodage du
+voisinage, pas la taille du modèle » est confirmée. Le pattern 512 > 1024 ≫ 2048
+tient pour le 5e backbone testé, et le Δctx 512 de SimL (+0.0266) est le 2e plus
+élevé du sweep.
 
 ## F1-macro test (seed0, 11 cls, split spatial v3)
 
@@ -94,7 +102,9 @@ features FROZEN fusionnées [tile ; ctx] (skip-if-done, repartable). SimDINOv2-L
 | **SimDINOv2-B** (iNat) | 512 | **0.5059** | 0.4717 | **0.4931** | **+0.0342** | 0.4680 |
 | | 1024 | 0.4913 | 0.4717 | 0.4402 | +0.0196 | 0.4702 |
 | | 2048 | 0.4789 | 0.4717 | 0.3598 | +0.0072 | 0.4725 |
-| **SimDINOv2-L** (iNat) | *à tester* | | 0.? | | | |
+| **SimDINOv2-L** (iNat) | 512 | **0.5022** | 0.4756 | **0.4941** | +0.0266 | 0.4707 |
+| | 1024 | 0.4975 | 0.4756 | 0.4412 | +0.0219 | 0.4729 |
+| | 2048 | 0.4733 | 0.4756 | 0.3551 | −0.0023 | 0.4715 |
 
 ## Lectures
 
@@ -111,12 +121,12 @@ features FROZEN fusionnées [tile ; ctx] (skip-if-done, repartable). SimDINOv2-L
 4. **Le permuté reste ≈ tile (0.46-0.48)** pour tous → le gain vient bien de
    l'appariement spatial (contrôle Bouguessa n°2 validé aussi multi-backbones).
 
-## Prochaine étape logique
+## Prochaine étape — réalisée 2026-09-06
 
-**SimDINOv2-L** (300 M, même pré-entraînement iNat) : SimB battant ViT-L de +0.03,
-un SimL frozen pourrait franchir **0.51** — résultat fort : « contexte + iNat ≥
-fine-tuning LoRA ». Relance du job multi-modèles pour ce seul modèle :
-`sbatch scripts/slurm_context_frozen_models.sh "simdinov2_vitl16|frozen_simdinov2_vitl16.yaml|/scratch/lmague/checkpoints/simdinov2_vitl_inat21plantae.pth"`
+L'hypothèse « un SimL frozen pourrait franchir 0.51 » est **infirmée** : SimL @512 =
+0.5022 < SimB @512 (0.5059). Le plafond frozen-iNat est atteint dès SimB ; la voie
+retenue a été l'affinage Design B de SimDINOv2-B @512 (config
+`configs/context_distill_simdinov2b.yaml`, résultats dans la section suivante).
 
 ---
 
@@ -148,3 +158,49 @@ checkpoints student+teacher) et `slurm_context_distill.sh` (§4 = config, merge 
 sbatch scripts/slurm_context_distill.sh 512 B simdinov2_vitl16 configs/context_distill_simdinov2b.yaml
 ```
 Résultats → `$SCRATCH/context_distill/runs/simdinov2_vitb16_ctxdistill_dB_tSL_ctx512_r2a4_frac100_seed{0,1,2}/metrics.json`.
+
+---
+
+# Résultats — SimDINOv2-B @512 entraîné (Design B : LoRA + distillation + tête fusion)
+
+*Runs terminés 2026-09-06 (`results/context_distill/runs/simdinov2_vitb16_ctxdistill_dB_tSL_ctx512_{r2a4,r8a16}_frac100_seed{0,1,2}/metrics.json`).*
+*Recette : student SimB (`simdinov2_vitb_inat21plantae.pth`), teacher **SimL** (même
+norme `simdino_inat`), split spatial v3, 49 281 tuiles train, 11 cls, λ_distill=1.0,
+focal γ=2. Test v3 identique à toutes les baselines ; moyennes sur 3 seeds.*
+
+| LoRA | seed0 | seed1 | seed2 | moy ± std | best_C |
+|---|---|---|---|---|---|
+| r=2 α=4 | 0.5028 | 0.5043 | 0.5019 | **0.5030 ± 0.0012** | 0.001 (3 seeds) |
+| r=8 α=16 | 0.5139 | 0.5024 | 0.5007 | 0.5057 ± 0.0072 | 0.0001 (s0), 0.001 (s1,s2) |
+
+## Lecture — le résultat contre-intuitif central de septembre
+
+- **L'affinage complet n'apporte rien sur SimB** : r8a16 (0.5057 ± 0.0072) ≈ r2a4
+  (0.5030 ± 0.0012) ≈ **SimDINOv2-B gelé-fusionné @512 (0.5059, sonde seule, aucun
+  entraînement)**. Quand le pré-entraînement est aligné avec le domaine (iNat
+  Plantae ≈ toundra), la fusion [tuile ; contexte] est déjà linéairement décodable :
+  entraîner la fusion (LoRA + distillation + tête apprise) ne franchit pas ce plafond.
+- Lecture croisée avec R2 (DINOv3-B Design B @1024 = 0.5080 ± 0.0013) : le gain de R2
+  sur son gelé-fusionné (0.4862) venait de la **réorganisation d'un backbone peu
+  aligné** (LVD), pas du contexte en soi. Le contexte porte ~+0.03 dans les deux cas,
+  mais son exploitation n'exige l'entraînement que si le pré-entraînement n'a pas
+  déjà aligné tuile et voisinage.
+- r8a16 seed0 = **0.5139** : meilleur run unique du projet (au-dessus de R2 seed0
+  0.5098), mais seed isolée (+0.011 sur ses deux congénères) — ne pas citer seule ;
+  le ±0.0072 en est porté. Un bootstrap apparié est requis avant toute conclusion
+  r8a16 vs r2a4 vs gelé-fusionné (§4.4 AGENTS.md).
+- Caveats repris d'`ANALYSE.md` §6 : best_C asymétrique (fused sélectionne C=1e-4) ;
+  contrôles frozen = seed0 unique.
+
+## Trous identifiés (2026-09-07)
+
+1. **Pas de matrice d'attribution pour le SimB entraîné** : `sig_embeddings/` ne
+   contient que les 9 runs DINOv3 — impossible de savoir si le SimB entraîné sacrifie
+   aussi sa représentation tuile-seule (le finding clé d'`ANALYSE.md` §3, non vérifié
+   sur ce backbone). Extraction `context_distill_extract_sig.py` + probes
+   `context_bouguessa_controls.py` à lancer.
+2. **Bootstrap apparié** : SimB entraîné vs SimB gelé-fusionné ; R2 vs baselines ;
+   r8a16 vs r2a4. Toutes ces comparaisons sont des point estimates.
+3. **Non consolidé** : ces runs ne figurent ni dans
+   `results/all_models_canonical_merged.json` (29 modèles, 2026-08-31) ni dans les
+   rapports `rapport_bouguessa/` (INDEX au 2026-07-28).

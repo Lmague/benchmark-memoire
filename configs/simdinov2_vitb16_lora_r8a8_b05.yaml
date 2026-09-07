@@ -1,0 +1,45 @@
+# SimDINOv2 ViT-B/16 (iNat21 Plantae) — Ablation LoRA : position : contrôle blocs BAS 0-5 (DINOv3-B : 0.4790, niveau Full FT)
+# Généré 2026-09-07 pour scripts/slurm_lora_simb_ablation.sh.
+# Base : configs/simdinov2_vitb16_lora.yaml (canonique r8a8 TOUS blocs = 0.4781 ± 0.0028,
+# probe canonique 11 cls — référence, NON re-entraîné par ce job).
+# Mêmes hyperparams que la production (lr lora/head=1e-4, norm=1e-5, wd=0.05, warmup=3,
+# 50 epochs, patience=10, bf16, early_stop=f1_macro_pres, grille C canonique).
+# ATTENTION n_full_ft_blocks: 0 obligatoire (défaut config = 2 → full-FT blocs {5,11} !).
+checkpoint: "simdinov2_vitb_inat21plantae.pth"
+model:
+  name: simdinov2_vitb16
+  num_classes: 11
+  norm: simdino_inat
+
+regime: lora
+
+lora:
+  r: 8
+  alpha: 8.0
+  target_modules: [q, v]
+  n_full_ft_blocks: 0
+  full_ft_block_indices: []
+  lora_block_indices: [0,1,2,3,4,5]
+  dropout: 0.0
+
+optim:
+  weight_decay: 0.05
+  lr:
+    lora: 1.0e-4
+    full_late: 5.0e-5
+    norm: 1.0e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]

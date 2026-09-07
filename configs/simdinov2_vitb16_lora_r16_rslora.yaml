@@ -1,0 +1,49 @@
+# SimDINOv2 ViT-B/16 (iNat21 Plantae) — Stage A bras rsLoRA, r=16 (TOUS les blocs).
+# Généré 2026-09-07. Base : configs/simdinov2_vitb16_lora.yaml (canonique r8a8 = 0.4781).
+#
+# rsLoRA (Kalajdzievski 2023 — cf. r8_rslora.yaml pour la référence et la logique) :
+#   alpha = r^{3/2}  →  scaling = √r.
+# r=16 : alpha = 16^{3/2} = 64.0 → scaling = 4.0 = √16.
+# Question posée : le décrochage r=16 observé sur DINOv3 (α=2r, scaling=2) est-il un
+# artefact de scaling ? Échelle de scaling à r=16 fixé :
+#   r16a16 (s=1) < r16a32 (s=2) < r16_rslora (s=4).
+# Si r16_rslora rattrape ~le niveau r8 → le rang n'était pas en cause, le scaling oui.
+# Tag run : simdinov2_vitb16_lora_r16a64_frac100_seed{N}.
+checkpoint: "simdinov2_vitb_inat21plantae.pth"
+model:
+  name: simdinov2_vitb16
+  num_classes: 11
+  norm: simdino_inat
+
+regime: lora
+
+lora:
+  r: 16
+  alpha: 64.0
+  target_modules: [q, v]
+  n_full_ft_blocks: 0
+  full_ft_block_indices: []
+  lora_block_indices: null
+  dropout: 0.0
+
+optim:
+  weight_decay: 0.05
+  lr:
+    lora: 1.0e-4
+    full_late: 5.0e-5
+    norm: 1.0e-5
+    head: 1.0e-4
+
+schedule:
+  warmup_epochs: 3
+
+train:
+  epochs: 50
+  patience: 10
+  head_only_epochs: 0
+  amp_dtype: bfloat16
+  grad_clip: 1.0
+  early_stop_metric: f1_macro_pres
+
+probe:
+  C_grid: [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0]
