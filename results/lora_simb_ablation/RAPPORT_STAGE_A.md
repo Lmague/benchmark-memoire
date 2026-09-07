@@ -9,29 +9,42 @@ tag mais est Q+K+V — pas de duplication QV).*
 
 ## 1. Tableau maître (trié par F1 test)
 
-| Rang | Bras | F1 test (moy ± std) | seeds | val | best_ep |
-|---|---|---|---|---|---|
-| 1 | r8a8 **QKV** (all) | **0.4812 ± 0.0054** | 0.4770 / 0.4794 / 0.4873 | 0.4781 | 13,13,13 |
-| 2 | **b911** (r8a8, blocs 9-11) | **0.4805 ± 0.0002** | 0.4807 / 0.4803 / 0.4806 | 0.4640 | 18,18,18 |
-| 3 | **b611** (r8a8, blocs 6-11) | 0.4802 ± 0.0029 | 0.4771 / 0.4806 / 0.4828 | 0.4750 | 18,18,13 |
-| 4 | r2a2 (all) | 0.4794 ± 0.0023 | 0.4821 / 0.4778 / 0.4782 | 0.4759 | 13,18,13 |
-| 5 | r4a4 (all) | 0.4785 ± 0.0049 | 0.4772 / 0.4744 / 0.4840 | 0.4753 | 11,32,13 |
-| 6 | **norm_tuning** (normes + head) | **0.4781 ± 0.0004** | 0.4783 / 0.4784 / 0.4777 | 0.4675 | 18,18,18 |
-| — | *ancre canonique r8a8 all QV* | *0.4781 ± 0.0028* | — | — | — |
-| 7 | b05 (r8a8, blocs 0-5) | 0.4771 ± 0.0022 | 0.4778 / 0.4788 / 0.4746 | 0.4708 | 28,32,41 |
-| 8 | r16a16 (all) | 0.4769 ± 0.0017 | 0.4767 / 0.4753 / 0.4788 | 0.4774 | 13,13,13 |
-| 9 | r8a16 (all, s=2) | 0.4761 ± 0.0018 | 0.4748 / 0.4753 / 0.4781 | 0.4764 | 13,18,18 |
-| 10 | r8 rsLoRA (all, s=2.83) | 0.4753 ± 0.0021 | 0.4734 / 0.4750 / 0.4776 | 0.4753 | 18,13,18 |
-| 11 | r32a32 (all) | 0.4751 ± 0.0020 | 0.4735 / 0.4774 / 0.4744 | 0.4799 | 13,13,13 |
-| 12 | r16a32 (all, s=2) | 0.4750 ± 0.0026 | 0.4774 / 0.4753 / 0.4723 | 0.4789 | 13,13,18 |
-| 13 | r16 rsLoRA (all, s=4) | 0.4736 ± 0.0035 | 0.4766 / 0.4743 / 0.4698 | 0.4809 | 13,13,18 |
+*Mise à jour 2026-09-08 : F1 **canonique** (reprobe mono-thread §4.8,
+`results/simb_stageA_probe_CANONICAL.json` — coïncide avec le probe interne à ±0,0002
+près sauf QKV seed2, voir note C). best_C/époque/val : probe interne (`metrics.json`).*
 
-**Étendue du palier : 0.0077** (r16 rsLoRA → QKV) — moins que 2σ du bras le plus bruité.
+| Rang | Bras | F1 canonique (moy ± std) | seeds | val | best_ep |
+|---|---|---|---|---|---|
+| 1 | **b911** (r8a8, blocs 9-11) | **0.4804 ± 0.0002** | 0.4803 / 0.4806 / 0.4803 | 0.4640 | 18,18,18 |
+| 2 | **b611** (r8a8, blocs 6-11) | 0.4802 ± 0.0027 | 0.4828 / 0.4805 / 0.4774 | 0.4750 | 18,18,13 |
+| 3 | r2a2 (all) | 0.4793 ± 0.0024 | 0.4777 / 0.4820 / 0.4781 | 0.4759 | 13,18,13 |
+| 4 | r8a8 QKV (all) | 0.4788 ± 0.0015 | 0.4770 / 0.4795 / 0.4799 | 0.4781 | 13,13,13 |
+| 5 | r4a4 (all) | 0.4785 ± 0.0049 | 0.4743 / 0.4839 / 0.4774 | 0.4753 | 11,32,13 |
+| 6 | **norm_tuning** (normes + head) | **0.4783 ± 0.0004** | 0.4778 / 0.4786 / 0.4784 | 0.4675 | 18,18,18 |
+| — | *ancre canonique r8a8 all QV* | *0.4781 ± 0.0028* | — | — | — |
+| 7 | b05 (r8a8, blocs 0-5) | 0.4770 ± 0.0024 | 0.4743 / 0.4790 / 0.4777 | 0.4708 | 28,32,41 |
+| 8 | r16a16 (all) | 0.4769 ± 0.0016 | 0.4754 / 0.4785 / 0.4768 | 0.4774 | 13,13,13 |
+| 9 | r8a16 (all, s=2) | 0.4760 ± 0.0018 | 0.4747 / 0.4781 / 0.4753 | 0.4764 | 13,18,18 |
+| 10 | r8 rsLoRA (all, s=2.83) | 0.4753 ± 0.0023 | 0.4750 / 0.4778 / 0.4733 | 0.4753 | 18,13,18 |
+| 11 | r32a32 (all) | 0.4750 ± 0.0017 | 0.4746 / 0.4769 / 0.4736 | 0.4799 | 13,13,13 |
+| 12 | r16a32 (all, s=2) | 0.4749 ± 0.0026 | 0.4751 / 0.4774 / 0.4721 | 0.4789 | 13,13,18 |
+| 13 | r16 rsLoRA (all, s=4) | 0.4737 ± 0.0035 | 0.4767 / 0.4744 / 0.4698 | 0.4809 | 13,13,18 |
+
+**Étendue du palier canonique : 0.0067** (r16 rsLoRA → b911).
+
+**Note C (QKV seed2) — instabilité de sélection du C.** Le probe *interne* du run QKV
+seed2 sélectionne C=0,0001 (F1 test 0,4873, moyenne interne 0,4812) ; le reprobe
+canonique (sélection sur sous-échantillon 20k) sélectionne C=0,001 (F1 test 0,4799,
+moyenne canonique 0,4788). Un basculement de C déplace ce seed de **0,0074** — le même
+phénomène qu'en 2026-07-26 (grille C de LoRA r=8 DINOv3, ±0,003 sur le test). Leçon :
+au sommet du plateau, le choix de C pèse autant que le choix du bras ; la valeur
+canonique est retenue pour le benchmark, l'écart est tracé par la table des
+conventions du compendium (`_conv_gaps`).
 
 ## 2. Lecture par axe
 
 ### Position (seuls bras restreints) — même ordre que DINOv3
-b911 (0.4805) ≥ b611 (0.4802) > ancre all (0.4781) > b05 (0.4771).
+b911 (0.4804) ≥ b611 (0.4802) > ancre all (0.4781) > b05 (0.4770).
 - L'ordre DINOv3 se transpose : blocs HAUTS ≥ tous blocs ≫ blocs bas.
 - **b911 = 3 derniers blocs, moitié du budget b611, variance la plus faible de tout le
   job (± 0.0002)** — candidat parsimonieux pour le déploiement.
@@ -54,11 +67,11 @@ décrochage brutal : sur SimB, le rang pénalise doucement.
   c'est un effet de rang réel. Convention α=r (scaling 1) validée pour SimB.
 
 ### Type Q+K+V vs Q+V
-QKV (0.4812 ± 0.0054) vs ancre QV (0.4781 ± 0.0028) : Δ = +0.0031, DANS LE BRUIT
-(§4.4) et porté par un seed isolé (0.4873). K n'apporte rien de mesurable.
+QKV canonique (0.4788 ± 0.0015) vs ancre QV (0.4781 ± 0.0028) : Δ = +0.0007, DANS LE BRUIT
+(§4.4) ; le seed interne isolé (0,4873, C=0,0001) retombe à 0,4799 en canonique (C=0,001, note C). K n'apporte rien de mesurable.
 
 ### NormTuning — LE résultat structurel de la Stage A
-**0.4781 ± 0.0004** : identique à l'ancre LoRA r8a8 au millième près (Δ = 0.0000),
+**0.4783 ± 0.0004** : identique à l'ancre LoRA r8a8 au millième près (Δ = +0.0002),
 variance la plus serrée des 42 runs, sur ~0.1 % des paramètres (LayerNorms + head,
 aucun adaptateur). **LoRA n'apporte rien qu'une mise à jour des normes ne donne
 déjà.** Cohérent avec DEFLECT (NormTuning ≈ oracle à 0.03 % sur 5 tâches RS) et avec
@@ -69,7 +82,7 @@ le chapitre contexte (le plafond SimB est informationnel, pas méthodologique).
 > Le « meilleur LoRA » DINOv3-B se transpose-t-il à SimB ?
 
 **Non, et la question est vide : il n'y a pas de meilleur LoRA sur SimB.** Tout le
-palier tient dans 0.0076-0.0077, sous le seuil d'interprétabilité individuel (σ
+palier canonique tient dans 0.0067, sous le seuil d'interprétabilité individuel (σ
 inter-seed jusqu'à 0.0054) ; ni rang, ni α, ni type, ni position ne produit de gain
 net. Ce qui se transpose : l'ordre position (hauts ≫ bas) et la pente rang (plus de
 rang = légèrement pire).

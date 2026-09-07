@@ -243,6 +243,24 @@ CANONICAL_F1 = {
     "ctxdistill_dB_tL":          (0.5080, 0.0013),   # Design B fusionné 1536 (non déployable)
     "ctxdistill_dA_tL":          (0.4870, 0.0011),   # Design A tuile 768
     "ctxdistill_dA_tEMA":        (0.4836, 0.0014),   # Design A EMA-self
+    # ── ajout 2026-09 : Stage A SimDINOv2-B (13 bras, reprobe canonique
+    # results/simb_stageA_probe_CANONICAL.json) + 2 SimDINOv2-B entraînés
+    # Design B (metrics.json, même provenance que ctxdistill R1/R2/R3) ──
+    'simdinov2_vitb16_lora_r8_b611': (0.4802, 0.0027),
+    'simdinov2_vitb16_lora_r8_b05': (0.4770, 0.0024),
+    'simdinov2_vitb16_lora_r8_b911': (0.4804, 0.0002),
+    'simdinov2_vitb16_lora_r2': (0.4793, 0.0024),
+    'simdinov2_vitb16_lora_r4': (0.4785, 0.0049),
+    'simdinov2_vitb16_lora_r16': (0.4769, 0.0016),
+    'simdinov2_vitb16_lora_r32': (0.4750, 0.0017),
+    'simdinov2_vitb16_lora_r8_s2': (0.4760, 0.0018),
+    'simdinov2_vitb16_lora_r16_s2': (0.4749, 0.0026),
+    'simdinov2_vitb16_lora_r8_rslora': (0.4753, 0.0023),
+    'simdinov2_vitb16_lora_r16_rslora': (0.4737, 0.0035),
+    'simdinov2_vitb16_lora_r8_qkv': (0.4788, 0.0015),
+    'simdinov2_vitb16_norm_tuning': (0.4783, 0.0004),
+    'ctxdistill_dB_tSL_r2a4': (0.5030, 0.0012),  # metrics.json, pas de bootstrap (NO_BOOTSTRAP)
+    'ctxdistill_dB_tSL_r8a16': (0.5057, 0.0072),  # metrics.json, pas de bootstrap (NO_BOOTSTRAP)
 }
 
 # Valeurs jamais réintroduites (AGENTS.md §4.1, AGENT_MEMORY.md)
@@ -288,7 +306,16 @@ FORBIDDEN_VALUES = ["0.5256", "0.4675", "0.4680"]
 # R2→R1 (+0,021) est un décrochage de tête de liste — R2 est un design non déployable
 # (borne supérieure théorique, contexte requis à l'inférence), pas la fin du bloc
 # compétitif : `tier_break()` le saute. TIER_K passe donc à 20.
-TIER_K = 20
+#
+# Recalculé 2026-09 après l'ajout de l'ablation LoRA/PEFT SimDINOv2-B (13 bras,
+# 0,4737 → 0,4804) et des 2 SimDINOv2-B entraînés Design B (0,5030 / 0,5057).
+# Tous tombent DANS le bloc (min 0,4737 > borne basse 0,4689 ; l'écart
+# SimB-r8a16→SimB-r2a4→R1, 0,0160, est sauté comme décrochage de tête par
+# `tier_break(outlier_gap=0.01)`, même statut que R2). Le décrochage structurel
+# reste 0,4689 → 0,4620 (+0,0069) : TIER_K passe à 35. Les 2 SimDINOv2-B entraînés
+# n'ont pas d'embeddings rapatriés → exclus du bootstrap (NO_BOOTSTRAP_EMBEDDINGS) ;
+# le bootstrap couvre donc 33 groupes.
+TIER_K = 35
 TIER_POP = f"top{TIER_K}"
 
 # Nom de groupe du bootstrap apparié (`significance_tier.GROUPS`) → clé du registre.
