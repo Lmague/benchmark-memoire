@@ -2,43 +2,25 @@
 
 Format : un point par section, daté en titre. Résolu → déplacer en bas dans "Résolu".
 
-## 2026-09-07 — Ablation LoRA/PEFT SimDINOv2-B : pipeline séquentiel A→B→C, à soumettre sur Narval
+## 2026-09-07 — Ablation LoRA/PEFT SimDINOv2-B : **Stage A TERMINÉE** — Stage B à redéfinir après analyse
 
-Question : le « meilleur LoRA » DINOv3-B (r=2-8, blocs 6-11, α=2r) se transpose-t-il
-à SimB, et est-ce que LoRA est même la bonne méthode PEFT ? Design séquentiel :
+**Stage A faite** (13 bras × 3 seeds = 42 runs, terminés 2026-09-07, rapatriés hors
+checkpoints, 24 Go restés sur `$SCRATCH`). Rapport : `results/lora_simb_ablation/RAPPORT_STAGE_A.md`.
+**Palier plat : 0.4736-0.4812 (étendue 0.0077)**, rien ne bat l'ancre 0.4781 au-delà du
+bruit. Lectures : position hauts≫bas (ordre DINOv3 transposé, b911 = 0.4805 ± 0.0002,
+mi-budget) ; rang pente douce décroissante ; **scaling monotone négatif → rsLoRA
+infirme** (le décrochage DINOv3 r16/32 n'était pas un artefact de scaling) ; QKV ≈ QV
+(bruit) ; **norm_tuning = 0.4781 ± 0.0004 = ancre au millième près → LoRA n'apporte rien
+qu'une mise à jour des normes** (cohérent DEFLECT + chapitre contexte).
+Caveat majeur : classements val/test quasi indépendants (r16a64 val max/test min) —
+sélection sur val = bruit.
 
-- **Stage A — exploration large, 13 bras × 3 seeds** (`sbatch scripts/slurm_lora_simb_stageA.sh`,
-  array 0-12, ≈ 58 GPU-h) — isolation stricte des axes : seuls les 3 bras POSITION
-  restreignent les blocs, tous les autres (rang, α, type) tournent sur TOUS les blocs :
-  b611 / b05 / b911 ; rang r2a2 / r4a4 / r16a16 / r32a32 ; α r8a16 / r16a32 (scaling 2) ;
-  **rsLoRA r8_rslora / r16_rslora** (α = r^{3/2} → scaling = √r : échelles de scaling
-  1/2/2.83 à r8 et 1/2/4 à r16 — si le scaling 4 rattrape le niveau r8, le décrochage
-  r=16 de DINOv3 était un artefact de scaling, pas de rang) ; r8a8_qkv (type, OUT_DIR
-  séparé — collision de tag) ; **norm_tuning** (nouveau régime ajouté à src/models.py
-  le 2026-09-07 : LayerNorms + head seulement, ~0.03 % params, réf. DEFLECT
-  arXiv 2504.17397 ; config `configs/simdinov2_vitb16_norm.yaml`, lr.norm=1e-4 —
-  les normes SONT l'adaptation). r=3 corrigé en r=4 (demande explicite 2026-09-07).
-  Référence gratuite : canonique r8a8 tous blocs = 0.4781 ± 0.0028.
-  Note biblio : rsLoRA PAS indexé dans Fusion — tentative library_add du 2026-09-07 :
-  2 fausses correspondances (MindDiffuser doi 10.48550/arxiv.2303.14139 et LoRA-GA
-  doi 10.48550/arxiv.2407.05000 portent la raison « rsLoRA » par erreur, à nettoyer
-  dans /home/erazal/fusion/data/library/) ; ajouter rsLoRA à la main (Kalajdzievski,
-  « The Impact of Scaling on LoRA », arXiv 2023 — ID exact à vérifier sur arXiv).
-  Lecture (§4.4) : moyennes ± std, |Δ| < 0.005 = ex æquo → parsimonie.
-- **ANALYSE COMMUNE** (humain + agent) → Stage B sur mesure : configs générées par
-  `scripts/gen_simb_lora_grid.py --position <gagnant> [--qkv]`, soumission
-  `sbatch scripts/slurm_lora_simb_stageB.sh` (array 0-7 no-op au-delà de la liste,
-  liste surchargeable `--export=ALL,VARIANTS="..."`, 3 seeds, réutilise les seeds
-  déjà faits via skip-if-done).
-- **Stage C — fusion** : `scripts/merge_lora_simb.py --ckpt <tag>_best.pth --config
-  <config du run> --out <tag>_merged.pth` — fusionne les adaptateurs dans les poids
-  (via merge_lora_state_dict), 3 contrôles de non-régression (équivalence numérique
-  module ≤ 1e-4, zéro clé LoRA résiduelle, rechargement par build_frozen_extractor),
-  sortie au format `{"teacher": {"backbone.…"}}` directement exploitable pour
-  extraction/géométrie sans adaptateurs.
-
-Préflight in-job (comptage params) sur les deux stages. Git push OBLIGATOIRE avant
-sbatch (incident 2026-08-30).
+**Prochaines étapes recommandées** : (1) PAS de Stage B pleine grille ; optionnelle
+QKV×position (b911/b611, 2 configs × 3 seeds ≈ 9 GPU-h) ; (2) bootstrap apparié
+ancre-vs-{QKV, b911, norm_tuning} sur embeddings locaux (transforme « tout est dans
+le bruit » en résultat citable) ; (3) Stage C fusion sur b911 ou QKV (rendement F1 nul,
+sert géométrie/déploiement) ; (4) lecture mémoire : « paysage PEFT plat, la valeur de
+SimB est dans le contexte, pas dans l'adaptation ».
 
 *(Aucun autre point bloquant au 2026-09-07. Les trois points d'accès cluster ci-dessous sont résolus — jobs tournés et résultats rapatriés. Restent des compléments non bloquants, listés dans `results/context_distill/CONTROLES_BOUGUESSA.md` § « Trous identifiés » : matrice d'attribution du SimB entraîné, bootstrap apparié, consolidation table maître/rapports.)*
 
