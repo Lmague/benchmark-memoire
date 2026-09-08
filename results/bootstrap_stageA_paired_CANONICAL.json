@@ -1,0 +1,59 @@
+{
+ "protocole": "bootstrap apparie hierarchique (memes indices tuiles+seeds), n=10000, seed=42, BH alpha=0.05, source=results/significance_matrix_tier.json + tier_preds_cache.npz",
+ "date": "2026-09-08",
+ "comparaisons": {
+  "SimDINOv2-B LoRA r=8 : SimDINOv2-B LoRA r8 (blocs 9-11)": {
+   "delta": -0.002360922537203214,
+   "p_two_sided": 0.4414,
+   "bh_reject": false,
+   "ci95_a": [
+    0.4709855703917422,
+    0.4855979122223782
+   ],
+   "ci95_b": [
+    0.4744457675951484,
+    0.486413364992663
+   ]
+  },
+  "SimDINOv2-B LoRA r=8 : SimDINOv2-B LoRA r8 (blocs 6-11)": {
+   "delta": -0.002167160036550264,
+   "p_two_sided": 0.6584,
+   "bh_reject": false,
+   "ci95_a": [
+    0.4709855703917422,
+    0.4855979122223782
+   ],
+   "ci95_b": [
+    0.4729715440441294,
+    0.4875411660673708
+   ]
+  },
+  "SimDINOv2-B LoRA r=8 : SimDINOv2-B LoRA r8 (Q+K+V)": {
+   "delta": -0.0031885966140954847,
+   "p_two_sided": 0.7065,
+   "bh_reject": false,
+   "ci95_a": [
+    0.4709855703917422,
+    0.4855979122223782
+   ],
+   "ci95_b": [
+    0.4722264708310455,
+    0.491617443955496
+   ]
+  },
+  "SimDINOv2-B LoRA r=8 : SimDINOv2-B NormTuning": {
+   "delta": -0.000215287711883283,
+   "p_two_sided": 0.9448,
+   "bh_reject": false,
+   "ci95_a": [
+    0.4709855703917422,
+    0.4855979122223782
+   ],
+   "ci95_b": [
+    0.4722486312673655,
+    0.48420307108091154
+   ]
+  }
+ },
+ "lecture": "Ancre vs b911/b611/QKV/NormTuning : aucun ecart significatif (p=0.44-0.94, BH non rejete). Le palier PEFT Stage A est statistiquement plat. Phrase citable TGRS."
+}

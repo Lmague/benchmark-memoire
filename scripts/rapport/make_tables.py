@@ -24,6 +24,7 @@ import numpy as np
 
 from registry import (CANONICAL_F1, CLASSES_11, CLASSES_DEAD, DEPRECATED,
                       EXCLUDED_MODELS, FROZEN_MODELS, OUT, RUN_FAMILIES,
+                      TIER_DISPLAY_LONG, TIER_DISPLAY_SHORT,
                       TIER_GROUP_KEY, TIER_K,
                       TIER_POP, p)
 
@@ -477,6 +478,24 @@ def t_geometry_datacurve():
 # ═════════════════════════════════════════════════ performances ══════════════
 TYPE_FR = {"frozen": "gelé", "ft_fresh": "affiné (SSL)", "ft_old": "affiné (IN)"}
 
+# Modèles de contexte : le nom d'affichage dans `all_models_canonical_merged.json`
+# ne dit pas sur quel backbone ils tournent (``Contexte R2''), ce qui rendait la
+# tête du tableau maître illisible. Backbone déduit du préfixe de run
+# (make_tables.py CTX_RUNS : `dinov3_vitb16_lvd_ctxdistill_*` = DINOv3-B ;
+# `simdinov2_vitb16_ctxdistill_*` = SimDINOv2-B). Révision 2026-09-08 : on le
+# préfixe ici plutôt que dans le registre pour ne pas casser les références courtes
+# (« Contexte R2 (B, fusion) ») de la prose et de la matrice de significativité.
+CTX_META = {
+    "ctxdistill_dB_tL": ("DINOv3-B Contexte R2 (distil. B, fusion 1536)", "affiné (contexte)"),
+    "ctxdistill_dA_tL": ("DINOv3-B Contexte R1 (distil. A, tuile 768)", "affiné (contexte)"),
+    "ctxdistill_dA_tEMA": ("DINOv3-B Contexte R3 (distil. A, EMA)", "affiné (contexte)"),
+    "ctxdistill_dB_tSL_r2a4": ("SimDINOv2-B Contexte (B, fusion 512, r2a4)", "affiné (contexte)"),
+    "ctxdistill_dB_tSL_r8a16": ("SimDINOv2-B Contexte (B, fusion 512, r8a16)", "affiné (contexte)"),
+}
+# Les deux modèles SimDINOv2-B Design B entraînés n'ont pas d'embeddings test
+# rapatriés (registry.NO_BOOTSTRAP_EMBEDDINGS) : géométrie et bootstrap indisponibles.
+CTX_NO_GEO = {"ctxdistill_dB_tSL_r2a4", "ctxdistill_dB_tSL_r8a16"}
+
 
 def t_master():
     d = keep(json.load(open(p("results",
@@ -506,8 +525,9 @@ def t_master():
         k = m["model"]
         g = geo.get(k, {})
         t = m.get("type", "frozen")
+        disp, typ = CTX_META.get(k, (m["display"], TYPE_FR.get(t, t)))
         lines.append(" & ".join([
-            esc(m["display"]), TYPE_FR.get(t, t), str(m.get("dim", "---")),
+            esc(disp), typ, str(m.get("dim", "---")),
             str(m.get("n_seeds") or 1),
             "\\textbf{" + num(m["f1_linear_probe"]) + "}",
             num(m.get("f1_std")) if m.get("f1_std") else "---",
@@ -529,6 +549,16 @@ def t_master():
                           f"({num(worst[1], 4, sign=True)})" if worst else "") +
               ". Ne pas former de $\\Delta$ entre une valeur d'ici et une valeur de "
               "là-bas."]
+    lines += ["\\vspace{2pt}\\par\\footnotesize\\textbf{Données manquantes.} Les "
+              "colonnes de géométrie (Silh., Rang eff., Aniso., kNN) sont \\texttt{---} "
+              "pour les deux SimDINOv2-B Design~B entraînés (fusion 512) : leurs "
+              "embeddings test n'ont pas été rapatriés sur disque "
+              "(\\texttt{registry.NO\\_BOOTSTRAP\\_EMBEDDINGS}), donc ni géométrie ni "
+              "probe interne n'ont pu être calculés. Ces deux modèles restent des "
+              "point-estimates documentés (\\texttt{metrics.json}) et ne figurent pas "
+              "dans le bootstrap apparié. Pour les modèles gelés (1 seed), "
+              "$\\sigma$ et la géométrie sont moyennées sur un seul seed et dites "
+              "\\texttt{---} quand la colonne n'a pas de sens."]
     write("t_master", lines,
           "\\texttt{results/all\\_models\\_canonical\\_merged.json} (F1, $\\sigma$) "
           "et \\texttt{results/rapport\\_data/geometry\\_models.csv} (géométrie). "
@@ -609,6 +639,25 @@ def _pair(d, a, b):
     return None
 
 
+def _long(name):
+    """Nom d'affichage complet d'un groupe du bootstrap : backbone + régime +
+    état (gelé/affiné). Les noms bruts du JSON ("Contexte R2 (B, fusion)",
+    "DINOv3 ViT-B16") ne disent ni le backbone ni l'état — illisibles pour un
+    lecteur (retour 2026-09-08). Source : registry.TIER_DISPLAY_LONG."""
+    return TIER_DISPLAY_LONG.get(name, name)
+
+
+def _fmt_p(pv):
+    """p bootstrap : le plan est n=10 000 → ce qui tombe sous 10⁻⁴ s'affiche en
+    puissance, pas en « 0,0000 » qui se lit comme un zéro faux. Sinon, 4
+    décimales fixes (la colonne reste alignée)."""
+    if pv is None:
+        return "---"
+    if pv < 1e-4:
+        return "$<10^{-4}$"
+    return "$" + num(pv, 4) + "$"
+
+
 def t_dinov3b_regimes():
     """Le backbone DINOv3-B gelé contre ses régimes d'affinage.
 
@@ -632,27 +681,31 @@ def t_dinov3b_regimes():
         else:
             tested += 1
             verdict = ("\\textbf{oui}" if pr["bh_reject"] else "non")
-            verdict += f" ($p={num(pr['p_two_sided'], 3)}$"
-            verdict += ", BH)" if pr["bh_reject"] else ")"
+            _pv = pr["p_two_sided"]
+            _pt = ("$p<10^{-4}$" if _pv < 1e-4
+                   else "$p=" + num(_pv, 4) + "$")
+            verdict += " (" + _pt + (", BH)" if pr["bh_reject"] else ")")
             # Le Δ que le bootstrap a réellement testé (probe interne des runs) :
             # il n'est pas égal au Δ canonique affiché dans la colonne.
             sgn = 1 if pr["model_a"] == gname else -1
             boot_deltas[lab] = sgn * pr["delta_observed_a_minus_b"]
         rows.append((lab, f1, f1 - f0, verdict, pr is not None))
-    rows.sort(key=lambda r: r[1])
+    rows.sort(key=lambda r: -r[1])  # F1 décroissant (retour lecteur 2026-09-08)
     best = max(r[1] for r in rows)
     lines = ["\\begin{table}[H]", "\\centering", "\\footnotesize", "\\setlength{\\tabcolsep}{4pt}",
-             "\\caption{Le backbone DINOv3 ViT-B/16 gelé contre ses "
-             f"{len(rows)}~régimes d'affinage. $\\Delta$ = écart au gelé "
+             "\\caption{Le backbone \\textbf{DINOv3 ViT-B/16 (LVD) gelé} contre ses "
+             f"{len(rows)}~régimes d'affinage --- même backbone dans chaque ligne. "
+             "Première ligne : le gelé (référence) ; les régimes suivent, classés "
+             "par F1 décroissant. $\\Delta$ = écart au gelé "
              f"({num(f0)}). « Significatif ? » : bootstrap apparié hiérarchique "
              "contre le \\emph{même} backbone gelé, $p$ bilatéral, correction "
              "de Benjamini-Hochberg sur l'ensemble des paires du palier "
-             f"(tableau~\\ref{{tab:signif}}). Les {tested} régimes y sont "
+             f"(tableaux~\\ref{{tab:signif}} et~\\ref{{tab:signiftile}}). Les {tested} régimes y sont "
              "couverts.}\\label{tab:dinov3b}",
              "\\begin{tabular}{@{}lrrl@{}}", "\\toprule",
-             "Régime (init. DINOv3-B) & F1 & $\\Delta$ gelé & Significatif ? \\\\",
+             "Régime (backbone : DINOv3 ViT-B/16 LVD) & F1 & $\\Delta$ gelé & Significatif ? \\\\",
              "\\midrule",
-             f"Gelé & {num(f0)} & --- & --- \\\\"]
+             f"Gelé (référence) & {num(f0)} & --- & --- \\\\"]
     for lab, f1, dl, verdict, _ok in rows:
         bold = (lambda t: "\\textbf{" + t + "}") if f1 == best else (lambda t: t)
         lines.append(" & ".join([bold(lab), bold(num(f1)),
@@ -712,26 +765,30 @@ def t_simb_regimes():
         else:
             tested += 1
             verdict = ("\\textbf{oui}" if pr["bh_reject"] else "non")
-            verdict += f" ($p={num(pr['p_two_sided'], 3)}$"
-            verdict += ", BH)" if pr["bh_reject"] else ")"
+            _pv = pr["p_two_sided"]
+            _pt = ("$p<10^{-4}$" if _pv < 1e-4
+                   else "$p=" + num(_pv, 4) + "$")
+            verdict += " (" + _pt + (", BH)" if pr["bh_reject"] else ")")
         rows.append((lab, f1, f1 - f0, verdict))
-    rows.sort(key=lambda r: r[1])
+    rows.sort(key=lambda r: -r[1])  # F1 décroissant (retour lecteur 2026-09-08)
     best = max(r[1] for r in rows)
     lines = ["\\begin{table}[htbp]", "\\centering", "\\footnotesize",
              "\\setlength{\\tabcolsep}{4pt}",
-             "\\caption{Le backbone SimDINOv2 ViT-B/16 gelé contre ses régimes "
-             "d'adaptation (Stage~A, tableau~\\ref{tab:simbabl}). $\\Delta$ = "
+             "\\caption{Le backbone \\textbf{SimDINOv2 ViT-B/16 (iNat-Plantae) gelé} contre ses régimes "
+             "d'adaptation (Stage~A, tableau~\\ref{tab:simbabl}) --- même backbone dans "
+             "chaque ligne. Première ligne : le gelé (référence) ; les régimes suivent, "
+             "classés par F1 décroissant. $\\Delta$ = "
              f"écart au gelé ({num(f0)}). « Significatif ? » : bootstrap apparié "
              "hiérarchique contre le \\emph{même} backbone gelé, $p$ bilatéral, "
              "correction de Benjamini-Hochberg sur l'ensemble des paires du palier "
-             f"(tableau~\\ref{{tab:signif}}). Les {tested} régimes y sont "
+             f"(tableaux~\\ref{{tab:signif}} et~\\ref{{tab:signiftile}}). Les {tested} régimes y sont "
              "couverts. NormTuning (normes + tête, $\\approx$47k paramètres) "
              "égale LoRA : l'adaptation de SimB vaut ce que vaut sa normalisation.}"
              "\\label{tab:simbreg}",
              "\\begin{tabular}{@{}lrrl@{}}", "\\toprule",
-             "Régime (init. SimDINOv2-B) & F1 & $\\Delta$ gelé & Significatif ? \\\\",
+             "Régime (backbone : SimDINOv2 ViT-B/16, iNat-Plantae) & F1 & $\\Delta$ gelé & Significatif ? \\\\",
              "\\midrule",
-             f"Gelé & {num(f0)} & --- & --- \\\\"]
+             f"Gelé (référence) & {num(f0)} & --- & --- \\\\"]
     for lab, f1, dl, verdict in rows:
         bold = (lambda t: "\\textbf{" + t + "}") if f1 == best else (lambda t: t)
         lines.append(" & ".join([bold(lab), bold(num(f1)),
@@ -742,21 +799,34 @@ def t_simb_regimes():
 
 
 def t_ci():
+    """IC95 du palier. Révision 2026-09-08 (retour lecteur : « on sait pas quel
+    modèle c'est ») : le « Rang » est explicite et les noms de groupes bruts du
+    JSON ("Contexte R2 (B, fusion)", "ViT-B/16 IN-MHSA") sont remplacés par les
+    noms d'affichage registry.TIER_DISPLAY_LONG, qui disent backbone + régime +
+    état (gelé/affiné). Ces rangs servent aussi de référence aux matrices de
+    significativité (figures)."""
     d, src = _signif_source()
     ng = len(d["groups"])
-    lines = ["\\begin{table}[htbp]", "\\centering", "\\small",
+    lines = ["\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+             "\\setlength{\\tabcolsep}{4pt}",
              "\\caption{Intervalles de confiance à 95\\,\\% par bootstrap apparié "
              "hiérarchique (indices de tuiles et de seeds partagés entre groupes, "
              f"$n={thousands(d['n_bootstrap'])}$ rééchantillonnages, seed~42, "
              f"$n_{{\\text{{tuiles}}}}={thousands(d['n_tiles'])}$). "
              f"{_n_overlapping(d['groups'])} des {ng}~groupes ont un IC95 qui en "
-             "recouvre au moins un autre.}\\label{tab:ci}",
-             "\\begin{tabular}{@{}lrrrr@{}}", "\\toprule",
-             "Groupe & F1 observé & Bootstrap moy. & IC95 bas & IC95 haut \\\\",
+             "recouvre au moins un autre. Le « Rang » est celui du classement F1 "
+             "(bootstrap, probe interne) --- c'est aussi la numérotation utilisée "
+             "par les matrices de significativité (figures). "
+             "Les noms indiquent explicitement le backbone et l'état "
+             "(gelé/affiné).}\\label{tab:ci}",
+             "\\begin{tabular}{@{}rlrrrr@{}}", "\\toprule",
+             "Rang & Modèle (backbone --- régime, état) & F1 observé & Bootstrap moy. "
+             "& IC95 bas & IC95 haut \\\\",
              "\\midrule"]
-    for g in sorted(d["groups"], key=lambda g: -g["stats"]["observed"]):
+    for rank, g in enumerate(sorted(d["groups"], key=lambda g: -g["stats"]["observed"]), 1):
         s = g["stats"]
-        lines.append(" & ".join([esc(g["name"]), num(s["observed"]), num(s["mean"]),
+        lines.append(" & ".join([str(rank), esc(_long(g["name"])), num(s["observed"]),
+                                 num(s["mean"]),
                                  num(s["ci95_low"]), num(s["ci95_high"])]) + " \\\\")
     lines += ["\\bottomrule", "\\end{tabular}",
               "\\vspace{2pt}\\par\\footnotesize" + _note_convention_bootstrap(),
@@ -783,19 +853,25 @@ def _signif_row(r, scale_delta=False):
 
 
 def t_signif():
-    """Table longue : les 91 paires. Réservée à `compendium.pdf`.
+    """Table longue : toutes les paires du bootstrap. Réservée à `compendium.pdf`.
 
-    `performances.pdf` prend la version courte (`t_signif_bh`) : les 91 lignes y
-    tenaient sur plusieurs pages sans ajouter d'argument."""
+    `performances.pdf` et `analyse.pdf` prennent la version courte et lisible
+    (`t_signif_bh`, rejets BH seulement, éclatée en deux tableaux par famille de
+    vainqueur : tab:signif / tab:signiftile). Étiquette de la version longue :
+    tab:signiflong, pour éviter toute collision quand le compendium inclut
+    les deux."""
     d, src = _signif_source()
     pairs = sorted(d["pairs"].values(), key=lambda r: r["p_two_sided"])
     npair = len(pairs)
     lines = ["\\begin{longtable}{@{}llrrll@{}}",
-             f"\\caption{{Les {npair}~paires du bootstrap apparié, triées par $p$ "
+             f"\\caption{{Version longue --- les {npair}~paires du bootstrap "
+             "apparié (rejets \\emph{et} non-rejets), triées par $p$ "
              "croissant. Correction de Benjamini-Hochberg à $\\alpha=0,05$ ; "
-             f"{d['bh_n_rejected']}~paires sur {npair} sont rejetées. "
+             f"{d['bh_n_rejected']}~paires sur {npair} sont rejetées --- leur "
+             "liste lisible par groupe de vainqueur tient dans les "
+             "tableaux~\\ref{tab:signif} et~\\ref{tab:signiftile}. "
              "« IC disj. » : les IC95 des deux groupes ne se recouvrent pas.}"
-             "\\label{tab:signif}\\\\",
+             "\\label{tab:signiflong}\\\\",
              "\\toprule", SIGNIF_HEAD, "\\midrule", "\\endfirsthead", "\\toprule",
              SIGNIF_HEAD, "\\midrule", "\\endhead",
              "\\bottomrule", "\\endfoot"]
@@ -808,30 +884,114 @@ def t_signif():
 def t_signif_bh():
     """Version courte : seulement les paires rejetées par Benjamini-Hochberg.
 
-    Les paires non rejetées ne portent aucun argument — elles disent toutes la même
-    chose (« indissociable du bruit ») et occupaient l'essentiel du tableau. Le
-    filtre est fait ici, pas dans le .tex, pour que le décompte reste calculé."""
+    Les paires non rejetées ne portent aucun argument — elles disent toutes la
+    même chose (« indissociable du bruit ») et occupaient l'essentiel du
+    tableau.
+
+    Révision 2026-09-08 (retour lecteur : « la table 16 est illisible ») :
+    1. DEUX tableaux au lieu d'un longtable plat de 108 lignes à six colonnes :
+       (a) tab:signif — paires gagnées par les modèles de contexte (le gain
+           spatial écrase tout le reste ; 3 vainqueurs seulement) ;
+       (b) tab:signiftile — paires gagnées par les modèles sur tuile seule
+           (adaptation, échelle, gelés forts).
+    2. Fini la colonne « Modèle A » répétée 32 fois : chaque groupe s'ouvre sur
+       une ligne \\multicolumn qui nomme le vainqueur UNE fois (avec F1 et
+       décompte de victoires) ; les lignes qui suivent ne listent que les
+       vaincus, avec leur F1 rappelé en ligne.
+    3. Noms d'affichage explicites (backbone --- régime, état ; cf. t_ci) : plus
+       besoin de deviner à quel modèle correspond « ViT-B/16 IN-MHSA » ou
+       « Contexte R2 (B, fusion) ».
+    4. Δ en points de F1 et p formaté ($<10^{-4}$ plutôt que 0,0000).
+
+    Les paires restent identifiées par les noms BRUTS du JSON (clés internes) ;
+    le mappage vers les noms lisibles se fait à l'affichage via _long()."""
     d, src = _signif_source()
     pairs = sorted(d["pairs"].values(), key=lambda r: r["p_two_sided"])
     npair, kept = len(pairs), [r for r in pairs if r["bh_reject"]]
-    nrest = npair - len(kept)
-    lines = ["\\begin{table}[!htbp]", "\\centering", "\\scriptsize", "\\setlength{\\tabcolsep}{3pt}",
-             f"\\caption{{Les {len(kept)}~paires du palier rejetées par "
-             "Benjamini-Hochberg ($\\alpha=0,05$), triées par $p$ croissant, sur les "
-             f"{npair}~paires testées par bootstrap apparié. $\\Delta$ en points de pourcentage ($\\times10^{-2}$). « IC disj. » : les IC95 "
-             "des deux groupes ne se recouvrent pas. Les "
-             f"{nrest}~paires non rejetées ne sont pas listées : elles disent toutes "
-             "la même chose, l'écart n'y est pas dissociable du bruit.}"
-             "\\label{tab:signif}",
-             "\\begin{tabular}{@{}llrrll@{}}", "\\toprule", SIGNIF_HEAD, "\\midrule"]
-    lines += [_signif_row(r, scale_delta=True) for r in kept]
-    lines += ["\\midrule",
-              "\\multicolumn{6}{@{}p{\\linewidth}@{}}{\\footnotesize\\itshape "
-              f"Les {nrest} autres paires (non rejetées) sont détaillées dans "
-              "\\texttt{results/significance\\_matrix\\_tier.json}.} \\\\",
-              "\\bottomrule", "\\end{tabular}",
-              "\\vspace{2pt}\\par\\footnotesize" + _note_convention_bootstrap(),
-              "\\end{table}"]
+    obs = {g["name"]: g["stats"]["observed"] for g in d["groups"]}
+
+    # Regrouper par vainqueur (le côté du Δ positif).
+    groups = {}
+    for r in kept:
+        delta = r["delta_observed_a_minus_b"]
+        winner, loser = ((r["model_a"], r["model_b"]) if delta >= 0
+                         else (r["model_b"], r["model_a"]))
+        groups.setdefault(winner, []).append(
+            (loser, abs(delta), r["p_two_sided"], r["ci95_disjoint"]))
+    for w in groups:
+        groups[w].sort(key=lambda t: (-t[1], t[2]))
+    # Deux blocs : vainqueurs « contexte » vs vainqueurs « tuile seule ».
+    ctx = sorted((w for w in groups if "Contexte" in w),
+                 key=lambda w: -obs.get(w, 0.0))
+    tile = sorted((w for w in groups if "Contexte" not in w),
+                  key=lambda w: -obs.get(w, 0.0))
+
+    def block(winners, label, caption):
+        """Un longtable : par vainqueur, une ligne d'en-tête \\multicolumn puis
+        ses vaincus (nom explicite + F1, Δ en points, p, IC disj.)."""
+        lines = ["\\begin{longtable}{@{}lrrrl@{}}",
+                 "\\caption{" + caption + "}\\label{" + label + "}\\\\",
+                 "\\toprule",
+                 "Modèle battu (son F1 bootstrap) & $\\Delta$ (pts de F1) & "
+                 "$p$ bilatéral & IC disj. \\\\",
+                 "\\midrule", "\\endfirsthead",
+                 "\\toprule",
+                 "Modèle battu (son F1 bootstrap) & $\\Delta$ (pts de F1) & "
+                 "$p$ bilatéral & IC disj. \\\\",
+                 "\\midrule", "\\endhead",
+                 "\\bottomrule", "\\endfoot"]
+        for w in winners:
+            ps = [t[2] for t in groups[w]]
+            n_w = len(groups[w])
+            if max(ps) < 1e-4:
+                p_txt = "tous $p<10^{-4}$" if n_w > 1 else "$p<10^{-4}$"
+            elif n_w == 1 or min(ps) == max(ps):
+                p_txt = "$p=$ " + _fmt_p(max(ps))
+            else:
+                p_txt = ("$p$ de " + _fmt_p(min(ps)) + " à " + _fmt_p(max(ps)))
+            lines.append("\\addlinespace[3pt]\\multicolumn{4}{@{}l@{}}"
+                         "{\\textbf{Vainqueur : " + esc(_long(w)) + " --- F1 "
+                         + num(obs.get(w)) + " --- bat " + str(n_w) + " "
+                         + ("modèle" if n_w == 1 else "modèles") + ", "
+                         + p_txt + "}} \\\\")
+            for loser, ad, p, disj in groups[w]:
+                lines.append(" & ".join([
+                    esc(_long(loser)) + " (" + num(obs.get(loser)) + ")",
+                    num(ad * 100.0, 2, sign=True), _fmt_p(p),
+                    "oui" if disj else "non"]) + " \\\\")
+        lines += ["\\end{longtable}",
+                  "\\vspace{2pt}\\par\\footnotesize"
+                  + _note_convention_bootstrap() + "\\vspace{6pt}"]
+        return lines
+
+    n_ctx = sum(len(groups[w]) for w in ctx)
+    n_tile = sum(len(groups[w]) for w in tile)
+    n_rest = npair - len(kept)
+    lines = ["\\begingroup\\footnotesize\\setlength{\\tabcolsep}{4pt}"]
+    lines += block(
+        ctx, "tab:signif",
+        "Paires du palier rejetées par Benjamini-Hochberg ($\\alpha=0,05$) sur "
+        + str(npair) + "~paires testées par bootstrap apparié --- "
+        "1/2 : paires \\emph{gagnées par les modèles DINOv3-B avec contexte "
+        "spatial} (" + str(n_ctx) + "~paires sur " + str(len(kept))
+        + " ; R2 est la borne non déployable, contexte requis à l'inférence). "
+        "Chaque ligne = un modèle \\emph{battu} avec son F1 ; le vainqueur est "
+        "rappelé en tête de groupe. $\\Delta$ en points de F1 "
+        "($\\times10^{-2}$) ; « IC disj. » : les IC95 (tableau~\\ref{tab:ci}) "
+        "des deux modèles ne se recouvrent pas. Noms explicites (backbone --- "
+        "régime, état), cf. tableau~\\ref{tab:ci}. Les " + str(n_rest)
+        + "~paires non rejetées ne sont pas listées : écart indissociable du "
+        "bruit.")
+    lines += block(
+        tile, "tab:signiftile",
+        "Paires du palier rejetées par Benjamini-Hochberg --- 2/2 : paires "
+        "\\emph{gagnées par les modèles sur tuile seule} (" + str(n_tile)
+        + "~paires sur " + str(len(kept)) + ") : victoires d'adaptation, "
+        "d'échelle ou de pré-entraînement aligné, toutes petites --- le "
+        "plateau plat SimDINOv2-B n'apparaît pas ici (ses bras ne se "
+        "distinguent pas entre eux). Même format que ci-dessus ; noms et F1 "
+        "explicites, cf. tableau~\\ref{tab:ci}.")
+    lines += ["\\endgroup"]
     write("t_signif_bh", lines, "\\texttt{" + src + "}.")
 
 
@@ -1506,78 +1666,133 @@ def t_ctx_sweep():
 
 def t_simb_ablation():
     """Ablation LoRA/PEFT SimDINOv2-B, Stage A (13 bras × 3 seeds) — le palier plat.
-    F1 canonique (reprobe mono-thread) + probe interne (best_C, best_epoch) + budget."""
+    F1 canonique (reprobe mono-thread) + probe interne (best_C, best_epoch) + budget.
+
+    Révision 2026-09-08 (retour lecteur) : rangs numérotés (le classement F1
+    décroissant doit se LIRE), colonne Δ vs gelé, libellés conformes au tableau
+    maître (« blocs 9-11 » plutôt que « 3 derniers blocs »), backbone rappelé
+    dans l'en-tête de colonne et les lignes de référence (« gelé », « ancre »),
+    best_C et époque de l'ancre enfin remplis (ils étaient jetés par un filtre de
+    préfixe trop strict sur screening_agg)."""
     canon = {m["model"]: m for m in json.load(
         open(p("results", "simb_stageA_probe_CANONICAL.json")))["models"]}
+    # startswith("simdinov2_vitb16_lora") couvre AUSSI l'ancre exacte
+    # "simdinov2_vitb16_lora" (l'ancien filtre exigeait le "_" final et la
+    # jetait : d'où les "---" de la ligne ancre).
     agg = {r["model"]: r for r in load("screening_agg.csv")
-           if r["model"].startswith("simdinov2_vitb16_lora_")
+           if r["model"].startswith("simdinov2_vitb16_lora")
            or r["model"] == "simdinov2_vitb16_norm_tuning"}
     DIM = 768
     # Budget LoRA : 2·D·r par cible et par bloc adapté (A : r×D, B : D×r).
     # NormTuning : 25 LayerNorms (12 blocs × 2 + finale) × 2×D + tête (D×11+11).
     SPECS = {
-        "simdinov2_vitb16_lora_r8_b611": ("b611 — 6 blocs hauts", 8, 2, 6),
-        "simdinov2_vitb16_lora_r8_b05": ("b05 — 6 blocs bas", 8, 2, 6),
-        "simdinov2_vitb16_lora_r8_b911": ("b911 — 3 derniers", 8, 2, 3),
-        "simdinov2_vitb16_lora_r2": ("r=2", 2, 2, 12),
-        "simdinov2_vitb16_lora_r4": ("r=4", 4, 2, 12),
-        "simdinov2_vitb16_lora_r16": ("r=16", 16, 2, 12),
-        "simdinov2_vitb16_lora_r32": ("r=32", 32, 2, 12),
-        "simdinov2_vitb16_lora_r8_s2": ("r=8, scaling 2", 8, 2, 12),
-        "simdinov2_vitb16_lora_r16_s2": ("r=16, scaling 2", 16, 2, 12),
-        "simdinov2_vitb16_lora_r8_rslora": ("r=8, rsLoRA ($\\sqrt{8}$)", 8, 2, 12),
-        "simdinov2_vitb16_lora_r16_rslora": ("r=16, rsLoRA ($\\sqrt{16}$)", 16, 2, 12),
-        "simdinov2_vitb16_lora_r8_qkv": ("r=8, Q+K+V", 8, 3, 12),
+        "simdinov2_vitb16_lora_r8_b611":
+            ("LoRA r=8, blocs 6-11 (hauts)", 8, 2, 6),
+        "simdinov2_vitb16_lora_r8_b05":
+            ("LoRA r=8, blocs 0-5 (bas)", 8, 2, 6),
+        "simdinov2_vitb16_lora_r8_b911":
+            ("LoRA r=8, blocs 9-11 (3 derniers)", 8, 2, 3),
+        "simdinov2_vitb16_lora_r2": ("LoRA r=2, tous blocs", 2, 2, 12),
+        "simdinov2_vitb16_lora_r4": ("LoRA r=4, tous blocs", 4, 2, 12),
+        "simdinov2_vitb16_lora_r16": ("LoRA r=16, tous blocs", 16, 2, 12),
+        "simdinov2_vitb16_lora_r32": ("LoRA r=32, tous blocs", 32, 2, 12),
+        "simdinov2_vitb16_lora_r8_s2":
+            ("LoRA r=8, scaling 2 ($\\alpha=2r$)", 8, 2, 12),
+        "simdinov2_vitb16_lora_r16_s2":
+            ("LoRA r=16, scaling 2 ($\\alpha=2r$)", 16, 2, 12),
+        "simdinov2_vitb16_lora_r8_rslora":
+            ("LoRA r=8, rsLoRA (scaling $\\sqrt{r}$)", 8, 2, 12),
+        "simdinov2_vitb16_lora_r16_rslora":
+            ("LoRA r=16, rsLoRA (scaling $\\sqrt{r}$)", 16, 2, 12),
+        "simdinov2_vitb16_lora_r8_qkv":
+            ("LoRA r=8, cibles Q+K+V", 8, 3, 12),
     }
-    order = ["simdinov2_vitb16_lora_r8_qkv",
-             "simdinov2_vitb16_lora_r8_b911",
-             "simdinov2_vitb16_lora_r8_b611",
-             "simdinov2_vitb16_lora_r2",
-             "simdinov2_vitb16_lora_r4",
-             "simdinov2_vitb16_norm_tuning",
-             "simdinov2_vitb16_lora_r8_b05",
-             "simdinov2_vitb16_lora_r16",
-             "simdinov2_vitb16_lora_r8_s2",
-             "simdinov2_vitb16_lora_r8_rslora",
-             "simdinov2_vitb16_lora_r32",
-             "simdinov2_vitb16_lora_r16_s2",
-             "simdinov2_vitb16_lora_r16_rslora"]
-    anchor = CANONICAL_F1.get("simdinov2_vitb16_lora", (None,))[0]
-    lines = ["\\begin{table}[htbp]", "\\centering", "\\footnotesize",
-             "\\setlength{\\tabcolsep}{3pt}",
-             "\\caption{Ablation LoRA/PEFT sur SimDINOv2-B (Stage~A, 13~bras "
-             "$\\times$ 3~seeds, tuile seule, même test que le benchmark). F1 "
-             "canonique (reprobe mono-thread, \\S4.8) ; best\\_C et époque "
-             "depuis le probe interne. Tout le palier tient dans 0,0076 : aucun "
-             "rang, aucun $\\alpha$, aucun type ne bat l'ancre r8a8 tous blocs "
-             f"({num(anchor)}) au-delà du bruit ; NormTuning (normes + tête, "
-             "$\\approx$47k params) égale l'ancre au millième près.}"
-             "\\label{tab:simbabl}",
-             "\\begin{tabular}{@{}lrrrrr@{}}", "\\toprule",
-             "Bras & F1 canonique & $\\sigma$ & best\\_C (mode) & "
-             "époque (moy) & params entr. \\\\", "\\midrule"]
-    for k in order:
-        c = canon.get(k)
-        a = agg.get(k, {})
+
+    def spec_budget(k):
         if k == "simdinov2_vitb16_norm_tuning":
-            spec, budget = "NormTuning (normes+tête)", 25 * 2 * DIM + (DIM * 11 + 11)
-        else:
-            spec, r, nt, nb = SPECS[k]
-            budget = 2 * DIM * r * nt * nb
-        f1 = num(c["f1_linear_probe"]) if c else "---"
-        sd = num(c["f1_std"]) if c else "---"
-        if k in ("simdinov2_vitb16_lora_r8_qkv",
-                 "simdinov2_vitb16_lora_r8_b911"):
-            f1 = "\\textbf{" + f1 + "}"
+            return "SimDINOv2-B NormTuning (normes + tête)", \
+                25 * 2 * DIM + (DIM * 11 + 11)
+        spec, r, nt, nb = SPECS[k]
+        return "SimDINOv2-B " + spec, 2 * DIM * r * nt * nb
+
+    # Lignes : [libellé, f1, sd, best_C, époque, budget, est_référence, gras]
+    # Le plateau est encadré par ses deux références du benchmark — backbone
+    # gelé et ancre r8a8 tous blocs — dont les libellés disent explicitement
+    # le backbone et l'état (retour lecteur : « gelé ou pas, quel modèle ? »).
+    rows = []
+    for k, spec, is_ref, bold in (
+        ("simdinov2_vitb16_lora",
+         "SimDINOv2-B LoRA r=8, tous blocs — ANCRE (référence)", True, True),
+        ("simdinov2_vitb16",
+         "SimDINOv2-B backbone gelé (référence, 0 param. entraîné)", True, False),
+    ):
+        f1, sd = CANONICAL_F1.get(k, (None, None))
+        budget = 2 * DIM * 8 * 2 * 12 if k == "simdinov2_vitb16_lora" else 0
+        a = agg.get(k, {})
         _bc = a.get("best_C_mode", "")
         try:
-            _bc_txt = num(float(_bc)) if _bc not in ("", None) else "---"
+            bc = float(_bc) if _bc not in ("", None) else None
         except (TypeError, ValueError):
-            _bc_txt = str(_bc)
-        lines.append(" & ".join([esc(spec), f1, sd, _bc_txt,
-                                  (num(float(a["best_epoch_mean"]), 0)
-                                   if a.get("best_epoch_mean") else "---"),
-                                  thousands(budget)]) + " \\\\")
+            bc = None
+        ep = a.get("best_epoch_mean")
+        ep = float(ep) if ep else None
+        rows.append([spec, f1, sd, bc, ep, budget, is_ref, bold])
+    for k in list(SPECS) + ["simdinov2_vitb16_norm_tuning"]:
+        c = canon.get(k)
+        a = agg.get(k, {})
+        spec, budget = spec_budget(k)
+        f1 = c["f1_linear_probe"] if c else None
+        sd = c["f1_std"] if c else None
+        _bc = a.get("best_C_mode", "")
+        try:
+            bc = float(_bc) if _bc not in ("", None) else None
+        except (TypeError, ValueError):
+            bc = None
+        ep = a.get("best_epoch_mean")
+        ep = float(ep) if ep else None
+        rows.append([spec, f1, sd, bc, ep, budget, False, False])
+
+    # Classement par F1 canonique décroissant (les références suivent leur rang).
+    rows.sort(key=lambda r: -(r[1] if r[1] is not None else -1))
+    arm_f1s = [c["f1_linear_probe"] for c in canon.values() if c]
+    span = max(arm_f1s) - min(arm_f1s)
+    frozen = CANONICAL_F1.get("simdinov2_vitb16", (None,))[0]
+    anchor = CANONICAL_F1.get("simdinov2_vitb16_lora", (None,))[0]
+
+    lines = ["\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+             "\\setlength{\\tabcolsep}{3pt}",
+             "\\caption{Ablation LoRA/PEFT sur le backbone \\textbf{SimDINOv2 "
+             "ViT-B/16 (iNat-Plantae)} --- \\emph{tous les bras de ce tableau "
+             "sont ce même backbone}, gelé ou affiné (tuile seule, même test "
+             f"que le benchmark ; {len(arm_f1s)}~bras, classés par \\textbf{{F1 "
+             "canonique décroissant}, rang $1 =$ meilleur). Sauf mention : "
+             "$\\alpha=r$ (convention r8a8), cibles Q+V, 12~blocs. Le backbone "
+             f"gelé ({num(frozen)}) et l'ancre r8a8 tous blocs ({num(anchor)}) "
+             "sont donnés comme références ; aucun bras ne les dépasse "
+             f"au-delà du bruit : le plateau tient dans {num(span, 4)}. "
+             "NormTuning (normes + tête, $\\approx$47k~params) égale l'ancre "
+             "au millième près. F1 canonique (reprobe mono-thread, \\S4.8) ; "
+             "best\\_C et époque depuis le probe interne des runs "
+             "(\\texttt{---} pour le gelé : unique graine, pas d'époque "
+             "d'entraînement).}"
+             "\\label{tab:simbabl}",
+             "\\begin{tabular}{@{}clrrrrrr@{}}", "\\toprule",
+             "Rang & Bras (backbone : SimDINOv2 ViT-B/16) & F1 canonique & "
+             "$\\sigma$ & $\\Delta$ vs gelé & best\\_C & époque & params "
+             "entraînables \\\\", "\\midrule"]
+    for rank, (spec, f1, sd, bc, ep, budget, _is_ref, bold) in enumerate(rows, 1):
+        f1t = num(f1) if f1 is not None else "---"
+        sdt = num(sd) if sd is not None else "---"
+        bct = num(bc) if bc is not None else "---"
+        ept = num(ep, 0) if ep is not None else "---"
+        dlt = (num(f1 - frozen, 4, sign=True)
+               if (f1 is not None and frozen is not None and f1 != frozen)
+               else ("---" if f1 is not None and f1 == frozen else num(f1 - frozen, 4, sign=True)))
+        budget_t = thousands(budget) if budget else "0"
+        if bold:
+            f1t = "\\textbf{" + f1t + "}"
+        lines.append(" & ".join([str(rank), esc(spec), f1t, sdt, dlt, bct,
+                                 ept, budget_t]) + " \\\\")
     lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
     write("t_simb_ablation", lines,
           "\\texttt{results/simb\\_stageA\\_probe\\_CANONICAL.json} (F1) ; "

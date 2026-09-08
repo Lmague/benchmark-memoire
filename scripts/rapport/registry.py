@@ -362,6 +362,89 @@ TIER_GROUP_KEY = {
     "SimDINOv2-B NormTuning":           "simdinov2_vitb16_norm_tuning",
 }
 
+# ── Noms d'affichage des groupes du bootstrap ───────────────────────────────
+# Les noms bruts du JSON (`significance_matrix_tier.json`) sont des identifiants de
+# runs ("Contexte R2 (B, fusion)", "DINOv3 ViT-B16", "ViT-B/16 IN-MHSA") : lisibles
+# dans le code, pas dans un tableau — ils ne disent ni le backbone (DINOv3-B ?
+# SimDINOv2-B ?), ni l'état (gelé ou affiné). Cette table fournit POUR CHAQUE
+# GROUPE : (nom long — backbone + régime + état, pour les tableaux t_ci,
+# t_signif_bh ; nom court — compact avec marqueur (gelé), pour les axes des
+# matrices de significativité). Les générateurs doivent passer par là ; les
+# LOOKUPS internes (TIER_GROUP_KEY, paires du JSON) restent sur le nom brut.
+# Révision 2026-09-08 (retour lecteur : « on sait pas quel modèle c'est »).
+TIER_GROUP_DISPLAY = {
+    # -- contexte spatial (backbone DINOv3-B ; R2 = borne non déployable) --
+    "Contexte R2 (B, fusion)": ("DINOv3-B Contexte R2 — affiné, fusion 1536",
+                                "D3-B ctx R2 (aff.)"),
+    "Contexte R1 (A, tuile)":  ("DINOv3-B Contexte R1 — affiné, tuile seule",
+                                "D3-B ctx R1 (aff.)"),
+    "Contexte R3 (A, EMA)":    ("DINOv3-B Contexte R3 — affiné, EMA self-distill.",
+                                "D3-B ctx R3 (aff.)"),
+    # -- famille DINOv3 --
+    "DINOv3 ViT-H+16":         ("DINOv3 ViT-H+/16 LVD — gelé",
+                                "D3-H+ (gelé)"),
+    "DINOv3 ViT-L16":          ("DINOv3 ViT-L/16 LVD — gelé",
+                                "D3-L (gelé)"),
+    "DINOv3 ViT-B16":          ("DINOv3 ViT-B/16 LVD — gelé",
+                                "D3-B (gelé)"),
+    "DINOv3 ViT-S/16":         ("DINOv3 ViT-S/16 LVD — gelé",
+                                "D3-S (gelé)"),
+    "DINOv3-B LoRA r=8":       ("DINOv3 ViT-B/16 — affiné LoRA r=8",
+                                "D3-B LoRA r8"),
+    "DINOv3-B MHSA":           ("DINOv3 ViT-B/16 — affiné MHSA-only",
+                                "D3-B MHSA"),
+    "DINOv3-B Full":           ("DINOv3 ViT-B/16 — affiné complet (Full)",
+                                "D3-B Full"),
+    "DINOv3-L LoRA r=8":       ("DINOv3 ViT-L/16 — affiné LoRA r=8",
+                                "D3-L LoRA r8"),
+    "DINOv3 ViT-S/16 LoRA r=8": ("DINOv3 ViT-S/16 — affiné LoRA r=8",
+                                "D3-S LoRA r8"),
+    # -- famille SimDINOv2 (iNat-Plantae) --
+    "SimDINOv2 ViT-B16":       ("SimDINOv2 ViT-B/16 — gelé",
+                                "SimB (gelé)"),
+    "SimDINOv2 ViT-L16":       ("SimDINOv2 ViT-L/16 — gelé",
+                                "SimL (gelé)"),
+    "SimDINOv2-B LoRA r=8":    ("SimDINOv2 ViT-B/16 — affiné LoRA r=8, tous blocs (ancre)",
+                                "SimB r8 tous blocs"),
+    "SimDINOv2-L LoRA r=8":    ("SimDINOv2 ViT-L/16 — affiné LoRA r=8",
+                                "SimL LoRA r8"),
+    "SimDINOv2-B MHSA":        ("SimDINOv2 ViT-B/16 — affiné MHSA-only",
+                                "SimB MHSA"),
+    "SimDINOv2-B Full":        ("SimDINOv2 ViT-B/16 — affiné complet (Full)",
+                                "SimB Full"),
+    "SimDINOv2-B NormTuning":  ("SimDINOv2 ViT-B/16 — affiné NormTuning (normes+tête)",
+                                "SimB NormTuning"),
+    "SimDINOv2-B LoRA r2":     ("SimDINOv2 ViT-B/16 — affiné LoRA r=2, tous blocs",
+                                "SimB LoRA r2"),
+    "SimDINOv2-B LoRA r4":     ("SimDINOv2 ViT-B/16 — affiné LoRA r=4, tous blocs",
+                                "SimB LoRA r4"),
+    "SimDINOv2-B LoRA r16":    ("SimDINOv2 ViT-B/16 — affiné LoRA r=16, tous blocs",
+                                "SimB LoRA r16"),
+    "SimDINOv2-B LoRA r32":    ("SimDINOv2 ViT-B/16 — affiné LoRA r=32, tous blocs",
+                                "SimB LoRA r32"),
+    "SimDINOv2-B LoRA r8 (blocs 0-5)":   ("SimDINOv2 ViT-B/16 — affiné LoRA r=8, blocs 0-5",
+                                "SimB r8 b0-5"),
+    "SimDINOv2-B LoRA r8 (blocs 6-11)":  ("SimDINOv2 ViT-B/16 — affiné LoRA r=8, blocs 6-11",
+                                "SimB r8 b6-11"),
+    "SimDINOv2-B LoRA r8 (blocs 9-11)":  ("SimDINOv2 ViT-B/16 — affiné LoRA r=8, blocs 9-11",
+                                "SimB r8 b9-11"),
+    "SimDINOv2-B LoRA r8 (Q+K+V)":       ("SimDINOv2 ViT-B/16 — affiné LoRA r=8, cibles Q+K+V",
+                                "SimB r8 QKV"),
+    "SimDINOv2-B LoRA r8 (scaling 2)":   ("SimDINOv2 ViT-B/16 — affiné LoRA r=8, scaling α=2r",
+                                "SimB r8 sc2"),
+    "SimDINOv2-B LoRA r16 (scaling 2)":  ("SimDINOv2 ViT-B/16 — affiné LoRA r=16, scaling α=2r",
+                                "SimB r16 sc2"),
+    "SimDINOv2-B LoRA r8 (rsLoRA)":      ("SimDINOv2 ViT-B/16 — affiné LoRA r=8, rsLoRA",
+                                "SimB r8 rsLoRA"),
+    "SimDINOv2-B LoRA r16 (rsLoRA)":     ("SimDINOv2 ViT-B/16 — affiné LoRA r=16, rsLoRA",
+                                "SimB r16 rsLoRA"),
+    # -- famille ImageNet (initialisation IN-1k, affinée) --
+    "ViT-B/16 IN-Full":        ("ViT-B/16 IN — affiné complet (Full)",
+                                "IN-B Full"),
+    "ViT-B/16 IN-MHSA":        ("ViT-B/16 IN — affiné MHSA-only",
+                                "IN-B MHSA"),
+}
+
 # ── Modèles du palier sans embeddings rapatriés : point-estimates documentés ─
 # Leurs F1 (metrics.json) figurent dans CANONICAL_F1 et le tableau maître, mais ils
 # ne peuvent pas entrer dans le bootstrap apparié (pas d'embeddings test locaux —
@@ -402,3 +485,7 @@ def p(*parts) -> str:
 def ensure_out() -> str:
     os.makedirs(OUT, exist_ok=True)
     return OUT
+
+# Vues pratiques sur TIER_GROUP_DISPLAY (les générateurs ne manipulent que celles-là).
+TIER_DISPLAY_LONG = {k: v[0] for k, v in TIER_GROUP_DISPLAY.items()}
+TIER_DISPLAY_SHORT = {k: v[1] for k, v in TIER_GROUP_DISPLAY.items()}

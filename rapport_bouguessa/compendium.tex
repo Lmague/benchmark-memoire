@@ -494,13 +494,27 @@ impliquant ne passe pas le §4.4 d'AGENTS.md et n'est pas testée ici).
 
 \input{tables/t_ci}
 
+% Les rejets BH en deux tableaux lisibles (1/2 contexte, 2/2 tuile seule), puis
+% la version longue complète (528 paires, rejets et non-rejets).
+\input{tables/t_signif_bh}
+
 \input{tables/t_signif}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\textwidth]{figs/perf_signif_matrix.png}
-\caption{Matrice de significativité sur le palier compétitif ; $\star$ = paire rejetée
-par Benjamini-Hochberg sur les 528~paires testées.}
+\includegraphics[width=0.92\textwidth]{figs/perf_signif_matrix_head.png}
+\caption{Matrice de significativité (a) — tête du palier (17~modèles, 136~paires
+internes). La couleur porte le $\Delta$ (rouge = la ligne bat la colonne) ; les
+cellules étoilées sont les paires rejetées par Benjamini-Hochberg sur les
+528~paires testées.}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{figs/perf_signif_matrix_tail.png}
+\caption{Matrice de significativité (b) — queue du palier (16~modèles). Le bloc
+central sans étoile est le palier plat SimDINOv2-B : les bras d'adaptation ne se
+distinguent pas l'un de l'autre.}
 \end{figure}
 
 \begin{figure}[htbp]
