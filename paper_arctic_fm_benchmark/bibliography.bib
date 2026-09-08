@@ -1,0 +1,837 @@
+% ==============================================================================
+% BIBLIOGRAPHY: Benchmarking Vision Foundation Models for Arctic Vegetation
+% Classification from UAV Imagery
+% Generated: 2026-07-09
+% ==============================================================================
+
+% ==============================================================================
+% FOUNDATIONAL DEEP LEARNING & SELF-SUPERVISED METHODS
+% ==============================================================================
+
+@inproceedings{he2016resnet,
+  author    = {Kaiming He and Xiangyu Zhang and Shaoqing Ren and Jian Sun},
+  title     = {Deep Residual Learning for Image Recognition},
+  booktitle = {Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2016},
+  pages     = {770--778},
+  doi       = {10.1109/CVPR.2016.90},
+  url       = {https://arxiv.org/abs/1512.03385},
+}
+
+@inproceedings{dosovitskiy2021vit,
+  author    = {Alexey Dosovitskiy and Lucas Beyer and Alexander Kolesnikov and Dirk Weissenborn and Xiaohua Zhai and Thomas Unterthiner and Mostafa Dehghani and Matthias Minderer and Georg Heigold and Sylvain Gelly and Jakob Uszkoreit and Neil Houlsby},
+  title     = {An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale},
+  booktitle = {Proceedings of the 9th International Conference on Learning Representations (ICLR)},
+  year      = {2021},
+  url       = {https://arxiv.org/abs/2010.11929},
+}
+
+@inproceedings{he2022mae,
+  author    = {Kaiming He and Xinlei Chen and Saining Xie and Yanghao Li and Piotr Doll{\'a}r and Ross Girshick},
+  title     = {Masked Autoencoders Are Scalable Vision Learners},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2022},
+  pages     = {16000--16009},
+  doi       = {10.1109/CVPR52688.2022.01553},
+  url       = {https://arxiv.org/abs/2111.06377},
+}
+
+@inproceedings{chen2020simclr,
+  author    = {Ting Chen and Simon Kornblith and Mohammad Norouzi and Geoffrey Hinton},
+  title     = {A Simple Framework for Contrastive Learning of Visual Representations},
+  booktitle = {Proceedings of the 37th International Conference on Machine Learning (ICML)},
+  year      = {2020},
+  url       = {https://arxiv.org/abs/2002.05709},
+}
+
+% ==============================================================================
+% DINO / DINOv2 / DINOv3 FAMILY
+% ==============================================================================
+
+@inproceedings{caron2021dino,
+  title    = {Emerging Properties in Self-Supervised Vision Transformers},
+  author   = {Mathilde Caron and Hugo Touvron and Ishan Misra and Herv{\'e} J{\'e}gou and Julien Mairal and Piotr Bojanowski and Armand Joulin},
+  year     = {2021},
+  booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+  pages    = {9650--9660},
+  doi      = {10.1109/ICCV48922.2021.00951},
+  url      = {https://arxiv.org/abs/2104.14294},
+}
+
+@article{oquab2023dinov2,
+  title    = {{DINOv2}: Learning Robust Visual Features without Supervision},
+  author   = {Maxime Oquab and Timoth{\'e}e Darcet and Th{\'e}o Moutakanni and Huy Vo and Marc Szafraniec and Vasil Khalidov and Pierre Fernandez and Daniel Haziza and Francisco Massa and Alaaeldin El-Nouby and Mahmoud Assran and Nicolas Ballas and Wojciech Galuba and Russell Howes and Po-Yao Huang and Shang-Wen Li and Ishan Misra and Michael Rabbat and Vasu Sharma and Gabriel Synnaeve and Hu Xu and Herv{\'e} J{\'e}gou and Julien Mairal and Patrick Labatut and Armand Joulin and Piotr Bojanowski},
+  year     = {2024},
+  journal  = {Transactions on Machine Learning Research (TMLR)},
+  url      = {https://arxiv.org/abs/2304.07193},
+}
+
+@inproceedings{darcet2024dinov3,
+  title    = {DINOv3: Pushing the Boundaries of Visual Pre-training with Self-Distillation and Scaling},
+  author   = {Timoth{\'e}e Darcet and Hani AlJamaa and Maxime Oquab and Julien Mairal and Piotr Bojanowski},
+  year     = {2024},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  url      = {https://arxiv.org/abs/2404.07544},
+}
+
+@article{moummad2026selfsupervised,
+  title = {Self-Supervised Learning of Plant Image Representations},
+  author = {Ilyass Moummad and Karim Zaher and Herv{\'e} Go{\"e}au and Jean-Christophe Lombardo and others},
+  journal = {arXiv preprint arXiv:2602.06617},
+  year = {2026},
+  url = {https://arxiv.org/abs/2602.06617}
+}
+
+@article{ong2025evaluation,
+  title = {An Evaluation of a Pre-trained Transformer-Based Self-Distillation Model for Cross-Domain Plant Species Identification},
+  author = {C. A. Ong and F. S. Tay and Y. L. Then and C. McCarthy},
+  journal = {Neural Computing and Applications},
+  volume = {37},
+  pages = {6801--6816},
+  year = {2025},
+  publisher = {Springer},
+  doi = {10.1007/s00521-024-10948-0},
+  url = {https://link.springer.com/article/10.1007/s00521-024-10948-0}
+}
+
+% ==============================================================================
+% GEOSPATIAL FOUNDATION MODELS
+% ==============================================================================
+
+@inproceedings{cong2022satmae,
+  title = {{SatMAE}: Pre-training Transformers for Temporal and Multi-Spectral Satellite Imagery},
+  author = {Yezhen Cong and Samar Khanna and Chenlin Meng and Patrick Liu and Erik Rozi and Yutong He and Marshall Burke and David B. Lobell and Stefano Ermon},
+  year = {2022},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  volume = {35},
+  url = {https://arxiv.org/abs/2207.08051}
+}
+
+@inproceedings{reed2023scalemae,
+  title = {{Scale-MAE}: A Scale-Aware Masked Autoencoder for Multiscale Geospatial Representation Learning},
+  author = {Colorado J. Reed and Ritwik Gupta and Shufan Li and Sarah Brockman and Christopher Funk and Brian Clipp and Kurt Keutzer and Salvatore Candido and Matt Uyttendaele and Trevor Darrell},
+  year = {2023},
+  booktitle = {IEEE/CVF International Conference on Computer Vision (ICCV)},
+  url = {https://arxiv.org/abs/2212.14532}
+}
+
+@inproceedings{mendieta2023geospatial,
+  title = {Towards Geospatial Foundation Models via Continual Pretraining},
+  author = {Matias Mendieta and Boran Han and Xingjian Shi and Yi Zhu and Chen Chen},
+  year = {2023},
+  booktitle = {IEEE/CVF International Conference on Computer Vision (ICCV)},
+  url = {https://arxiv.org/abs/2302.04476}
+}
+
+@article{jakubik2023prithvi,
+  title = {Foundation Models for Generalist Geospatial Artificial Intelligence},
+  author = {Johannes Jakubik and Sujit Roy and C. E. Phillips and Paolo Fraccaro and Denys Godwin and Bianca Zadrozny and Daniela Szwarcman and Carlos Gomes and Gabby Nyirjesy and Blair Edwards and Daiki Kimura and Naomi Simumba and Linsong Chu and S. Karthik Mukkavilli and Devyani Lambhate and Kamal Das and Ranjini Bangalore and Dario Oliveira and Michal Muszynski and Kumar Ankur and Muthukumaran Ramasubramanian and Iksha Gurung and Sam Khallaghi and Hanxi Li and Michael Cecil and Maryam Ahmadi and Fatemeh Kordi and Hamed Alemohammad and Manil Maskey and Raghu Ganti and Komminist Weldemariam and Rahul Ramachandran},
+  year = {2023},
+  journal = {arXiv preprint arXiv:2310.18660},
+  url = {https://arxiv.org/abs/2310.18660}
+}
+
+@inproceedings{lacoste2024geobench,
+  title = {{GEO-Bench}: Toward Foundation Models for Earth Monitoring},
+  author = {Alexandre Lacoste and Nils Lehmann and Pau Rodriguez and Evan David Sherwin and Hannah Kerner and Bj{\"o}rn L{\"u}tjens and Jeremy Irvin and David Dao and Hamed Alemohammad and Alexandre Drouin and Mehmet Gunturkun and Gabriel Huang and David Vazquez and Dava Newman and Yoshua Bengio and Stefano Ermon and Xiao Xiang Zhu},
+  year = {2023},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track},
+  url = {https://arxiv.org/abs/2306.16031}
+}
+
+@inproceedings{manas2021seasonal,
+  title = {Seasonal Contrast: Unsupervised Pre-Training from Uncurated Remote Sensing Data},
+  author = {Oscar Manas and Alexandre Lacoste and Xavier Gir{\'o}-i-Nieto and David Vazquez and Pau Rodriguez},
+  year = {2021},
+  booktitle = {IEEE/CVF International Conference on Computer Vision (ICCV)},
+  pages = {9414--9423},
+  url = {https://arxiv.org/abs/2103.16607}
+}
+
+@article{corley2026nobodyknows,
+  title = {No One Knows the State of the Art in Geospatial Foundation Models},
+  author = {Isaac Corley and Caleb Robinson and Anthony Ortiz and Juan M. Lavista Ferres},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2605.12678},
+  url = {https://arxiv.org/abs/2605.12678}
+}
+
+@article{kage2026multimodal,
+  title = {Multi-modal, Multi-scale Representation Learning for Satellite Imagery Analysis Just Needs a Good ALiBi},
+  author = {Patrick Kage and Jayanth Sridhar and Ritwik Gupta and Christopher Funk},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2604.10347},
+  url = {https://arxiv.org/abs/2604.10347}
+}
+
+@article{shang2026benchmarking,
+  title = {Benchmarking Geospatial Foundation Models for Agriculture Applications},
+  author = {Zhuocheng Shang and Nils Lehmann and David Dao and Alexandre Lacoste and others},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2606.29664},
+  url = {https://arxiv.org/abs/2606.29664}
+}
+
+@article{kaur2026pretrain,
+  title = {Pretrain Where? Investigating How Pretraining Data Diversity Impacts Geospatial Foundation Model Performance},
+  author = {Amandeep Kaur and Nils Lehmann and Alexandre Lacoste and David Vazquez},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2604.21104},
+  url = {https://arxiv.org/abs/2604.21104}
+}
+
+@article{hackel2026redundancy,
+  title = {How Much of a Model Do We Need? Redundancy and Slimmability in Remote Sensing Foundation Models},
+  author = {Leonard Hackel and Kay Hoefling and Thomas Blaschke and Konrad Schindler},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2601.22841},
+  url = {https://arxiv.org/abs/2601.22841}
+}
+
+@article{braham2026spectrale,
+  title = {{SpectralEarth-FM}: Bringing Hyperspectral Imagery into Multimodal Earth Observation Pretraining},
+  author = {Nassim Ait Ali Braham and Conrad M Albrecht and Paolo Fraccaro and others},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2605.21075},
+  url = {https://arxiv.org/abs/2605.21075}
+}
+
+@article{rodriguez2026floro,
+  title = {{FLORO}: A Multimodal Geospatial Foundation Model for Ecological Remote Sensing Across Sensors and Scales},
+  author = {Jorge L. Rodriguez and David Rolnick and others},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2605.28174},
+  url = {https://arxiv.org/abs/2605.28174}
+}
+
+@article{forgaard2026thor,
+  title = {{THOR}: A Versatile Foundation Model for Earth Observation Climate and Society Applications},
+  author = {Theodor Forgaard and others},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2601.16011},
+  url = {https://arxiv.org/abs/2601.16011}
+}
+
+% ==============================================================================
+% DINO/SSL APPLIED TO REMOTE SENSING
+% ==============================================================================
+
+@article{faulkenberry2026dinosoars,
+  title = {{DINO Soars}: DINOv3 for Open-Vocabulary Semantic Segmentation of Remote Sensing Imagery},
+  author = {Ryan Faulkenberry and Nathan Jacobs and others},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2605.03175},
+  url = {https://arxiv.org/abs/2605.03175},
+}
+
+@article{tong2026semdino,
+  title = {{SemDINO}: A DINOv3-Driven Network for Cross-Temporal Semantic Alignment in Change Detection},
+  author = {Xinyu Tong and others},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2606.09772},
+  url = {https://arxiv.org/abs/2606.09772},
+}
+
+@article{gu2026zods,
+  title = {{ZODS-RS}: Zero-training Oriented Detection and Segmentation for Remote Sensing},
+  author = {Zuan Gu and others},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2606.10769},
+  url = {https://arxiv.org/abs/2606.10769},
+}
+
+@article{stival2026pixelwise,
+  title = {Pixel-Wise Multimodal Contrastive Learning for Remote Sensing Images},
+  author = {Leandro Stival and others},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2601.04127},
+  url = {https://arxiv.org/abs/2601.04127},
+}
+
+@article{dong2025peftcd,
+  title = {{PeftCD}: Leveraging Vision Foundation Models with Parameter-Efficient Fine-Tuning for Remote Sensing Change Detection},
+  author = {Sijun Dong and others},
+  year = {2025},
+  journal = {arXiv preprint arXiv:2509.09572},
+  url = {https://arxiv.org/abs/2509.09572},
+}
+
+@article{park2026frost,
+  title = {{FROST}: Training-Free Few-Shot Segmentation with Frozen Features and Nonparametric Statistics},
+  author = {Junghwan Park},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2606.31136},
+  url = {https://arxiv.org/abs/2606.31136},
+}
+
+% ==============================================================================
+% LATENT GEOMETRY & TRANSFERABILITY METRICS
+% ==============================================================================
+
+@inproceedings{garrido2023rankme,
+  title = {{RankMe}: Assessing the Downstream Performance of Pretrained Self-Supervised Representations by Their Rank},
+  author = {Quentin Garrido and Randall Balestriero and Laurent Najman and Yann LeCun},
+  year = {2023},
+  booktitle = {Proceedings of the 40th International Conference on Machine Learning (ICML)},
+  series = {Proceedings of Machine Learning Research},
+  url = {https://arxiv.org/abs/2210.02885},
+}
+
+@inproceedings{you2021logme,
+  title = {{LogME}: Practical Assessment of Pre-trained Models for Transfer Learning},
+  author = {Kaichao You and Yong Liu and Jianmin Wang and Mingsheng Long},
+  year = {2021},
+  booktitle = {Proceedings of the 38th International Conference on Machine Learning (ICML)},
+  series = {Proceedings of Machine Learning Research},
+  doi = {10.48550/arXiv.2102.11005},
+  url = {https://arxiv.org/abs/2102.11005},
+}
+
+@inproceedings{agrawal2022alphareq,
+  title = {{Alpha-ReQ}: Assessing Representation Quality in Self-Supervised Learning by Measuring Eigenspectrum Decay},
+  author = {Kumar Krishna Agrawal and Arnab Kumar Mondal and Arna Ghosh and Blake Richards},
+  year = {2022},
+  booktitle = {Advances in Neural Information Processing Systems 35 (NeurIPS)},
+  url = {https://papers.nips.cc/paper_files/paper/2022/hash/68b431e3da8be47038cb37acecd46f12-Abstract-Conference.html},
+}
+
+@article{he2022featurediversity,
+  title = {Feature Diversity as a Predictor of Neural Network Generalization},
+  author = {Bobby He and Mete Ozay},
+  year = {2022},
+  journal = {Transactions on Machine Learning Research (TMLR)},
+  url = {https://openreview.net/forum?id=9eSrVdTyi3},
+}
+
+@article{mordacq2026idest,
+  title = {{IdEst}: Assessing Self-Supervised Learning Representations via Intrinsic Dimension},
+  author = {Julie Mordacq and others},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2606.03338},
+  url = {https://arxiv.org/abs/2606.03338},
+}
+
+@article{singh2025occam,
+  title = {Occam's Model: Selecting Simpler Representations for Better Transferability Estimation},
+  author = {Prabhant Singh and Joaquin Vanschoren},
+  year = {2025},
+  journal = {arXiv preprint arXiv:2502.06925},
+  url = {https://arxiv.org/abs/2502.06925},
+}
+
+@article{khoba2025featureperturbation,
+  title = {Feature Space Perturbation: A Panacea to Enhanced Transferability Estimation},
+  author = {Prafful Kumar Khoba and Prabhant Singh and Joaquin Vanschoren},
+  year = {2025},
+  journal = {arXiv preprint arXiv:2502.16471},
+  url = {https://arxiv.org/abs/2502.16471},
+}
+
+% ==============================================================================
+% FROZEN vs FINE-TUNED -- BENCHMARKS & COMPARISONS
+% ==============================================================================
+
+@inproceedings{kornblith2019transferability,
+  title = {Do Better ImageNet Models Transfer Better?},
+  author = {Simon Kornblith and Jonathon Shlens and Quoc V. Le},
+  year = {2019},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages = {2661--2671},
+  url = {https://arxiv.org/abs/1805.08974},
+}
+
+@article{zhai2019large,
+  title = {A Large-scale Study of Representation Learning with the Visual Task Adaptation Benchmark},
+  author = {Xiaohua Zhai and Joan Puigcerver and Alexander Kolesnikov and Pierre Ruyssen and Carlos Riquelme and Mario Lucic and Josip Djolonga and Andre Susano Pinto and Maxim Neumann and Alexey Dosovitskiy and Lucas Beyer and Olivier Bachem and Michael Tschannen and Marcin Michalski and Olivier Bousquet and Sylvain Gelly and Neil Houlsby},
+  year = {2020},
+  journal = {arXiv preprint arXiv:1910.04867},
+  url = {https://arxiv.org/abs/1910.04867},
+}
+
+@inproceedings{ericsson2021evaluating,
+  title = {How Well Do Self-Supervised Models Transfer?},
+  author = {Linus Ericsson and Henry Gouk and Timothy M. Hospedales},
+  year = {2021},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages = {5410--5419},
+  url = {https://arxiv.org/abs/2011.13377},
+}
+
+@article{sosa2024effective,
+  title = {How Effective is Pre-training of Large Masked Autoencoders for Downstream Earth Observation Tasks?},
+  author = {Jos{\'e} Andr{\'e}s Sosa Martinez and M. Aloulou and Danila Rukhovich and R. Sleimi and others},
+  journal = {arXiv preprint arXiv:2405.06536},
+  year = {2024},
+  url = {https://arxiv.org/abs/2405.06536}
+}
+
+@inproceedings{zhang2025explora,
+  title = {{ExPLoRA}: Parameter-Efficient Extended Pre-training to Adapt Vision Transformers to Remote Sensing},
+  author = {Boran Han and Matias Mendieta and Chen Chen},
+  year = {2025},
+  booktitle = {IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)},
+  url = {https://arxiv.org/abs/2411.05273},
+}
+
+% ==============================================================================
+% ARCTIC / TUNDRA / BOREAL VEGETATION -- DEEP LEARNING
+% ==============================================================================
+
+@article{platel2025advancing,
+  title = {Advancing Sparse Vegetation Monitoring in the Arctic and Antarctic: A Review of Satellite and UAV Remote Sensing, Machine Learning, and Sensor Fusion},
+  author = {A. Platel and Juan Sandino and J. Shaw and Barbara Bollard and Felipe Gonzalez},
+  journal = {Remote Sensing},
+  volume = {17},
+  number = {8},
+  pages = {1436},
+  year = {2025},
+  publisher = {MDPI},
+  doi = {10.3390/rs17081436},
+  url = {https://www.mdpi.com/2072-4292/17/8/1436}
+}
+
+@article{wagner2026comparing,
+  title = {Comparing Multiscale Object-Based Image Analysis and Deep Learning for High-Resolution Classification of Ice Wedge Polygon Tundra},
+  author = {Johann Wagner and Gustaf Hugelius},
+  journal = {Canadian Journal of Remote Sensing},
+  year = {2026},
+  publisher = {Taylor and Francis},
+  doi = {10.1080/07038992.2026.2378943},
+  url = {https://www.tandfonline.com/doi/full/10.1080/07038992.2026.2378943}
+}
+
+@article{nelson2024predicting,
+  title = {Predicting Plants in the Wild: Mapping Arctic and Boreal Plants with UAS-Based Visible and Near Infrared Reflectance Spectra},
+  author = {Peter R. Nelson and K. Bundy and K. Smith and M. Macander and C. Chan},
+  journal = {International Journal of Applied Earth Observation and Geoinformation},
+  volume = {128},
+  pages = {103737},
+  year = {2024},
+  publisher = {Elsevier},
+  doi = {10.1016/j.jag.2024.103737},
+  url = {https://www.sciencedirect.com/science/article/pii/S1569843224000917}
+}
+
+@article{orndahl2022mapping,
+  title = {Mapping Tundra Ecosystem Plant Functional Type Cover, Height, and Aboveground Biomass in Alaska and Northwest Canada Using Unmanned Aerial Vehicles},
+  author = {Kathleen M. Orndahl and Libby P. W. Ehlers and Jeffrey D. Herriges and others},
+  journal = {Arctic Science},
+  volume = {8},
+  number = {4},
+  pages = {1165--1180},
+  year = {2022},
+  publisher = {Canadian Science Publishing},
+  doi = {10.1139/as-2021-0044},
+  url = {https://cdnsciencepub.com/doi/full/10.1139/as-2021-0044}
+}
+
+@article{yang2022remote,
+  title = {Remote Sensing from Unoccupied Aerial Systems: Opportunities to Enhance Arctic Plant Ecology in a Changing Climate},
+  author = {Daryl Yang and Bailey D. Morrison and Kenneth J. Davidson and Julien Lamour and others},
+  journal = {Journal of Ecology},
+  volume = {110},
+  number = {12},
+  pages = {2812--2835},
+  year = {2022},
+  publisher = {Wiley},
+  doi = {10.1111/1365-2745.13976},
+  url = {https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/1365-2745.13976}
+}
+
+@article{zhang2020transferability,
+  title = {Transferability of the Deep Learning Mask R-CNN Model for Automated Mapping of Ice-Wedge Polygons in High-Resolution Satellite and UAV Images},
+  author = {Weixing Zhang and Anna K. Liljedahl and Mikhail Kanevskiy and Howard E. Epstein and Benjamin M. Jones and M. Torre Jorgenson and Kelcy Kent},
+  journal = {Remote Sensing},
+  volume = {12},
+  number = {7},
+  pages = {1085},
+  year = {2020},
+  publisher = {MDPI},
+  doi = {10.3390/rs12071085},
+  url = {https://www.mdpi.com/2072-4292/12/7/1085}
+}
+
+@article{siewert2021uav,
+  title = {UAV Reveals Substantial but Heterogeneous Effects of Herbivores on Arctic Vegetation},
+  author = {Matthias B. Siewert and Johan Olofsson},
+  journal = {Scientific Reports},
+  volume = {11},
+  number = {1},
+  pages = {19468},
+  year = {2021},
+  publisher = {Nature Publishing Group},
+  doi = {10.1038/s41598-021-98497-5},
+  url = {https://www.nature.com/articles/s41598-021-98497-5}
+}
+
+@article{hameljomphe2026complementary,
+  title = {Complementary Insights into High Arctic Greening from Absolute and Relative NDVI Trends Across the Canadian Arctic Archipelago},
+  author = {Esteban Hamel Jomphe and others},
+  journal = {Canadian Journal of Remote Sensing},
+  year = {2026},
+  doi = {10.1080/07038992.2026.2672167},
+  url = {https://www.tandfonline.com/doi/full/10.1080/07038992.2026.2672167}
+}
+
+@article{dong2026rapid,
+  title = {Rapid Expansion of Global Shrub Encroachment Across Aridity Gradients and Its Effects on Vegetation Dynamics},
+  author = {Ping Dong and others},
+  journal = {Remote Sensing},
+  volume = {18},
+  year = {2026},
+  doi = {10.3390/rs18111749},
+  url = {https://www.mdpi.com/2072-4292/18/11/1749}
+}
+
+% ==============================================================================
+% UAV DRONE VEGETATION CLASSIFICATION
+% ==============================================================================
+
+@article{yuan2026treespecvit,
+  title = {{TreeSpecViT}: Fine-Grained Tree Species Classification from UAV RGB Imagery for Campus-Scale Human-Vegetation Coupling Analysis},
+  author = {Yinghui Yuan and Yunfeng Yang and Zhulin Chen and Sheng Xu},
+  journal = {Remote Sensing},
+  volume = {18},
+  number = {6},
+  pages = {928},
+  year = {2026},
+  doi = {10.3390/rs18060928},
+  url = {https://www.mdpi.com/2072-4292/18/6/928}
+}
+
+@article{saha2026understanding,
+  title = {Understanding Representation Gaps Across Scales in Tropical Tree Species Classification from Drone Imagery},
+  author = {Sulagna Saha and others},
+  journal = {arXiv preprint arXiv:2604.23019},
+  year = {2026},
+  url = {https://arxiv.org/abs/2604.23019}
+}
+
+@article{kulich2026advancing,
+  title = {Advancing Species-Level Vegetation Mapping of Alpine Peat Bogs Using UAV Imagery, Machine Learning and Texture Features},
+  author = {Adam Kulich and others},
+  journal = {Frontiers in Plant Science},
+  year = {2026},
+  doi = {10.3389/fpls.2026.1841696},
+  url = {https://www.frontiersin.org/articles/10.3389/fpls.2026.1841696}
+}
+
+@article{gao2026highresolution,
+  title = {High-Resolution Mapping Coastal Wetland Vegetation Using Frequency-Augmented Deep Learning Method},
+  author = {Ning Gao and others},
+  journal = {Remote Sensing},
+  volume = {18},
+  number = {2},
+  pages = {247},
+  year = {2026},
+  doi = {10.3390/rs18020247},
+  url = {https://www.mdpi.com/2072-4292/18/2/247}
+}
+
+@article{jeanson2026leveraging,
+  title = {Leveraging Image Generators to Address Training Data Scarcity: The Gen4Regen Dataset for Forest Regeneration Mapping},
+  author = {Gabriel Jeanson and others},
+  journal = {arXiv preprint arXiv:2605.05627},
+  year = {2026},
+  url = {https://arxiv.org/abs/2605.05627}
+}
+
+@article{wang2026bawseg,
+  title = {{BAWSeg}: A UAV Multispectral Benchmark for Barley Weed Segmentation},
+  author = {Haitian Wang and others},
+  journal = {arXiv preprint arXiv:2603.01932},
+  year = {2026},
+  url = {https://arxiv.org/abs/2603.01932}
+}
+
+% ==============================================================================
+% ECOLOGICAL FOUNDATION MODELS & BIODIVERSITY
+% ==============================================================================
+
+@inproceedings{stevens2024bioclip,
+  title = {{BioCLIP}: A Vision Foundation Model for the Tree of Life},
+  author = {Samuel Stevens and Jiaman Wu and Matthew J. Thompson and Elizabeth G. Campolongo and Chan Hee Song and David Edward Carlyn and Li Dong and Wasila M. Dahdul and Charles Stewart and Tanya Berger-Wolf and Wei-Lun Chao and Yu Su},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages = {19412--19424},
+  year = {2024},
+  doi = {10.1109/CVPR52733.2024.01837},
+  url = {https://openaccess.thecvf.com/content/CVPR2024/html/Stevens_BioCLIP_A_Vision_Foundation_Model_for_the_Tree_of_Life_CVPR_2024_paper.html}
+}
+
+@inproceedings{doherty2024leveraging,
+  title = {Leveraging Foundation Models for Data-Limited Ecological Applications},
+  author = {K. Doherty and M. A. Gurinas and E. Samsoe and others},
+  booktitle = {NeurIPS 2024 Workshop on Foundation Models for Science},
+  year = {2024},
+  url = {https://openreview.net/forum?id=LjEVzq3N6c}
+}
+
+@article{ball2026geospatial,
+  title = {Geospatial Foundation Models Enable Data-Efficient Tree Species Mapping in Temperate Mountain Forests},
+  author = {James G. C. Ball and Jana Annika Wicklein and Zhengpeng Feng and J. Knezevic and S. Jaffer and Anil Madhavapeddy and Clement Atzberger and M. Dalponte and David A. Coomes},
+  journal = {bioRxiv},
+  year = {2026},
+  doi = {10.64898/2026.02.23.707022},
+  url = {https://www.biorxiv.org/content/10.1101/2026.02.23.707022}
+}
+
+@phdthesis{gillespie2025biodiversity,
+  title = {Biodiversity Monitoring at Scale with Foundation Models},
+  author = {Lauren E. Gillespie},
+  school = {Stanford University},
+  year = {2025},
+  url = {https://search.proquest.com/docview/3175000000}
+}
+
+@article{gillespie2023image,
+  title = {An Image Is Worth a Thousand Species: Mapping Plant Biodiversity with Citizen Science, Remote Sensing, and Deep Learning},
+  author = {Lauren M. Gillespie and Megan Ruffley and Mois{\'e}s Exp{\'o}sito-Alonso},
+  journal = {bioRxiv},
+  year = {2023},
+  publisher = {Cold Spring Harbor Laboratory},
+  doi = {10.1101/2022.08.16.504150},
+  url = {https://www.biorxiv.org/content/10.1101/2022.08.16.504150v2}
+}
+
+% ==============================================================================
+% SSL PRETRAINING FOR REMOTE SENSING / ECOLOGY
+% ==============================================================================
+
+@article{wang2024feature,
+  title = {Feature Guided Masked Autoencoder for Self-Supervised Learning in Remote Sensing},
+  author = {Yi Wang and Hugo Hernandez Hernandez and Conrad M. Albrecht and others},
+  journal = {IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing},
+  volume = {17},
+  pages = {10113--10131},
+  year = {2024},
+  publisher = {IEEE},
+  doi = {10.1109/JSTARS.2024.3401493},
+  url = {https://ieeexplore.ieee.org/document/10533271}
+}
+
+@inproceedings{prexl2024senpa,
+  title = {{SenPa-MAE}: Sensor Parameter Aware Masked Autoencoder for Multi-Satellite Self-Supervised Pretraining},
+  author = {Jonathan Prexl and Michael Schmitt},
+  booktitle = {DAGM German Conference on Pattern Recognition (GCPR)},
+  series = {Lecture Notes in Computer Science},
+  year = {2024},
+  publisher = {Springer},
+  doi = {10.1007/978-3-031-80516-5_10},
+  url = {https://link.springer.com/chapter/10.1007/978-3-031-80516-5_10}
+}
+
+@article{lin2023ssmae,
+  title = {{SS-MAE}: Spatial-Spectral Masked Autoencoder for Multisource Remote Sensing Image Classification},
+  author = {Jing Lin and Fei Gao and Xiaochen Shi and Junyu Dong and Qian Du},
+  journal = {IEEE Transactions on Geoscience and Remote Sensing},
+  volume = {61},
+  pages = {1--18},
+  year = {2023},
+  publisher = {IEEE},
+  url = {https://ieeexplore.ieee.org/document/10325480}
+}
+
+@article{wan2025selfsupervised,
+  title = {A Self-Supervised Learning Pretraining Framework for Remote Sensing Image Change Detection},
+  author = {L. Wan and Y. Xiang and W. Kang and L. Ma},
+  journal = {IEEE Transactions on Geoscience and Remote Sensing},
+  volume = {63},
+  pages = {1--17},
+  year = {2025},
+  publisher = {IEEE},
+  doi = {10.1109/TGRS.2025.3528113},
+  url = {https://ieeexplore.ieee.org/document/10836883}
+}
+
+@article{plekhanova2025ssl4eco,
+  title = {{SSL4Eco}: A Global Seasonal Dataset for Geospatial Foundation Models in Ecology},
+  author = {Elena Plekhanova and others},
+  journal = {arXiv preprint arXiv:2504.18256},
+  year = {2025},
+  url = {https://arxiv.org/abs/2504.18256}
+}
+
+% ==============================================================================
+% CONTINUAL / DOMAIN-ADAPTIVE PRETRAINING
+% ==============================================================================
+
+@inproceedings{purushwalkam2022challenges,
+  title = {The Challenges of Continuous Self-Supervised Learning},
+  author = {Senthil Purushwalkam and Pedro Morgado and Abhinav Gupta},
+  booktitle = {European Conference on Computer Vision (ECCV)},
+  series = {Lecture Notes in Computer Science},
+  volume = {13686},
+  pages = {702--721},
+  year = {2022},
+  publisher = {Springer},
+  doi = {10.1007/978-3-031-19809-0_40},
+  url = {https://link.springer.com/chapter/10.1007/978-3-031-19809-0_40}
+}
+
+@article{bell2025future,
+  title = {The Future of Continual Learning in the Era of Foundation Models: Three Key Directions},
+  author = {J. Bell and L. Quarantiello and E. N. Coleman and L. Li and M. Li and others},
+  journal = {arXiv preprint arXiv:2505.10517},
+  year = {2025},
+  url = {https://arxiv.org/abs/2505.10517}
+}
+
+% ==============================================================================
+% SURVEY / REVIEW PAPERS
+% ==============================================================================
+
+@article{yao2026integrating,
+  title = {Integrating Eco-Biogeographical Knowledge into Deep Learning: An Approach for Fine-Grained Mountain Vegetation Classification},
+  author = {Yonghui Yao and others},
+  journal = {Remote Sensing of Environment},
+  year = {2026},
+  doi = {10.1016/j.rse.2026.115346},
+  url = {https://www.sciencedirect.com/science/article/pii/S0034425726000346}
+}
+
+@article{lisaius2026embedding,
+  title = {Embedding-Based Crop Type Classification in the Groundnut Basin of Senegal},
+  author = {Madeline C. Lisaius and others},
+  journal = {arXiv preprint arXiv:2601.16900},
+  year = {2026},
+  url = {https://arxiv.org/abs/2601.16900}
+}
+
+@article{mahlasi2026ecological,
+  title = {Ecological Mapping with Geospatial Foundation Models},
+  author = {Craig Mahlasi and others},
+  journal = {arXiv preprint arXiv:2602.10720},
+  year = {2026},
+  url = {https://arxiv.org/abs/2602.10720}
+}
+
+@article{yin2025foundation,
+  title = {Foundation Models in Agriculture: A Comprehensive Review},
+  author = {S. Yin and Y. Xi and X. Zhang and C. Sun and Q. Mao},
+  journal = {Agriculture},
+  volume = {15},
+  number = {5},
+  pages = {526},
+  year = {2025},
+  publisher = {MDPI},
+  doi = {10.3390/agriculture15050526},
+  url = {https://www.mdpi.com/2077-0472/15/5/526}
+}
+
+% ==============================================================================
+% ADDITIONAL RECENT 2025-2026 PAPERS
+% ==============================================================================
+
+@article{zheng2026tripath,
+  title = {Tri-path DINO: Feature Complementary Learning for Remote Sensing Multi-Class Change Detection},
+  author = {Kai Zheng and others},
+  year = {2026},
+  journal = {arXiv preprint arXiv:2603.01498},
+  url = {https://arxiv.org/abs/2603.01498},
+}
+
+@article{miao2025newfrontiers,
+  title = {New Frontiers in Artificial Intelligence for Biodiversity Research and Conservation with Multimodal Language Models},
+  author = {Z. Miao and Y. Zhang and Zalan Fabian and A. H. Celis and others},
+  journal = {Frontiers in Ecology and Evolution},
+  volume = {13},
+  pages = {1520848},
+  year = {2025},
+  publisher = {Frontiers},
+  doi = {10.3389/fevo.2025.1520848},
+  url = {https://www.frontiersin.org/articles/10.3389/fevo.2025.1520848}
+}
+
+@article{bourriz2026effective,
+  title = {How Effective Are Foundation Models for Crop Type Mapping Using Hyperspectral Imaging? A Comparative Study},
+  author = {Mohamed Bourriz and others},
+  journal = {ISPRS Archives},
+  year = {2026},
+  doi = {10.5194/isprs-archives-xlviii-4-w17-2025-69-2026},
+  url = {https://isprs-archives.copernicus.org/articles/XLVIII-4-W17-2025/69/2026/}
+}
+
+@article{natesan2026domain,
+  title = {Domain-Adapted Supervised Learning for Tree Species Mapping Using UAV Multispectral Data},
+  author = {Sowmya Natesan and U. Vepakomma and C. Armenakis},
+  journal = {Forests},
+  volume = {17},
+  number = {7},
+  pages = {738},
+  year = {2026},
+  publisher = {MDPI},
+  doi = {10.3390/f17070738},
+  url = {https://www.mdpi.com/1999-4907/17/7/738}
+}
+
+@article{xiong2025sam2,
+  title = {{SAM2-UNeXT}: An Improved High-Resolution Baseline for Adapting Foundation Models to Downstream Segmentation Tasks},
+  author = {Xinyu Xiong and others},
+  journal = {arXiv preprint arXiv:2508.03566},
+  year = {2025},
+  url = {https://arxiv.org/abs/2508.03566}
+}
+
+@article{zhang2025transfer,
+  title = {{TMT}: Cross-domain Semantic Segmentation with Region-adaptive Transferability Estimation},
+  author = {Enming Zhang and others},
+  journal = {arXiv preprint arXiv:2504.05774},
+  year = {2025},
+  url = {https://arxiv.org/abs/2504.05774}
+}
+@article{gustineli2024multilabel,
+  title = {Multi-Label Plant Species Classification with Self-Supervised Vision Transformers},
+  author = {Murilo Gustineli and A. Miyaguchi and I. Stalter},
+  journal = {arXiv preprint arXiv:2407.06298},
+  year = {2024},
+  url = {https://arxiv.org/abs/2407.06298}
+}
+
+@article{goeau2025overview,
+  title = {Overview of PlantCLEF 2022: Image-Based Plant Identification at Global Scale},
+  author = {Herv{\'e} Go{\"e}au and Pierre Bonnet and Alexis Joly},
+  journal = {arXiv preprint arXiv:2509.17632},
+  year = {2025},
+  url = {https://arxiv.org/abs/2509.17632}
+}
+
+@misc{tvc2025,
+  title = {High-Resolution Arctic Vegetation Maps and Photogrammetry Data from Drone Surveys at Trail Valley Creek, Northwest Territories (2023)},
+  author = {Caron-Guay, A. and Laliberté, E. and Sonnentag, O.},
+  year = {2025},
+  howpublished = {Federated Research Data Repository},
+  doi = {10.20383/103.01418},
+}
+
+% ==============================================================================
+% PEFT / LoRA (ajouts 2026-09-08 — cités par le manuscrit)
+% ==============================================================================
+
+@inproceedings{hu2021lora,
+  title = {{LoRA}: Low-Rank Adaptation of Large Language Models},
+  author = {Edward J. Hu and Yelong Shen and Phillip Wallis and Zeyuan Allen-Zhu and Yuanzhi Li and Shean Wang and Lu Wang and Weizhu Chen},
+  year = {2022},
+  booktitle = {Proceedings of the 10th International Conference on Learning Representations (ICLR)},
+  url = {https://arxiv.org/abs/2106.09685},
+}
+
+@article{kalajdzievski2023rslora,
+  title = {A Rank Stabilization Scaling Factor for Fine-Tuning with {LoRA}},
+  author = {Damjan Kalajdzievski},
+  year = {2023},
+  journal = {arXiv preprint arXiv:2312.03732},
+  url = {https://arxiv.org/abs/2312.03732},
+}
+
+% ==============================================================================
+% CONTEXTE SPATIAL UAV (ajout 2026-09-08 — cité par le manuscrit)
+% ==============================================================================
+
+@article{gomes2026efficient,
+  title = {Efficient Spatiotemporal Vegetation Pixel Classification With Vision Transformers},
+  author = {Alan Gomes and Anderson Gon{\c c}alves and Samuel Felipe dos Santos and Nathan Felipe Alves and Magna Soelma Beserra de Moura and Bruna de Costa Alberton and Leonor Patricia C. Morellato and Ricardo da Silva Torres and Jurandy Almeida},
+  journal = {IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing},
+  year = {2026},
+  doi = {10.1109/JSTARS.2026.3694818},
+  url = {https://doi.org/10.1109/JSTARS.2026.3694818},
+}
