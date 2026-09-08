@@ -29,6 +29,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 import vizstyle as V
+from registry import TIER_DISPLAY_SHORT
 from registry import CLASSES_11, CLASSES_DEAD, DEPRECATED, EXCLUDED_MODELS
 
 DATA = os.path.join(_ROOT, "results", "rapport_data")
@@ -312,9 +313,57 @@ def fig_schemas():
 
 
 # ── 7. matrice de significativité (palier complet) ───────────────────────────
+def _signif_matrix_axes(ax, subnames, idx_global, delta, mark, obs, lim, fs, cb):
+    """Dessine une sous-matrice de significativité sur `ax`.
+
+    `idx_global` : indices (dans le tri global par F1 décroissant) des modèles de la
+    sous-matrice. `delta`/`mark` : matrices globales (Δ et rejet BH).
+    `lim` : borne de couleur commune aux deux panneaux (comparables)."""
+    m = len(subnames)
+    dsub = delta[np.ix_(idx_global, idx_global)] * 100.0   # points de pourcentage
+    im = ax.imshow(dsub, cmap=V.DIV_BR, vmin=-lim, vmax=lim)
+    rejset = {(i, j) for (i, j), r in mark.items() if r}
+    # Une cellule = couleur (Δ, signe et ordre de grandeur) + ★ si la paire est
+    # rejetée par Benjamini-Hochberg. On n'affiche PAS le Δ dans chaque case : à
+    # 17×17 (et plus) des nombres de 5 caractères se touchent et redeviennent
+    # illisibles. Les Δ exacts sont dans le tableau des rejets BH, cette figure ne
+    # fait que montrer la structure (qui diffère de qui).
+    for a in range(m):
+        for b in range(m):
+            if a == b:
+                ax.text(b, a, "·", ha="center", va="center", color=V.INK_SOFT,
+                        fontsize=fs)
+                continue
+            rej = (idx_global[a], idx_global[b]) in rejset
+            if rej:
+                ax.text(b, a, "★", ha="center", va="center", fontsize=fs + 4,
+                        fontweight="bold", color="white")
+    # Étiquettes lisibles (révision 2026-09-08, retour lecteur) :
+    # « rang · nom court (F1) ». Le rang est celui du classement du palier —
+    # le même que la colonne « Rang » du tableau des IC95 (t_ci), où chaque
+    # nom court est déployé en entier (backbone --- régime, état).
+    lab = [f"{r+1} · {TIER_DISPLAY_SHORT.get(m, m)}  "
+           f"({obs[m]*100:.2f})".replace(".", ",")
+           for m, r in zip(subnames, idx_global)]
+    ax.set_xticks(range(m)); ax.set_xticklabels(lab, rotation=55, ha="right", fontsize=11)
+    ax.set_yticks(range(m)); ax.set_yticklabels(lab, fontsize=11)
+    ax.grid(False)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+    if cb:
+        cbar = ax.figure.colorbar(im, ax=ax, fraction=0.030, pad=0.02)
+        cbar.set_label("$\\Delta$ F1 \u00d710$^{-2}$ (ligne $-$ colonne)", fontsize=8)
+        cbar.outline.set_visible(False)
+
+
 def fig_signif_matrix():
-    """Remplace `results/significance_matrix_8group_fresh.png`, tracée sur une
-    population qui laissait dehors trois membres du palier — dont le modèle n°1."""
+    """Matrice de significativité, remplacée par DEUX matrices lisibles.
+
+    La population 33×33 avec des chiffres en 6~pt était illisible (révision
+    2026-09-08). On coupe le classement en deux blocs — tête (rangs 1–17) et queue
+    (rangs 18–33) — et on rapporte la comparaison haut-vs-bas à la prose : elle est
+    favorable au haut par construction (Δ > 0) et détaillée dans le tableau des
+    rejets par Benjamini-Hochberg."""
     fp = os.path.join(_ROOT, "results", "significance_matrix_tier.json")
     if not os.path.exists(fp):
         print("  [SKIP] significance_matrix_tier.json absent "
@@ -333,39 +382,38 @@ def fig_signif_matrix():
         dd = v["delta_observed_a_minus_b"]
         delta[i, j], delta[j, i] = dd, -dd
         mark[(i, j)] = mark[(j, i)] = v["bh_reject"]
+    lim = np.nanmax(np.abs(delta)) * 100.0
 
-    fig, ax = plt.subplots(figsize=(9.2, 7.6))
-    delta_disp = delta * 100.0            # points de pourcentage (×10⁻²)
-    lim = np.nanmax(np.abs(delta_disp))
-    im = ax.imshow(delta_disp, cmap=V.DIV_BR, vmin=-lim, vmax=lim)
-    for i in range(n):
-        for j in range(n):
-            if i == j:
-                ax.text(j, i, "—", ha="center", va="center", color=V.INK_SOFT,
-                        fontsize=8)
-                continue
-            txt = f"{delta_disp[i, j]:+.2f}".replace(".", ",")
-            rej = mark.get((i, j), False)
-            ax.text(j, i, txt + ("\n★" if rej else ""), ha="center", va="center",
-                    fontsize=6.1, fontweight="bold" if rej else "normal",
-                    color="white" if abs(delta_disp[i, j]) > 0.55 * lim else V.INK)
-    lab = [f"{m}  ({obs[m]*100:.2f})".replace(".", ",") for m in names]
-    ax.set_xticks(range(n)); ax.set_xticklabels(lab, rotation=45, ha="right",
-                                                fontsize=7)
-    ax.set_yticks(range(n)); ax.set_yticklabels(lab, fontsize=7)
-    ax.grid(False)
-    for sp in ax.spines.values():
-        sp.set_visible(False)
-    cb = fig.colorbar(im, ax=ax, fraction=0.030, pad=0.02)
-    cb.set_label("$\\Delta$ F1 \u00d710$^{-2}$ (ligne $-$ colonne)", fontsize=8)
-    cb.outline.set_visible(False)
-    ax.set_title(f"Bootstrap apparié sur le palier compétitif — {n} modèles, "
-                 f"{len(d['pairs'])} paires\n"
-                 f"Δ F1 en points de pourcentage (×10$^{{-2}}$) · ★ = rejetée par "
-                 f"Benjamini-Hochberg ({d['bh_n_rejected']} sur {len(d['pairs'])})",
-                 loc="left", fontsize=10.5, fontweight="bold")
-    fig.tight_layout()
-    V.savefig(fig, os.path.join(_HERE, "perf_signif_matrix.png"))
+    half = (n + 1) // 2
+    blocks = [
+        ("perf_signif_matrix_head.png",
+         f"Matrice de significativité (a) — tête du palier ({half} modèles, "
+         f"{half * (half - 1) // 2} paires internes)",
+         "La couleur porte le Δ (rouge = la ligne bat la colonne) ; ★ = paire "
+         f"rejetée par Benjamini-Hochberg ({d['bh_n_rejected']} sur {len(d['pairs'])} "
+         "paires, les deux blocs). Rangs = tableau des IC95 ; Δ exacts = "
+         "tableaux « rejets BH ».",
+         names[:half], (11.4, 10.1)),
+        ("perf_signif_matrix_tail.png",
+         f"Matrice de significativité (b) — queue du palier ({n - half} modèles, "
+         f"{(n - half) * (n - half - 1) // 2} paires internes)",
+         "Le gros bloc sans ★ au centre est le palier plat SimDINOv2-B : les bras "
+         "d'adaptation ne se distinguent pas.",
+         names[half:], (11.0, 9.9)),
+    ]
+    for fn, title, note, subnames, figsize in blocks:
+        fig, ax = plt.subplots(figsize=figsize)
+        idx_global = [names.index(m) for m in subnames]
+        _signif_matrix_axes(ax, subnames, idx_global, delta, mark, obs, lim,
+                            fs=10 if len(subnames) <= 18 else 8, cb=True)
+        # Pas de titre dans le PNG : la légende LaTeX le porte déjà, et un
+        # titre long force la figure en paysage (labels alors minuscules à
+        # l'échelle \textwidth). 2026-09-08.
+        # (title/note conservés dans les tuples pour référence/documentation)
+        _ = title, note
+        fig.tight_layout()
+        V.savefig(fig, os.path.join(_HERE, fn))
+        plt.close(fig)
 
 
 def main():

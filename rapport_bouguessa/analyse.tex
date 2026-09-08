@@ -34,7 +34,7 @@ dans l'ordre où ils s'imposent :
 \textbf{(1)}~l'adaptation d'un backbone fonctionne (LoRA r=8 bat son gelé de
 +0,0114, $p=0{,}0012$), mais aucun modèle déployable ne dépasse le meilleur gelé ;
 \textbf{(2)}~sur SimDINOv2-B, le paysage de l'adaptation est plat (13~bras dans
-0,0067, NormTuning = LoRA au millième près avec $\approx$47k paramètres) ;
+0,0068, NormTuning = LoRA au millième près avec $\approx$47k paramètres) ;
 \textbf{(3)}~le scaling LoRA dégrade partout et l'hypothèse rsLoRA est infirmée ;
 \textbf{(4)}~le contexte spatial est le plus grand levier mesuré (+0,025 à +0,034),
 validé par contrôles apparié et permuté ;
@@ -117,7 +117,7 @@ fixé ; elle ne déplace pas le plafond.}
 
 Treize bras $\times$ 3~seeds sur SimDINOv2-B (position, rang 2 à 32, scaling 1 à 4,
 Q+K+V, rsLoRA, NormTuning), même test, F1 canonique : \textbf{tout tient dans
-0,0067}. Aucun rang, aucun $\alpha$, aucun type ne bat l'ancre r8a8 tous blocs
+0,0068}. Aucun rang, aucun $\alpha$, aucun type ne bat l'ancre r8a8 tous blocs
 (0,4781) au-delà du bruit inter-seed.
 
 \input{tables/t_simb_ablation}
@@ -316,13 +316,37 @@ Le plateau est statistiquement un plateau.
 
 \input{tables/t_ci}
 
+% Les 108 rejets BH sont répartis en DEUX tableaux lisibles (générateur
+% make_tables.t_signif_bh) : 1/2 les paires gagnées par les modèles de
+% contexte (tab:signif), 2/2 celles gagnées sur tuile seule (tab:signiftile).
+% Chaque gagnant n'est nommé qu'une fois, en tête de groupe ; les noms sont
+% ceux du tableau~\ref{tab:ci} (backbone --- régime, état).
 \input{tables/t_signif_bh}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\textwidth]{figs/perf_signif_matrix.png}
-\caption{Matrice de significativité, 33~groupes. Les blocs de non-rejet au centre
-sont le palier plat SimDINOv2-B.}
+\includegraphics[width=0.92\textwidth]{figs/perf_signif_matrix_head.png}
+\caption{Matrice de significativité (a) — tête du palier (17~modèles, 136~paires
+internes). Chaque axe : \emph{rang} du classement (celui du tableau~\ref{tab:ci},
+où chaque nom court est déployé en entier --- backbone, régime, état) · nom
+\emph{court} · F1 (en pourcentage). La couleur porte le $\Delta$ (rouge = la
+ligne bat la colonne) ; $\bigstar$ = paire rejetée par Benjamini-Hochberg. La
+première ligne et la première colonne sont D3-B~ctx~R2, qui bat toute la tête
+(16~$\bigstar$ sur 16).}
+\label{fig:signif_head}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{figs/perf_signif_matrix_tail.png}
+\caption{Matrice de significativité (b) — queue du palier (16~modèles, mêmes
+rangs que ci-dessus). Le gros bloc central sans $\bigstar$ est le palier plat
+SimDINOv2-B : les bras d'adaptation ne se distinguent pas l'un de l'autre. Les
+rares $\bigstar$ de ce bloc sont les victoires sur les bras effondrés : l'ancre
+SimB (rang 18) bat SimB-MHSA (31), D3-S gelé (32) et IN-MHSA (33) ; D3-S LoRA
+(19) et SimB LoRA~r16 (21) ne battent plus que D3-S gelé (32). Les $\Delta$
+exacts sont dans les tableaux~\ref{tab:signif} et~\ref{tab:signiftile}.}
+\label{fig:signif_tail}
 \end{figure}
 
 % ════════════════════════════════════════════════════════════
