@@ -2,7 +2,11 @@
 
 Format : un point par section, daté en titre. Résolu → déplacer en bas dans "Résolu".
 
-## 2026-09-07 — Ablation LoRA/PEFT SimDINOv2-B : **Stage A TERMINÉE** — Stage B à redéfinir après analyse
+## 2026-09-08 — Ablation LoRA/PEFT SimDINOv2-B : Stage A TERMINÉE + bootstrap apparié FAIT — Stage B abandonnée
+
+**Bootstrap apparié fait le 2026-09-08** (extraction de `results/significance_matrix_tier.json`, n=10 000, BH α=0.05) → `results/bootstrap_stageA_paired_CANONICAL.json` : ancre vs b911 p=0.44, vs b611 p=0.66, vs QKV p=0.71, vs NormTuning p=0.94, BH rejeté nulle part. Le plateau PEFT est désormais un résultat statistique citable, pas une impression. **Stage B pleine grille : abandonnée** (rendement nul confirmé formellement). Restent optionnels : QKV×position (9 GPU-h) et matrice d'attribution du SimB entraîné (voir CONTROLES_BOUGUESSA.md § « Trous identifiés »). Commit de figeage : 0493424.
+
+## 2026-09-07 — Ablation LoRA/PEFT SimDINOv2-B (archive, voir ci-dessus)
 
 **Stage A faite** (13 bras × 3 seeds = 42 runs, terminés 2026-09-07, rapatriés hors
 checkpoints, 24 Go restés sur `$SCRATCH`). Rapport : `results/lora_simb_ablation/RAPPORT_STAGE_A.md`.
