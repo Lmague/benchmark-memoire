@@ -2,6 +2,23 @@
 
 Format : un point par section, daté en titre. Résolu → déplacer en bas dans "Résolu".
 
+## 2026-09-08 — Campagne « fusion heads » non linéaires : PRÊTE À LANCER sur Narval
+
+Teste si une tête non linéaire (MLP-2, bilinéaire diagonal, FiLM) récupère sur les
+embeddings fused DÉJÀ SUR DISQUE la part d'interaction que la sonde linéaire laisse
+sur la table (écart gelé-fusionné 0,495 vs fusion apprise R2 0,508).
+
+- Script : `scripts/fusion_head_sweep.py` (5 têtes, lbfgs canonique mono-thread en
+  baseline, sélection config sur val uniquement, delta citation = tête − lin_adamw).
+- SLURM : `scripts/slurm_fusion_head_sweep.sh` — 7 processus mono-thread de front
+  (par tags, jamais par BLAS), idempotent, ~24 tags (sweep gelé 5×3 + R2 3 seeds +
+  R1/R3 sanity), estimé 8-15 h wall sur 36 h demandées.
+- Lancer : `git pull && sbatch scripts/slurm_fusion_head_sweep.sh` ; puis rapatrier
+  `$SCRATCH/context_distill/fusion_heads/` → `results/context_distill/`.
+- Smoke test local passé : R2 seed0 lbfgs reproduit à 0,0001 (0,5097 vs 0,5098) ;
+  en mode quick le MLP-2 est à +0,006 vs lin_adamw (sous la baseline lbfgs) — à
+  confirmer sur grille complète. **Ne rien citer avant le run complet.**
+
 ## 2026-09-08 — Ablation LoRA/PEFT SimDINOv2-B : Stage A TERMINÉE + bootstrap apparié FAIT — Stage B abandonnée
 
 **Bootstrap apparié fait le 2026-09-08** (extraction de `results/significance_matrix_tier.json`, n=10 000, BH α=0.05) → `results/bootstrap_stageA_paired_CANONICAL.json` : ancre vs b911 p=0.44, vs b611 p=0.66, vs QKV p=0.71, vs NormTuning p=0.94, BH rejeté nulle part. Le plateau PEFT est désormais un résultat statistique citable, pas une impression. **Stage B pleine grille : abandonnée** (rendement nul confirmé formellement). Restent optionnels : QKV×position (9 GPU-h) et matrice d'attribution du SimB entraîné (voir CONTROLES_BOUGUESSA.md § « Trous identifiés »). Commit de figeage : 0493424.
