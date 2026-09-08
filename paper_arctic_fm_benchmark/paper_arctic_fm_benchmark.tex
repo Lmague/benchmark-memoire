@@ -67,7 +67,7 @@ Le suivi de la végétation arctique est un enjeu central pour comprendre la ré
 
 Les modèles de fondation visuels pré-entraînés par apprentissage auto-supervisé (SSL) — DINOv2~\autocite{oquab2023dinov2}, DINOv3~\autocite{darcet2024dinov3} — promettent de contourner cette rareté en fournissant des représentations génériques transférables sans affinage supervisé (régime \frz{}, évalué par \lp{}). Une seconde famille de modèles, pré-entraînée spécifiquement sur imagerie satellite (SatMAE~\autocite{cong2022satmae}, Scale-MAE~\autocite{reed2023scalemae}), promet un avantage de domaine pour les tâches géospatiales. Une troisième famille, bio-spécialisée (SimDINOv2, dérivé de travaux sur les images de plantes~\autocite{moummad2026selfsupervised}), cible directement les textures naturelles. Reste une question directrice pour la pratique : sur une tâche UAV de végétation arctique aux données rares, un praticien doit-il investir dans l'affinage supervisé, ou un modèle de fondation figé bien choisi suffit-il ?
 
-Cette question s'inscrit dans un débat plus large sur la \emph{transférabilité} des représentations pré-entraînées, documenté depuis les travaux fondateurs de Kornblith et al.~\autocite{kornblith2019transferability} et le \emph{Visual Task Adaptation Benchmark}~\autocite{zhai2019large}. Des travaux récents sur les modèles géospatiaux~\autocite{corley2026nobodyknows,lacoste2024geobench} soulignent que l'état de l'art en géospatial reste mal caractérisé faute de protocoles d'évaluation homogènes et de comparaisons directes entre familles de modèles à résolution comparable. Le fossé de résolution entre pré-entraînement satellite (mètres à dizaines de mètres par pixel) et acquisition UAV (millimètres par pixel) est en particulier rarement testé empiriquement dans un cadre contrôlé.
+Cette question s'inscrit dans un débat plus large sur la \emph{transférabilité} des représentations pré-entraînées, documenté depuis les travaux fondateurs de Kornblith et al.~\autocite{kornblith2019transferability}, le \emph{Visual Task Adaptation Benchmark}~\autocite{zhai2019large} et l'étude systématique d'Ericsson et al.~\autocite{ericsson2021evaluating}. Des travaux récents sur les modèles géospatiaux~\autocite{corley2026nobodyknows,lacoste2024geobench,shang2026benchmarking} soulignent que l'état de l'art en géospatial reste mal caractérisé faute de protocoles d'évaluation homogènes et de comparaisons directes entre familles de modèles à résolution comparable. Le fossé de résolution entre pré-entraînement satellite (mètres à dizaines de mètres par pixel) et acquisition UAV (millimètres par pixel) est en particulier rarement testé empiriquement dans un cadre contrôlé — Saha et al.~\autocite{saha2026understanding} documentent des écarts de représentation entre échelles en classification d'arbres par drone, sans comparaison contrôlée inter-familles.
 
 Nous répondons à ces questions à travers un benchmark systématique sur le jeu de données Arctic-TVC~\autocite{tvc2025} — végétation de toundra arctique, imagerie UAV RVB $\sim$2.2~mm/pixel, campagne de terrain 2023 à Trail Valley Creek (Territoires du Nord-Ouest, Canada). Nos contributions sont les suivantes :
 
@@ -93,15 +93,23 @@ Les modèles pré-entraînés par autoencodeur masqué sur imagerie satellite �
 
 \subsection{Modèles bio-spécialisés}
 
-Une littérature émergente entraîne des modèles auto-supervisés directement sur des corpus d'images de plantes ou d'organismes~\autocite{moummad2026selfsupervised}, ou combine vision et connaissances taxonomiques (BioCLIP~\autocite{stevens2024bioclip}). Ces modèles bio-spécialisés visent un compromis entre la diversité des modèles génuinistes et la spécificité de domaine.
+Une littérature émergente entraîne des modèles auto-supervisés directement sur des corpus d'images de plantes ou d'organismes~\autocite{moummad2026selfsupervised,gustineli2024multilabel,goeau2025overview}, ou combine vision et connaissances taxonomiques (BioCLIP~\autocite{stevens2024bioclip}). Ces modèles bio-spécialisés visent un compromis entre la diversité des modèles génuinistes et la spécificité de domaine. Parallèlement, les modèles géospatiaux appliqués à l'écologie montrent des gains en régime de données limitées~\autocite{ball2026geospatial,doherty2024leveraging}, et la classification fine de végétation par drone progresse rapidement~\autocite{yuan2026treespecvit,kulich2026advancing} — mais sans benchmark comparant ces familles à résolution et protocole fixés.
 
 \subsection{Adaptation paramétriquement efficace et pré-entraînement continu}
 
-Au-delà du fine-tuning complet, des méthodes d'adaptation paramétriquement efficace (PEFT) comme LoRA permettent d'affiner un backbone pré-entraîné en n'entraînant qu'une fraction des paramètres. ExPLoRA~\autocite{zhang2025explora} étend cette idée en poursuivant l'objectif auto-supervisé sur le nouveau domaine (pré-entraînement continu) avant d'appliquer LoRA en aval, obtenant des gains sur l'imagerie satellite avec moins de 10\,\% des paramètres entraînés comparé au fine-tuning complet. Notre étude inclut une variante ExPLoRA/LoRA dans la comparaison des régimes d'affinage (\S\ref{sec:sota_methods}), permettant de situer cette approche paramétriquement efficace par rapport au fine-tuning complet et au régime figé sur une tâche de végétation UAV.
+Au-delà du fine-tuning complet, des méthodes d'adaptation paramétriquement efficace (PEFT) comme LoRA~\autocite{hu2021lora} permettent d'affiner un backbone pré-entraîné en n'entraînant qu'une fraction des paramètres — une approche déjà exploitée en télédétection~\autocite{dong2025peftcd}. ExPLoRA~\autocite{zhang2025explora} étend cette idée en poursuivant l'objectif auto-supervisé sur le nouveau domaine (pré-entraînement continu~\autocite{mendieta2023geospatial}) avant d'appliquer LoRA en aval, obtenant des gains sur l'imagerie satellite avec moins de 10\,\% des paramètres entraînés comparé au fine-tuning complet. Le scaling des adaptateurs (dont rsLoRA~\autocite{kalajdzievski2023rslora}) reste en revanche peu testé sur FM géospatiales. Notre étude inclut une variante ExPLoRA/LoRA dans la comparaison des régimes d'affinage (\S\ref{sec:sota_methods}), complétée par une ablation systématique rang $\times$ scaling $\times$ position sur SimDINOv2-B (\S\ref{sec:peft}), permettant de situer ces approches paramétriquement efficaces par rapport au fine-tuning complet et au régime figé sur une tâche de végétation UAV.
+
+\subsection{Cartographie de la végétation arctique et imagerie UAV}
+
+La cartographie fine de la toundra par drone fait l'objet d'une littérature active : relevés UAV de types fonctionnels en Alaska et au Canada~\autocite{orndahl2022mapping}, spectres visibles et proche-infrarouge pour la prédiction des plantes arctiques et boréales~\autocite{nelson2024predicting}, et revues récentes des capteurs, de la fusion et de l'apprentissage pour la végétation clairsemée~\autocite{yang2022remote,platel2025advancing}. Ces travaux reposent toutefois sur des modèles entraînés de bout en bout pour un site et un capteur, sans comparaison aux représentations de fondation ni caractérisation du transfert d'échelle — le vide que ce benchmark comble.
+
+\subsection{Contexte spatial en classification de végétation}
+
+Le voisinage d'une parcelle porte une information écologique (mosaïques d'espèces, transitions d'habitats) que la parcelle seule ne contient pas. Gomes et al.~\autocite{gomes2026efficient} montrent sur imagerie aérienne que l'agrandissement du contexte au-delà d'un seuil dégrade la classification (fenêtre trop large englobant plusieurs canopées) — un résultat que notre sweep de tailles (512~$>$~1024~$\gg$~2048, \S\ref{sec:context}) retrouve indépendamment. Notre contribution spécifique est le contrôle apparié : contexte seul, contexte permuté et fusion apprise vs concaténée, qui isolent l'apport spatial de l'artefact de dimensionnalité.
 
 \subsection{Estimation de la transférabilité sans étiquettes de tâche}
 
-Une ligne de travaux distincte cherche à prédire la performance aval d'une représentation pré-entraînée sans avoir à l'affiner ni à l'évaluer sur la tâche cible. RankMe~\autocite{garrido2023rankme} propose d'utiliser le rang effectif des embeddings comme proxy de qualité sans étiquettes. LogME~\autocite{you2021logme} et des métriques de \emph{Neural Collapse} (NC1/NC2) offrent des alternatives fondées sur la géométrie de l'espace des caractéristiques. La littérature documente cependant un « trilemme » : ces métriques séparent efficacement les représentations dégénérées des représentations saines, mais peinent à discriminer finement au sein du groupe des représentations saines. Notre analyse de corrélation géométrie-performance (\S\ref{sec:latent}) s'inscrit dans ce cadre, en identifiant le score de silhouette — une métrique de séparabilité de clusters non supervisée, distincte des métriques spectrales usuelles — comme le corrélat le plus robuste du F1 aval dans notre corpus.
+Une ligne de travaux distincte cherche à prédire la performance aval d'une représentation pré-entraînée sans avoir à l'affiner ni à l'évaluer sur la tâche cible. RankMe~\autocite{garrido2023rankme} propose d'utiliser le rang effectif des embeddings comme proxy de qualité sans étiquettes ; $\alpha$-ReQ~\autocite{agrawal2022alphareq} mesure la décroissance du spectre propre. LogME~\autocite{you2021logme} et des métriques de \emph{Neural Collapse} (NC1/NC2) offrent des alternatives fondées sur la géométrie de l'espace des caractéristiques. La littérature documente cependant un « trilemme » : ces métriques séparent efficacement les représentations dégénérées des représentations saines, mais peinent à discriminer finement au sein du groupe des représentations saines. Notre analyse de corrélation géométrie-performance (\S\ref{sec:latent}) s'inscrit dans ce cadre, en comparant familles spectrale et de séparabilité sur un palier compétitif élargi (35~modèles).
 
 %==========================================================================
 \section{Jeu de données et protocole}
@@ -162,7 +170,7 @@ Les 12~classes de végétation (Tableau~\ref{tab:classes}) présentent un désé
 
 \subsection{Split spatial et schémas de classes}
 
-Le split train/val/test respecte une contrainte spatiale stricte : chaque orthomosaïque entière est assignée à un seul split, évitant toute fuite de tuiles voisines entre splits. Sur les 35~orthomosaïques annotées, 32 sont retenues (3 écartées pour contrôle qualité) et réparties en 15~orthos d'entraînement (49\,433~tuiles, 61.6\,\%), 8~orthos de validation (13\,209~tuiles, 16.5\,\%) et 9~orthos de test (17\,598~tuiles, 21.9\,\%).
+Le split train/val/test respecte une contrainte spatiale stricte : chaque orthomosaïque entière est assignée à un seul split, évitant toute fuite de tuiles voisines entre splits. Sur les 35~orthomosaïques annotées, 32 sont retenues (3 écartées pour contrôle qualité) et réparties en 15~orthos d'entraînement (49\,281~tuiles, 69.5\,\%), 8~orthos de validation (13\,209~tuiles) et 9~orthos de test (17\,598~tuiles, 21.9\,\%).
 
 Deux schémas de réduction de classes sont utilisés pour l'analyse, motivés par la fiabilité de la métrique F1-macro sur des classes quasi absentes du test :
 \begin{itemize}
@@ -173,161 +181,229 @@ Dans les deux cas, nous rapportons systématiquement \fmpres{} (F1-macro restrei
 
 \subsection{Corpus de modèles et probe linéaire canonique}
 
-Neuf modèles sont évalués en régime figé (\lp{}) : quatre génuinistes (ResNet-50 et ViT-B/16 ImageNet~\autocite{he2016resnet,dosovitskiy2021vit}, DINOv3 ViT-B/16 et ViT-L/16 pré-entraînés LVD~\autocite{darcet2024dinov3}), trois géospatiaux satellite (SatMAE ViT-L/16~\autocite{cong2022satmae}, Scale-MAE ViT-L/16~\autocite{reed2023scalemae}, DINOv3 ViT-L/16 pré-entraîné SAT-493M), et deux bio-spécialisés (SimDINOv2 ViT-B/16 et ViT-L/16). Trois modèles supplémentaires sont affinés sur Arctic-TVC : ResNet-50 (fine-tuning complet), ViT-B/16 (fine-tuning complet, et fine-tuning restreint aux couches d'attention multi-tête, MHSA). Pour ces trois modèles affinés, le F1 rapporté n'est pas celui de la tête de classification entraînée conjointement pendant l'affinage : après affinage, la tête est retirée et les embeddings (\emph{CLS} pooled) sont extraits en aval, puis un probe linéaire est ré-ajusté dessus selon exactement le même protocole que pour les modèles figés (même grille de $C$, même sélection sur validation). Le F1 d'un modèle « affiné » mesure ainsi la qualité de la représentation obtenue après affinage, et non la performance du classifieur de tête utilisé pendant l'entraînement supervisé lui-même — un ré-entraînement de bout en bout avec une tête softmax standard peut donc donner un F1 test différent de la valeur canonique rapportée ici.
+Onze modèles sont évalués en régime figé (\lp{}) : ResNet-50 et ViT-B/16 ImageNet~\autocite{he2016resnet,dosovitskiy2021vit}, DINOv3 ViT-S/16, ViT-B/16, ViT-L/16 et ViT-H+/16 pré-entraînés LVD~\autocite{darcet2024dinov3}, trois géospatiaux satellite (SatMAE ViT-L/16~\autocite{cong2022satmae}, Scale-MAE ViT-L/16~\autocite{reed2023scalemae}, DINOv3 ViT-L/16 pré-entraîné SAT-493M), et deux bio-spécialisés (SimDINOv2 ViT-B/16 et ViT-L/16~\autocite{moummad2026selfsupervised}). Les régimes affinés (3~\emph{seeds} chacun) couvrent trois familles : (i)~DINOv3-B (Full, MHSA, LoRA r=8) ; (ii)~SimDINOv2-B (Full, MHSA, LoRA r=8 et l'ablation PEFT de 13~bras du \S\ref{sec:peft}) ; (iii)~ViT-B/16 ImageNet (Full, MHSA, entraînement depuis zéro) et ResNet-50 FT ; plus DINOv3 ViT-S/16 et ViT-L/16 LoRA r=8. Deux bornes fusionnées à contexte (design B, \S\ref{sec:context}) complètent le tableau maître de 44~configurations. Seuls les modèles affinés à $\geq$3~\emph{seeds} sont cités comme résultats d'affinage — les checkpoints historiques à seed unique sont exclus du benchmark. Pour ces trois modèles affinés, le F1 rapporté n'est pas celui de la tête de classification entraînée conjointement pendant l'affinage : après affinage, la tête est retirée et les embeddings (\emph{CLS} pooled) sont extraits en aval, puis un probe linéaire est ré-ajusté dessus selon exactement le même protocole que pour les modèles figés (même grille de $C$, même sélection sur validation). Le F1 d'un modèle « affiné » mesure ainsi la qualité de la représentation obtenue après affinage, et non la performance du classifieur de tête utilisé pendant l'entraînement supervisé lui-même — un ré-entraînement de bout en bout avec une tête softmax standard peut donc donner un F1 test différent de la valeur canonique rapportée ici.
 
-Le probe linéaire canonique utilise une régression logistique multinomiale (scikit-learn, solveur \texttt{lbfgs}) avec sélection de l'hyperparamètre de régularisation $C$ sur une grille logarithmique symétrique à 6~points $\{10^{-4},\dots,10\}$ par validation sur le split de validation. Les intervalles de confiance à 95\,\% sont obtenus par bootstrap apparié ($n=1000$ ré-échantillonnages) sur le split de test.
+Le probe linéaire canonique utilise une régression logistique multinomiale (scikit-learn, solveur \texttt{lbfgs}) avec sélection de l'hyperparamètre de régularisation $C$ sur une grille logarithmique à 8~points $\{10^{-4},\dots,10\}$ par validation sur le split de validation. Les intervalles de confiance à 95\,\% et les tests de paires sont obtenus par bootstrap apparié hiérarchique ($n=10\,000$ ré-échantillonnages partageant les mêmes indices de tuiles et de \emph{seeds}, seed~42) sur le palier compétitif (35~modèles, 528~paires), avec correction de Benjamini-Hochberg. Tous les calculs canoniques sont exécutés en BLAS mono-thread (\texttt{OMP\_NUM\_THREADS=1}) : le nombre de threads modifie l'ordre des réductions et donc la solution vers laquelle \texttt{lbfgs} converge ($\pm$0,0015 mesuré), soit l'ordre de grandeur des effets discutés.
 
-\subsection{Régimes d'affinage et courbe de données}
+\paragraph{Conventions de mesure.} Deux probes coexistent : le probe \emph{canonique} (ci-dessus, utilisé pour tout chiffre publié) et le probe \emph{interne} des runs d'affinage (sélection de $C$ sur sous-échantillon, utilisé pendant l'entraînement). Ils coïncident à $\pm$0,0005 près pour 28 des 33~modèles du palier ; aucun $\Delta$ ne mélange les deux conventions. Au sommet du plateau, le choix de $C$ pèse autant que le choix du régime ($\pm$0,0074 sur un \emph{seed} isolé) : la valeur canonique est retenue partout.
+
+\subsection{Régimes d'affinage et courbes de données}
 \label{sec:sota_methods}
 
-Pour situer l'affinage supervisé par rapport au régime figé, quatre régimes sont comparés sur ViT-B/16 : fine-tuning complet, fine-tuning restreint aux couches MHSA, adaptation ExPLoRA/LoRA~\autocite{zhang2025explora}, et entraînement depuis zéro (sans pré-entraînement). Chaque régime est évalué sur une courbe de fraction de données d'entraînement (1\,\%, 5\,\%, 10\,\%, 25\,\%, 50\,\%, 70\,\%, 100\,\%, soit de 492 à 49\,281~tuiles), avec 3~répétitions (\emph{seeds}) par point.
+La courbe de données couvre \textbf{deux backbones distincts}, analysés séparément : Full/MHSA/Scratch affinent un ViT-B/16 ImageNet-1k (référence gelée 0,4500), tandis que LoRA r=8 adapte DINOv3 ViT-B/16 LVD (référence gelée 0,4712) — un écart de pré-entraînement de +0,021 acquis avant toute tuile d'affinage. Chaque régime est évalué de 1\,\% à 100\,\% des données (492 à 49\,281~tuiles ; point 0,5\,\% supplémentaire pour LoRA), 3~\emph{seeds} par point, avec une courbe de probing gelé du même backbone à volume égal et une courbe \textbf{spatiale} (blocs contigus sous 25\,\%, orthomosaïques entières au-delà) qui quantifie le biais d'autocorrélation du tirage aléatoire. Les trois pipelines historiques (\emph{sota\_screening}, \emph{dinov3b\_lora8}, \emph{datacurve}) ne partagent ni initialisation, ni grille de $C$, ni fractions : leurs sorties ne sont jamais fusionnées sans mention explicite.
+
+\subsection{Ablation PEFT sur SimDINOv2-B}
+\label{sec:peft}
+
+Treize bras $\times$ 3~\emph{seeds} (même recette, split spatial v3, 11~classes) : rang $r \in \{2,4,8,16,32\}$ à scaling 1, scaling $\{2, \sqrt{r}\}$ (rsLoRA~\autocite{kalajdzievski2023rslora}) à $r$ fixé, position (blocs 0--5, 6--11, 9--11), type (Q+V vs Q+K+V) et NormTuning (normes + tête, $\approx$47k paramètres, aucun adaptateur). Référence : ancre LoRA r8a8 tous blocs Q/V. Évaluation par probe canonique sur le même test que le benchmark.
+
+\subsection{Contexte spatial}
+\label{sec:context}
+
+Fenêtre de contexte carrée centrée sur la tuile (512/1024/2048~px, redimensionnée à 224), fusion [tuile~;~contexte]. Deux designs : (A) contexte au train seul (distillation, tuile seule à l'inférence, teacher externe ou EMA) ; (B) tête apprise sur la fusion (contexte requis à l'inférence — borne informationnelle, non déployable). Contrôles : tuile seule, contexte seul, contexte permuté (5~réplicats), sweep gelé 5~backbones $\times$ 3~tailles.
 
 \subsection{Géométrie de l'espace latent}
 \label{sec:latent_methods}
 
-Pour chacun des 12~modèles canoniques, 11~métriques de géométrie de l'espace latent sont calculées sur les embeddings du split de test (normalisés par \emph{StandardScaler} pour les métriques spectrales) : score de silhouette, indice de Davies-Bouldin, indice de Calinski-Harabasz, NC1 (variance intra-classe du \emph{Neural Collapse}), déviation NC2 par rapport au repère \emph{Equiangular Tight Frame} (ETF), dimension intrinsèque MLE (moyenne et médiane), rang effectif, \emph{stable rank}, ratio de participation, et exposant spectral $\alpha$. Ces métriques et le F1 du probe linéaire proviennent du même run (\emph{relance2}, 2026-07-10), garantissant l'absence de discordance de schéma entre géométrie et performance.
+Pour 40~modèles, 20~métriques de géométrie (séparabilité : Fisher, silhouette, Calinski-Harabasz, NC1 ; voisinage : Davies-Bouldin, pureté k-NN, dimension intrinsèque ; spectre : rang effectif, \emph{stable rank}, ratio de participation, $\alpha$-ReQ~\autocite{agrawal2022alphareq}, RankMe~\autocite{garrido2023rankme} ; transférabilité : LogME~\autocite{you2021logme} train/test) sont calculées \textbf{par \emph{seed} puis moyennées}, sur le test à $n$ fixe (17\,598~tuiles) — jamais sur des \emph{seeds} concaténés, jamais sur le train (dont le rang est borné par $\min(n,D)$). Les corrélations au F1 sont évaluées sur trois populations emboîtées (40~modèles, 11~gelés, palier de 35) et le pouvoir d'ordonnancement en paires avec correction BH par famille pré-déclarée.
 
 %==========================================================================
 \section{Résultats}
 \label{sec:results}
 %==========================================================================
 
-\subsection{Le meilleur modèle figé égale le meilleur modèle affiné}
+\subsection{Le palier compétitif : l'adaptation rattrape la capacité}
 \label{sec:main_result}
 
-Le Tableau~\ref{tab:schemeA} rapporte le F1-macro (restreint aux classes présentes, \fmpres{}) des 12~modèles canoniques sur le schéma à 11~classes, avec IC95 bootstrap. Le meilleur modèle affiné (ViT-B/16, fine-tuning complet sur Arctic, F1$=0.4796$, IC95~\ci{0.4727,0.4844}) et le meilleur modèle figé (DINOv3 ViT-L/16 LVD, F1$=0.4792$, IC95~\ci{0.4729,0.4851}) ont des intervalles de confiance très largement recouvrants ($\Delta=+0.0004$, $p = 0.897 (test bilatéral, bootstrap apparié n = 10\,000)$). La Figure~\ref{fig:ranking} illustre ce classement complet et le recouvrement des IC95 pour les deux modèles de tête.
+Le Tableau~\ref{tab:master} rapporte le F1-macro (\fmpres{}, 11~classes) du palier compétitif — 35~modèles entre 0,5080 et 0,4689, rupture mesurée au rang 36 — avec bootstrap apparié hiérarchique ($n=10\,000$, 528~paires, 108 rejets BH). Trois faits : (i)~la tête détachée est la borne fusionnée R2 (0,5080, contexte requis — \S\ref{sec:context_results}) ; (ii)~le meilleur déployable est DINOv3-B LoRA r=8 (0,4835 $\pm$ 0,0011), qui bat son propre backbone gelé de +0,0114 ($p=0{,}0012$, rejeté BH) mais ne dépasse ni DINOv3-L gelé ($\Delta=+0{,}0038$, $p=0{,}39$) ni DINOv3-H+ gelé ; (iii)~les Full/MHSA (0,4786--0,4800) ne battent pas leur gelé après correction. Le classement est robuste aux trois schémas de classes : le choix du schéma déplace le F1 jusqu'à +0,26 en moyenne sans réordonner les modèles.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figures/fig1_ranking_f1_11cls.png}
-	\caption{Classement des 12~modèles par F1-macro (schéma 11~classes), barres d'erreur = IC95 bootstrap. Le meilleur modèle figé (DINOv3 ViT-L/16, frozen) et le meilleur modèle affiné (ViT-B/16, fine-tuning complet) sont statistiquement indiscernables malgré un écart d'architecture et de coût de calcul considérable.}
+	\includegraphics[width=0.95\textwidth]{figures/fig_ranking_ci.png}
+	\caption{Classement du palier par F1-macro (schéma 11~classes), barres = IC95 bootstrap apparié. Tête détachée (borne fusionnée R2, non déployable) puis ventre mou : une douzaine de régimes d'adaptation tiennent dans 0,01.}
 	\label{fig:ranking}
 \end{figure}
 
 \begin{table}[H]
 	\centering
 	\small
-	\caption{F1-macro (\fmpres{}) des 12~modèles canoniques, schéma 11~classes, trié par F1 décroissant. IC95 par bootstrap apparié ($n=1000$). « C bas » : régularisation optimale en bord de grille, signe d'un ajustement instable pour ce modèle.}
-	\label{tab:schemeA}
-	\begin{tabular}{lllr}
+	\caption{F1-macro (\fmpres{}, 11~classes) du haut du palier, probe canonique 3~\emph{seeds} (gelés : seed unique). R2 et SimB-B sont des bornes fusionnées non déployables (contexte requis à l'inférence).}
+	\label{tab:master}
+	\begin{tabular}{llrr}
 		\toprule
-		\textbf{Modèle}             & \textbf{Régime} & \textbf{F1-macro} & \textbf{IC95}            \\
+		\textbf{Modèle} & \textbf{Régime} & \textbf{F1-macro} & $\sigma$ \\
 		\midrule
-		ViT-B/16 FT (Arctic, full)  & FT full         & 0.4796            & [0.4727, 0.4844]         \\
-		DINOv3 ViT-L/16 (LVD)       & frozen          & 0.4792            & [0.4729, 0.4851]         \\
-		SimDINOv2 ViT-L/16          & frozen          & 0.4760            & [0.4705, 0.4818]         \\
-		ViT-B/16 FT (Arctic, MHSA)  & FT MHSA         & 0.4759            & [0.4699, 0.4818]         \\
-		SimDINOv2 ViT-B/16          & frozen          & 0.4723            & [0.4657, 0.4772]         \\
-		DINOv3 ViT-B/16 (LVD)       & frozen          & 0.4712            & [0.4657, 0.4774]         \\
-		DINOv3 ViT-L/16 (SAT-493M)  & frozen          & 0.4620            & [0.4563, 0.4676]         \\
-		ResNet-50 FT (Arctic, full) & FT full         & 0.4619            & [0.4562, 0.4677] (C bas) \\
-		ViT-B/16 ImageNet           & frozen          & 0.4500            & [0.4434, 0.4566]         \\
-		Scale-MAE ViT-L/16          & frozen          & 0.4480            & [0.4425, 0.4539]         \\
-		SatMAE ViT-L/16             & frozen          & 0.4091            & [0.4041, 0.4150]         \\
-		ResNet-50 ImageNet          & frozen          & 0.4076            & [0.4020, 0.4133]         \\
+		R2 Contexte B (fusion 1536) & borne fusionnée & 0,5080 & 0,0013 \\
+		SimB Contexte B (fusion 512, r8a16) & borne fusionnée & 0,5057 & 0,0072 \\
+		SimB Contexte B (fusion 512, r2a4) & borne fusionnée & 0,5030 & 0,0012 \\
+		DINOv3-B LoRA r=8 & LoRA & 0,4835 & 0,0011 \\
+		SimL LoRA r=8 & LoRA & 0,4835 & 0,0068 \\
+		DINOv3-H+/16 & frozen & 0,4805 & --- \\
+		SimB LoRA r8 (blocs 9-11) & LoRA partiel & 0,4804 & 0,0002 \\
+		DINOv3-B MHSA & MHSA & 0,4800 & 0,0020 \\
+		DINOv3-L LoRA r=8 & LoRA & 0,4799 & 0,0030 \\
+		DINOv3-L & frozen & 0,4792 & --- \\
+		DINOv3-B Full & Full & 0,4786 & 0,0027 \\
+		SimB NormTuning & normes+tête & 0,4783 & 0,0004 \\
+		DINOv3-S LoRA r=8 & LoRA & 0,4774 & 0,0022 \\
+		SimL & frozen & 0,4760 & --- \\
+		SimB & frozen & 0,4723 & --- \\
+		DINOv3-B & frozen & 0,4712 & --- \\
 		\bottomrule
 	\end{tabular}
 \end{table}
-
-Ce résultat de non-distinguabilité tient également sur le second schéma plus restrictif à 8~classes (Tableau~\ref{tab:schemeB}) : $\Delta=-0.0007$, $p=0.415$, IC95 largement recouvrants (frozen~\ci{0.6566,0.6733}, fine-tuné~\ci{0.6571,0.6745}).
-
-\begin{table}[H]
-	\centering
-	\small
-	\caption{F1-macro (\fmpres{}) des 12~modèles canoniques, schéma 8~classes (restrictif), trié par F1 décroissant.}
-	\label{tab:schemeB}
-	\begin{tabular}{lllr}
-		\toprule
-		\textbf{Modèle}             & \textbf{Régime} & \textbf{F1-macro} & \textbf{IC95}            \\
-		\midrule
-		ViT-B/16 FT (Arctic, full)  & FT full         & 0.6657            & [0.6571, 0.6745]         \\
-		DINOv3 ViT-L/16 (LVD)       & frozen          & 0.6650            & [0.6566, 0.6733]         \\
-		ViT-B/16 FT (Arctic, MHSA)  & FT MHSA         & 0.6616            & [0.6530, 0.6701]         \\
-		SimDINOv2 ViT-L/16          & frozen          & 0.6591            & [0.6502, 0.6679]         \\
-		DINOv3 ViT-B/16 (LVD)       & frozen          & 0.6542            & [0.6451, 0.6627]         \\
-		SimDINOv2 ViT-B/16          & frozen          & 0.6537            & [0.6448, 0.6622]         \\
-		DINOv3 ViT-L/16 (SAT-493M)  & frozen          & 0.6407            & [0.6322, 0.6489]         \\
-		ResNet-50 FT (Arctic, full) & FT full         & 0.6406            & [0.6317, 0.6491] (C bas) \\
-		Scale-MAE ViT-L/16          & frozen          & 0.6223            & [0.6138, 0.6315]         \\
-		ViT-B/16 ImageNet           & frozen          & 0.6216            & [0.6136, 0.6298]         \\
-		SatMAE ViT-L/16             & frozen          & 0.5673            & [0.5591, 0.5751]         \\
-		ResNet-50 ImageNet          & frozen          & 0.5667            & [0.5580, 0.5749]         \\
-		\bottomrule
-	\end{tabular}
-\end{table}
-
-\textit{Note de cohérence.} La valeur canonique du delta 11~classes ($\Delta=+0.0004$, $p=0.897$, test bilatéral apparié sur prédictions LogisticRegression lbfgs, $n=10\,000$) confirme l'indistinguabilité déjà documentée au schéma 12~classes ($p=0.483$, test unilatéral apparié, LogisticRegression lbfgs, $n=1\,000$). Les deux $p$ unilatéraux --- $0.449$ (11~classes) et $0.483$ (12~classes) --- sont méthodologiquement cohérents (même classifieur, même type de test apparié, schémas de classes différents).
 
 \subsection{À architecture égale, l'avantage du frozen vient de l'échelle, pas de l'absence d'adaptation}
 
-La comparaison au Tableau~\ref{tab:schemeA} masque un effet de confusion : le meilleur modèle figé (DINOv3 ViT-L/16) est un ViT-\emph{Large}, alors que le modèle affiné de référence est un ViT-\emph{Base}. À architecture strictement égale (ViT-B/16), le frozen DINOv3 (F1$=0.4712$, IC95~\ci{0.4657,0.4774}) sous-performe significativement le fine-tuning complet (F1$=0.4796$, IC95~\ci{0.4728,0.4847} ; $\Delta=+0.0084$, $p=0.003$). Autrement dit, l'affinage supervisé améliore bien la représentation à taille de modèle fixée — l'indistinguabilité globale de la Section~\ref{sec:main_result} tient à ce que le meilleur modèle figé disponible bénéficie d'une échelle supérieure (ViT-L contre ViT-B), et non à une supériorité intrinsèque du régime figé sur l'affinage.
+La comparaison au Tableau~\ref{tab:master} masque un effet de confusion : les meilleurs modèles figés (DINOv3 ViT-L/16, ViT-H+/16) sont plus grands que les backbones affinés de référence (ViT-B). À architecture strictement égale (DINOv3 ViT-B/16), le gelé (F1$=0{,}4712$) sous-performe tous les régimes affinés : LoRA r=8 ($\Delta=+0{,}0114$, $p=0{,}0012$, rejeté BH), MHSA ($\Delta=+0{,}0085$, $p=0{,}016$, non rejeté sur 528~paires) et Full ($\Delta=+0{,}0072$, $p=0{,}101$). Autrement dit, l'affinage supervisé améliore bien la représentation à taille de modèle fixée — le plafond global tient à ce que les meilleurs gelés disponibles bénéficient d'une échelle supérieure, et non à une supériorité intrinsèque du régime figé sur l'affinage.
 
-\subsection{L'affinage supervisé sature sous le plafond figé, quelle que soit la fraction de données}
+\subsection{Deux backbones, deux vitesses d'adaptation}
+\label{sec:datacurve}
 
-La Figure~\ref{fig:curve} présente la courbe de données (F1 en fonction de la fraction d'exemples d'entraînement utilisés, de 1\,\% à 100\,\%) pour les quatre régimes d'affinage (fine-tuning complet, MHSA seul, ExPLoRA/LoRA, entraînement depuis zéro), comparée au plafond du meilleur modèle figé (ligne horizontale). Aucun régime, à aucune fraction de données testée, ne dépasse durablement ce plafond de manière robuste aux répétitions (3~seeds par point) : le fine-tuning complet s'en approche mais y reste contenu, tandis que l'entraînement depuis zéro (sans pré-entraînement) reste très en-deçà même à 100\,\% des données, illustrant la valeur du pré-entraînement auto-supervisé à grande échelle même lorsque des données d'affinage sont disponibles.
+La Figure~\ref{fig:curve} sépare les deux familles : les trois régimes ImageNet dépassent leur gelé (0,4500) dès $\approx$~2\,060~tuiles et plafonnent +0,025 à +0,028 au-dessus, tandis que LoRA met $\approx$~4\,592~tuiles à simplement égaler son gelé DINOv3-B (0,4712) et finit à peine +0,012 — l'adaptation \emph{coûte cher en données} sur un bon pré-entraînement, et rapporte \emph{peu}. À volume égal, LoRA bat toutefois le probing gelé du même backbone à \emph{toutes} les fractions ($\Delta$ de +0,005 à +0,023, maximal à 5\,\%) : la comparaison usuelle « LoRA à $x$\,\% contre gelé à 100\,\% » est une autre question. L'entraînement depuis zéro reste très en-deçà même à 100\,\% (0,355), illustrant la valeur du pré-entraînement même avec des données d'affinage.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.95\textwidth]{figures/fig2_data_curve_regimes.png}
-	\caption{Courbe de données : F1-macro en fonction de la fraction de données d'entraînement utilisées (1\,\%--100\,\%), pour quatre régimes d'affinage supervisé (fine-tuning complet, MHSA seul, ExPLoRA/LoRA, depuis zéro), moyenné sur 3~\emph{seeds} par point (bandes = écart-type). La ligne horizontale marque le F1 du meilleur modèle figé (DINOv3 ViT-L/16, sans aucune donnée d'affinage supplémentaire) : aucun régime ne le dépasse durablement.}
+	\includegraphics[width=0.95\textwidth]{figures/fig_dc_curves_by_init.png}
+	\caption{Courbes de données par backbone (échelle commune). Famille ImageNet : Full/MHSA dépassent leur gelé dès $\approx$~2\,060~tuiles (+0,025 à +0,028 au plafond). Famille DINOv3 : LoRA r=8 égale son gelé vers $\approx$~4\,592~tuiles, finit +0,012. Bandes = $\pm\sigma$ (3~\emph{seeds}).}
 	\label{fig:curve}
+\end{figure}
+
+\subsection{Le tirage aléatoire surestime : la courbe spatiale}
+\label{sec:spatial_curve}
+
+La courbe ci-dessus tire les tuiles au hasard, donc des voisines corrélées entre train et test. La courbe \textbf{spatiale} (blocs contigus sous 25\,\%, orthomosaïques entières au-delà, LoRA r=8 DINOv3-B) est plus dure — et de plus en plus dure avec le volume : à 1\,\%, le F1 spatial vaut 0,099 contre 0,426 en aléatoire ; le plateau est décalé à 50--75\,\% du volume contre $\approx$~5\,\% en aléatoire, et les deux convergent à 100\,\% (0,483). Autrement dit, les courbes usuelles surestiment la performance déployable, surtout à petit volume.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\textwidth]{figures/fig_spatial_vs_random.png}
+	\caption{Courbe spatiale vs aléatoire (LoRA r=8, DINOv3-B, 11~classes). Le split spatial est plus dur, et l'écart se creuse avec les données : il évalue ce qui compte vraiment.}
+	\label{fig:spatial}
 \end{figure}
 
 \subsection{Les modèles de fondation satellite transfèrent mal vers l'imagerie UAV}
 
-Les modèles pré-entraînés spécifiquement sur imagerie satellite sous-performent nettement les modèles génuinistes et bio-spécialisés sur cette tâche UAV~: SatMAE ViT-L/16 (F1$=0.4091$) et Scale-MAE ViT-L/16 (F1$=0.4480$) se classent parmi les derniers du Tableau~\ref{tab:schemeA}, et même DINOv3 ViT-L/16 dans sa variante pré-entraînée SAT-493M (F1$=0.4620$) reste en retrait par rapport à sa contrepartie génuiniste LVD (F1$=0.4792$) et par rapport au meilleur modèle bio-spécialisé (SimDINOv2 ViT-L/16, F1$=0.4760$). Ce constat, cohérent à travers trois architectures et deux stratégies de pré-entraînement satellite distinctes (MAE et DINOv3 continué), documente empiriquement un fossé satellite-vers-drone~: le décalage d'échelle spatiale entre pré-entraînement (10~m à 30~cm/pixel) et évaluation (2.2~mm/pixel) dégrade la qualité de la représentation transférée, malgré la similarité superficielle du domaine (imagerie aérienne de couvert végétal).
+Les modèles pré-entraînés spécifiquement sur imagerie satellite sous-performent nettement les modèles génuinistes et bio-spécialisés sur cette tâche UAV~: SatMAE ViT-L/16 (F1$=0.4091$) et Scale-MAE ViT-L/16 (F1$=0.4480$) se classent parmi les derniers du Tableau~\ref{tab:master}, et même DINOv3 ViT-L/16 dans sa variante pré-entraînée SAT-493M (F1$=0.4620$) reste en retrait par rapport à sa contrepartie génuiniste LVD (F1$=0.4792$) et par rapport au meilleur modèle bio-spécialisé (SimDINOv2 ViT-L/16, F1$=0.4760$). Ce constat, cohérent à travers trois architectures et deux stratégies de pré-entraînement satellite distinctes (MAE et DINOv3 continué), documente empiriquement un fossé satellite-vers-drone~: le décalage d'échelle spatiale entre pré-entraînement (10~m à 30~cm/pixel) et évaluation (2.2~mm/pixel) dégrade la qualité de la représentation transférée, malgré la similarité superficielle du domaine (imagerie aérienne de couvert végétal).
 
-\subsection{Le score de silhouette de l'espace latent prédit le F1 aval sans affinage ni évaluation supervisée}
+\subsection{Le paysage de l'adaptation est plat}
+\label{sec:peft_results}
+
+Treize bras $\times$ 3~\emph{seeds} sur SimDINOv2-B (Tableau~\ref{tab:simb}), même test, probe canonique : \textbf{tout tient dans 0,0068} de F1, et aucun écart ancre-vs-bras ne survit au bootstrap apparié ($p=0{,}44$--$0{,}94$). Le rang trace une pente douce décroissante (r2 : 0,4793 $\to$ r32 : 0,4750), sans falaise ; le scaling dégrade monotonement aux deux rangs testés (r8 : 0,4781 $\to$ 0,4760 $\to$ 0,4753 ; r16 : 0,4769 $\to$ 0,4749 $\to$ 0,4737), infirmant rsLoRA~\autocite{kalajdzievski2023rslora} sur ces données — et établissant que le décrochage r16/32 observé sur DINOv3-B est un effet de rang réel, pas un artefact de scaling. L'ordre de position se transpose (blocs hauts $\geq$ tous blocs $\gg$ blocs bas), avec b911 (3~derniers blocs) le plus stable du job ($\pm$0,0002). Le résultat structurel : \textbf{NormTuning (normes + tête, $\approx$47k paramètres) égale LoRA r=8 au millième près} (0,4783 vs 0,4781, $p=0{,}94$) — l'adaptation de ce backbone vaut ce que vaut une mise à jour des normes.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.72\textwidth]{figures/fig_peft_rank_ladder.png}
+	\caption{Ablation du rang LoRA (SimDINOv2-B, scaling=1) : pente douce, sous le seuil d'interprétabilité entre voisins. Le rang 8 est sur un plateau, pas à un optimum.}
+	\label{fig:peft_rank}
+\end{figure}
+
+\begin{table}[H]
+	\centering
+	\small
+	\caption{Ablation LoRA/PEFT, SimDINOv2-B (tuile seule, F1 canonique). Ancre : r8a8 tous blocs Q/V (0,4781). Aucun bras ne dépasse l'ancre au-delà du bruit.}
+	\label{tab:simb}
+	\begin{tabular}{lrrr}
+		\toprule
+		\textbf{Bras} & \textbf{F1} & $\sigma$ & \textbf{Params} \\
+		\midrule
+		r8, blocs 9-11 & 0,4804 & 0,0002 & 74k \\
+		r8, blocs 6-11 & 0,4802 & 0,0027 & 147k \\
+		r2, tous blocs & 0,4793 & 0,0024 & 74k \\
+		r8, Q+K+V & 0,4788 & 0,0015 & 442k \\
+		r4, tous blocs & 0,4785 & 0,0049 & 147k \\
+		NormTuning & 0,4783 & 0,0004 & 47k \\
+		r8a8 tous blocs (ancre) & 0,4781 & 0,0028 & 295k \\
+		r8, blocs 0-5 & 0,4770 & 0,0024 & 147k \\
+		r16, tous blocs & 0,4769 & 0,0016 & 590k \\
+		r8 scaling 2 / rsLoRA & 0,4760 / 0,4753 & 0,0018 / 0,0023 & 295k \\
+		r32, tous blocs & 0,4750 & 0,0017 & 1\,180k \\
+		r16 scaling 2 / rsLoRA & 0,4749 / 0,4737 & 0,0026 / 0,0035 & 590k \\
+		gelé & 0,4723 & --- & 0 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\subsection{Le contexte spatial déplace le plafond}
+\label{sec:context_results}
+
+La fusion [tuile~;~voisinage 512~px] apporte +0,025 à +0,034 (Tableau~\ref{tab:ctx}) : R2 entraîné (design B, DINOv3-B) atteint \textbf{0,5080}, et SimDINOv2-B \textbf{gelé-fusionné} atteint 0,5059 \emph{sans aucun entraînement} — quand toute l'ablation PEFT tient dans 0,0068. La distillation seule (design A, 0,4870) ne bat pas les baselines LoRA : le gain exige la fusion apprise (ou pré-alignée). Deux contrôles isolent le spatial : contexte seul = tuile seule (0,4780 vs 0,4779), contexte permuté \emph{sous} la tuile seule (0,4745) — une seconde représentation désalignée nuit. Le sweep gelé (5~backbones $\times$ 3~tailles) confirme 512 $>$ 1024 $\gg$ 2048 partout, en ligne avec Gomes et al.~\autocite{gomes2026efficient} ; SimL (300M) n'ajoute rien sur SimB (0,5022 vs 0,5059) : c'est l'alignement iNat-Plantae qui décode le voisinage, pas la taille. Et l'affinage complet n'apporte rien sur SimB entraîné (0,5057 $\approx$ gelé-fusionné 0,5059). R2 reste une borne non déployable (contexte requis à l'inférence), qui sacrifie sa représentation tuile-seule (0,4779, pire que R1) pour la fusion.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.72\textwidth]{figures/fig_ctx_matrix.png}
+	\caption{Le contexte aide tous les modèles ; seul R2 (fusion apprise) franchit 0,51, au prix d'une tuile seule dégradée.}
+	\label{fig:ctx}
+\end{figure}
+
+\begin{table}[H]
+	\centering
+	\small
+	\caption{Contexte : designs et sweep gelé (sélection). F1-macro 11~classes, test v3.}
+	\label{tab:ctx}
+	\begin{tabular}{llr}
+		\toprule
+		\textbf{Configuration} & \textbf{Détail} & \textbf{F1} \\
+		\midrule
+		R2 design B (entraîné) & DINOv3-B, fusion apprise & 0,5080 $\pm$ 0,0015 \\
+		SimB gelé-fusionné @512 & sonde seule, 0 entraînement & 0,5059 \\
+		SimB entraîné B @512 (r8a16) & LoRA + distillation + tête & 0,5057 $\pm$ 0,0072 \\
+		R1 design A (distillation seule) & tuile seule à l'inférence & 0,4870 $\pm$ 0,0011 \\
+		DINOv3-B gelé-fusionné @512 & sonde seule & 0,4953 \\
+		tuile seule / contexte seul / permuté & contrôles R2 & 0,4779 / 0,4780 / 0,4745 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\subsection{La séparabilité ordonne, le spectre non}
 \label{sec:latent}
 
-La Figure~\ref{fig:scatter} met en relation le score de silhouette calculé dans l'espace latent figé de chaque modèle (sans affinage ni évaluation supervisée) et le F1-macro obtenu par probe linéaire, pour les 12~modèles canoniques. La corrélation est forte et significative sur les deux schémas de classes~: Spearman $\rho=0.825$ ($p<0.001$, schéma 11~classes) et $\rho=0.678$ ($p=0.015$, schéma 8~classes). Le Tableau~\ref{tab:corr} rapporte les corrélations pour les 11~métriques de géométrie latente testées, sur les deux schémas. Les $p$ brutes ($n=12$ modèles, test de Spearman bilatéral) sont corrigées pour comparaisons multiples par Bonferroni (seuil $\alpha=0.05$ divisé par 22~tests) et par la procédure de Benjamini-Hochberg (FDR).
+La Figure~\ref{fig:scatter} met en relation le score de silhouette (espace latent figé, sans affinage ni supervision) et le F1 aval. Sur trois populations emboîtées (40~modèles, 11~gelés, palier de 35), le verdict dépend de la puissance : à $n=12$, seule la silhouette paraissait robuste ; à $n=35$, \textbf{toute la famille séparabilité passe la correction BH par famille} (Tableau~\ref{tab:tier} : Fisher 69\,\%, DBI/CHI/NC1 67\,\%, silhouette 64\,\%, $p_{BH}\leq0{,}046$), tandis que la famille spectrale ordonne \textbf{à l'envers} (41--42\,\%). Sa corrélation d'ensemble positive n'est portée que par les modèles cassés. Seule la pureté k-NN désigne le vrai n\textsuperscript{o}~1 (R2).
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.75\textwidth]{figures/fig3_scatter_silhouette_f1.png}
-	\caption{Score de silhouette (espace latent figé, calculé sans affinage ni évaluation supervisée) en fonction du F1-macro aval (probe linéaire), pour les 12~modèles canoniques (schéma 11~classes). Spearman $\rho=0.825$, $p<0.001$.}
+	\caption{Silhouette (figé, sans supervision) vs F1 aval. La relation est tirée par les modèles faibles ; dans le palier, c'est toute la famille séparabilité qui ordonne.}
 	\label{fig:scatter}
 \end{figure}
 
 \begin{table}[H]
 	\centering
 	\small
-	\caption{Corrélations de Spearman entre 11~métriques de géométrie de l'espace latent et le F1-macro aval (probe linéaire), $n=12$ modèles, pour les deux schémas de classes. $^\dagger$ : corrélation portée par un seul modèle aberrant (\emph{leave-one-out} instable). $p_{\text{bonf}}$: correction de Bonferroni ($\times22$); $p_{\text{BH}}$: correction de Benjamini-Hochberg (FDR) — les 11~métriques sont rapportées ; seules les deux premières (Silhouette, Davies-Bouldin) présentent des $p_{\text{bonf}}<1$.}
-	\label{tab:corr}
-	\begin{tabular}{l@{\hskip 3pt}r@{\hskip 3pt}r@{\hskip 3pt}r@{\hskip 3pt}r@{\hskip 6pt}r@{\hskip 3pt}r@{\hskip 3pt}r@{\hskip 3pt}r}
+	\caption{Pouvoir d'ordonnancement sur le palier de 35 (592~paires ; hasard = 296). $p_{BH}$ corrigé par famille pré-déclarée. Seule la pureté k-NN désigne le vrai meilleur modèle.}
+	\label{tab:tier}
+	\begin{tabular}{lrrrr}
 		\toprule
-		                    & \multicolumn{4}{c}{\textbf{11 classes}} & \multicolumn{4}{c}{\textbf{8 classes}}                                                                                                         \\
-		\textbf{Métrique}   & $\rho$                                  & $p$                                    & $p_{\text{bonf}}$ & $p_{\text{BH}}$ & $\rho$           & $p$    & $p_{\text{bonf}}$ & $p_{\text{BH}}$ \\
+		\textbf{Métrique} & \textbf{Paires} & \% & $\rho$ & $p_{BH}$ \\
 		\midrule
-		Silhouette          & 0.825                                   & 0.0010                                 & 0.0209            & 0.0209          & 0.678            & 0.0153 & 0.3370            & 0.1123          \\
-		Davies-Bouldin      & -0.350$^\dagger$                        & 0.2652                                 & 1.0000            & 0.9656          & -0.741           & 0.0058 & 0.1276            & 0.0638          \\
-		Calinski-Harabasz   & 0.231                                   & 0.4705                                 & 1.0000            & 0.9656          & 0.315            & 0.3191 & 1.0000            & 0.9656          \\
-		NC1                 & 0.126                                   & 0.6967                                 & 1.0000            & 0.9656          & 0.028            & 0.9312 & 1.0000            & 0.9656          \\
-		NC2 dév. ETF        & -0.497                                  & 0.1006                                 & 1.0000            & 0.4427          & -0.524           & 0.0800 & 1.0000            & 0.4401          \\
-		Dim. MLE (moy.)     & -0.210                                  & 0.5128                                 & 1.0000            & 0.9656          & -0.189           & 0.5567 & 1.0000            & 0.9656          \\
-		Dim. MLE (méd.)     & -0.161                                  & 0.6175                                 & 1.0000            & 0.9656          & -0.161           & 0.6175 & 1.0000            & 0.9656          \\
-		Rang effectif       & -0.028$^\dagger$                        & 0.9312                                 & 1.0000            & 0.9656          & -0.147$^\dagger$ & 0.6488 & 1.0000            & 0.9656          \\
-		Stable rank         & 0.147$^\dagger$                         & 0.6488                                 & 1.0000            & 0.9656          & -0.014$^\dagger$ & 0.9656 & 1.0000            & 0.9656          \\
-		Participation ratio & 0.070$^\dagger$                         & 0.8290                                 & 1.0000            & 0.9656          & -0.035$^\dagger$ & 0.9141 & 1.0000            & 0.9656          \\
-		$\alpha$ spectral   & -0.049$^\dagger$                        & 0.8799                                 & 1.0000            & 0.9656          & 0.070$^\dagger$  & 0.8290 & 1.0000            & 0.9656          \\
+		Ratio de Fisher & 411/592 & 69 & +0,48 & 0,013 \\
+		Davies-Bouldin & 399/592 & 67 & -0,43 & 0,039 \\
+		Calinski-Harabasz & 396/592 & 67 & +0,43 & 0,014 \\
+		NC1 & 396/592 & 67 & -0,43 & 0,014 \\
+		Silhouette & 376/592 & 64 & +0,38 & 0,026 \\
+		Pureté k-NN & 342/592 & 58 & +0,25 & 0,203 \\
+		LogME (test) & 330/592 & 56 & +0,12 & 0,961 \\
+		Rang effectif & 240/592 & 41 & -0,24 & 0,341 \\
 		\bottomrule
 	\end{tabular}
 \end{table}
 
-Le score de silhouette est la seule métrique dont la corrélation avec le F1 aval est à la fois forte, significative et \emph{stable} (non portée par un seul modèle aberrant en analyse \emph{leave-one-out}) sur les deux schémas de classes. L'indice de Davies-Bouldin montre une corrélation forte sur le schéma 8~classes ($\rho=-0.741$, $p=0.006$) mais faible et non significative sur le schéma 11~classes ($\rho=-0.350$, $p=0.265$, et de surcroît portée par un seul modèle aberrant, ResNet-50 ImageNet). Les métriques spectrales globales (rang effectif, \emph{stable rank}, ratio de participation, $\alpha$ spectral) et les métriques de \emph{Neural Collapse} (NC1, NC2) ne montrent aucune corrélation robuste avec le F1 aval dans ce corpus — plusieurs sont elles-mêmes instables en \emph{leave-one-out}. La Figure~\ref{fig:heatmap} synthétise l'ensemble de ces corrélations sous forme de carte de chaleur, incluant leur robustesse relative entre les deux schémas.
+Ce résultat suggère un protocole de présélection à faible coût (silhouette ou Fisher sur embeddings figés avant toute évaluation supervisée), sous réserve d'une validation \emph{leave-one-model-out} et d'un test sur un second jeu de données (\S\ref{sec:discussion}).
+
+\subsection{Coût, déploiement et classes apprenables}
+\label{sec:cost}
+
+Pour le praticien, le F1 ne suffit pas. DINOv3-B LoRA r=8 atteint 0,4835 à \textbf{82~ms/image sur CPU} (quasi temps réel), quand R2 (0,5080) coûte 675~GFLOPs (tuile$\oplus$contexte) contre 17,6 pour la tuile seule — et que DINOv3-H+ gelé (0,4805, 840M params) exige une GPU pour un F1 moindre : à budget fixé, l'adaptation est l'option efficace, et le contexte l'option puissante mais coûteuse. Par classe, ARCA/DRYI/RUBC restent à F1~$\approx$~0 pour \emph{tous} les modèles et toutes les fractions : sous $\sim$200~tuiles de test, c'est le jeu test — pas le modèle — qui décide quelles classes sont apprenables. Le probe linéaire bat le meilleur k-NN partout et de loin.
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=0.85\textwidth]{figures/fig4_heatmap_correlations.png}
-	\caption{Carte de chaleur des corrélations de Spearman entre les 11~métriques de géométrie de l'espace latent et le F1-macro aval, pour les schémas 11~classes et 8~classes. Le score de silhouette est la seule métrique robuste dans les deux schémas.}
-	\label{fig:heatmap}
+	\includegraphics[width=0.82\textwidth]{figures/fig_cost_perf.png}
+	\caption{F1 vs coût d'inférence (échelle log). R2 est le meilleur mais le plus coûteux ; LoRA r=8 domine le compromis déployable.}
+	\label{fig:cost}
 \end{figure}
-
-Ce résultat suggère qu'un praticien disposant d'un nouveau jeu de données de végétation UAV pourrait présélectionner un modèle de fondation candidat par simple calcul du score de silhouette sur les embeddings figés — sans affinage ni annotation de tâche aval — avant d'investir dans une évaluation supervisée complète. Nous discutons la portée et les limites de cette perspective de \emph{triage} au \S\ref{sec:discussion}.
 
 \subsection{Analyse layerwise (DINOv3 ViT-L/16)}
 
-Une analyse complémentaire de la géométrie latente couche par couche (24~couches, DINOv3 ViT-L/16, variantes LVD et SAT) est fournie en annexe. Un F1 par couche n'est disponible que pour ViT-B/16 ImageNet (12~couches), pour lequel les corrélations intra-modèle (\emph{within-model}) entre géométrie et F1 sont divergent des corrélations inter-modèles (Tableau~\ref{tab:corr} : le rang effectif inter-modèles ne corrèle pas avec le F1, $\rho=-0.028$, $p=0.931$) --- une divergence attribuable à deux facteurs : (i)~un confondant de dimension (le rang effectif compare des embeddings de dimensions différentes en inter-modèles --- 768 pour ViT-B, 1024 pour ViT-L, 2048 pour ResNet-50 --- alors qu'en intra-modèle la dimension est constante) ; (ii)~une unité d'analyse différente (sélectionner une couche n'est pas le même problème que sélectionner un modèle)~: Spearman(RankMe normalisé, F1)$=0.825$ et Spearman(anisotropie, F1)$=-0.881$ (n=12~couches). Ces corrélations intra-modèle ne constituent cependant pas une preuve de généralisation, étant calculées sur un seul modèle ; le F1 par couche pour DINOv3 ViT-L/16 reste indisponible faute d'accès aux embeddings layerwise complets sur le cluster de calcul.
+Une analyse complémentaire de la géométrie latente couche par couche (24~couches, DINOv3 ViT-L/16, variantes LVD et SAT) est fournie en annexe. Un F1 par couche n'est disponible que pour ViT-B/16 ImageNet (12~couches), pour lequel les corrélations intra-modèle (\emph{within-model}) entre géométrie et F1 divergent des corrélations inter-modèles (Tableau~\ref{tab:tier} : le rang effectif inter-modèles ordonne à l'envers sur le palier) --- une divergence attribuable à deux facteurs : (i)~un confondant de dimension (le rang effectif compare des embeddings de dimensions différentes en inter-modèles --- 768 pour ViT-B, 1024 pour ViT-L, 2048 pour ResNet-50 --- alors qu'en intra-modèle la dimension est constante) ; (ii)~une unité d'analyse différente (sélectionner une couche n'est pas le même problème que sélectionner un modèle)~: Spearman(RankMe normalisé, F1)$=0.825$ et Spearman(anisotropie, F1)$=-0.881$ (n=12~couches). Ces corrélations intra-modèle ne constituent cependant pas une preuve de généralisation, étant calculées sur un seul modèle ; le F1 par couche pour DINOv3 ViT-L/16 reste indisponible faute d'accès aux embeddings layerwise complets sur le cluster de calcul.
 
 %==========================================================================
 \section{Discussion}
@@ -348,7 +424,7 @@ Le sous-transfert systématique des modèles pré-entraînés sur imagerie satel
 
 \subsection{Le score de silhouette comme outil de triage de modèle}
 
-La corrélation forte et stable du score de silhouette avec le F1 aval (\S\ref{sec:latent}) suggère un protocole de présélection à faible coût~: calculer les embeddings figés de plusieurs modèles candidats sur un petit échantillon non annoté (ou faiblement annoté) du domaine cible, en dériver le score de silhouette par rapport à un regroupement grossier (par exemple des \emph{pseudo-classes} obtenues par clustering non supervisé, ou un sous-ensemble d'étiquettes existant), et ne retenir pour un affinage ou une évaluation supervisée complète que les modèles les mieux classés par cette métrique. Un tel protocole réduirait le coût de sélection de modèle, actuellement dominé par l'entraînement et l'évaluation supervisée complète de chaque candidat. Nous soulignons toutefois que cette perspective reste, en l'état de la présente étude, une hypothèse dérivée d'une corrélation \emph{inter-modèles} sur $n=12$ modèles et deux schémas de classes~: elle nécessiterait, pour être validée comme protocole opérationnel, une évaluation \emph{leave-one-model-out} (entraîner la relation silhouette-F1 sur $n-1$ modèles et prédire le F1 du modèle exclu) et un test sur un second jeu de données de végétation indépendant, deux validations qui sortent du périmètre du présent travail et constituent une perspective naturelle de suite.
+La corrélation forte et stable de la famille séparabilité avec le F1 aval (\S\ref{sec:latent}) suggère un protocole de présélection à faible coût~: calculer les embeddings figés de plusieurs modèles candidats sur un petit échantillon non annoté (ou faiblement annoté) du domaine cible, en dériver la silhouette ou le ratio de Fisher par rapport à un regroupement grossier (par exemple des \emph{pseudo-classes} obtenues par clustering non supervisé, ou un sous-ensemble d'étiquettes existant), et ne retenir pour un affinage ou une évaluation supervisée complète que les modèles les mieux classés par cette métrique. Un tel protocole réduirait le coût de sélection de modèle, actuellement dominé par l'entraînement et l'évaluation supervisée complète de chaque candidat. Nous soulignons toutefois que cette perspective reste, en l'état de la présente étude, une hypothèse dérivée d'une corrélation \emph{inter-modèles} sur un palier de 35~modèles et deux schémas de classes~: elle nécessiterait, pour être validée comme protocole opérationnel, une évaluation \emph{leave-one-model-out} (entraîner la relation séparabilité-F1 sur $n-1$ modèles et prédire le F1 du modèle exclu) et un test sur un second jeu de données de végétation indépendant, deux validations qui sortent du périmètre du présent travail et constituent une perspective naturelle de suite.
 
 \subsection{Limites méthodologiques}
 \label{sec:limits}
@@ -357,7 +433,7 @@ La corrélation forte et stable du score de silhouette avec le F1 aval (\S\ref{s
 
 \paragraph{\fmall{} contre \fmpres{}.} Le F1-macro « brut » (\fmall{}), incluant les classes structurellement non évaluables (RHOL absente du test, ARCA/DRYI/RUBC quasi absentes), biaise la moyenne macro vers le bas de façon non informative sur la qualité réelle des modèles. Cet article cite exclusivement \fmpres{}, restreint aux classes présentes et raisonnablement représentées dans le split de test, choix documenté et cohérent à travers toutes les analyses.
 
-\paragraph{Lacunes de couverture.} Le bootstrap complet (IC95) n'a été exécuté que sur les 12~modèles canoniques pour le schéma 8~classes, pas sur l'ensemble des 84~configurations de la courbe de données (\S\ref{sec:sota_methods}), qui ne rapporte donc que des moyennes et écarts-types sur 3~\emph{seeds}. Le F1 par couche pour DINOv3 ViT-L/16 (24~couches) reste indisponible, seules les métriques géométriques layerwise ayant pu être calculées, en raison de contraintes d'accès disque aux embeddings complets sur le cluster de calcul (Narval). Le corpus de modèles figés reste par ailleurs limité aux architectures ResNet, ViT et à leurs variantes DINOv2/DINOv3/SimDINOv2/MAE~: aucune architecture ConvNeXt, Swin ou autre architecture hybride convolution-attention récente n'a été incluse.
+\paragraph{Lacunes de couverture.} Le bootstrap complet (IC95, 528~paires) couvre le palier compétitif de 35~modèles mais pas l'ensemble des configurations de la courbe de données (\S\ref{sec:sota_methods}), qui ne rapporte donc que des moyennes et écarts-types sur 3~\emph{seeds}. Le F1 par couche pour DINOv3 ViT-L/16 (24~couches) reste indisponible, seules les métriques géométriques layerwise ayant pu être calculées, en raison de contraintes d'accès disque aux embeddings complets sur le cluster de calcul (Narval). Le corpus de modèles figés reste par ailleurs limité aux architectures ResNet, ViT et à leurs variantes DINOv2/DINOv3/SimDINOv2/MAE~: aucune architecture ConvNeXt, Swin ou autre architecture hybride convolution-attention récente n'a été incluse.
 
 \paragraph{Limites du corpus de données.} Arctic-TVC reste un corpus de taille modeste (49\,281~tuiles d'entraînement au maximum, soit environ 69.5\,\% des $\sim$70\,000~tuiles totales disponibles) et fortement déséquilibré (ratio de déséquilibre par comptage $\approx31$, par longueur $\approx275$). Le split respecte une contrainte spatiale stricte par orthomosaïque entière, éliminant toute fuite spatiale directe, mais les 9~orthomosaïques de test ($\sim$21.9\,\% des tuiles) ne couvrent pas nécessairement toute la diversité de terrain présente dans le site d'étude. Enfin, la résolution spatiale (GSD) varie entre orthomosaïques~: 2.2~mm/pixel pour la majorité des missions, mais 8 à 17~mm/pixel pour 4~orthomosaïques de mission dite « paysage », introduisant une hétérogénéité de résolution non contrôlée dans l'évaluation.
 
