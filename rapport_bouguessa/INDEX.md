@@ -8,12 +8,13 @@
 | 1 | `performances.pdf` | **Tableau maître 21 modèles** — classement avec σ et IC95, F1 par classe, matrices de confusion, k-NN vs probe, LogME, significativité | 13 |
 | 2 | `geometrie.pdf` | **Géométrie latente** — conventions de calcul, 21 modèles × 13 métriques, corrélations sur 3 populations, spectres, profondeur, famille DINOv3-B | 11 |
 | 3 | `datacurves.pdf` | **Courbes de données** — 4 régimes × 8 fractions × 3 seeds, seuils de rentabilité, few-shot, par classe, géométrie vs volume à *n* fixe | 10 |
+| 4 | `analyse.pdf` | **Analyse et interprétation** — le compagnon du compendium (qui s'interdit d'interpréter) : 7 constats, tableau maître, régimes, palier PEFT plat, contexte, géométrie, significativité, et ce que ça veut dire pour le mémoire | 17 |
 
 ## Fichiers sources
 
 | Chemin | Rôle |
 |--------|------|
-| `*.tex` | Sources LaTeX des 4 documents |
+| `*.tex` | Sources LaTeX des 5 documents |
 | `tables/` | 30 fragments de tableaux, **générés** par `scripts/rapport/make_tables.py` |
 | `figs/` | 22 figures PNG + les 3 scripts qui les produisent + `vizstyle.py` (palette) |
 | `INDEX.md` | Ce fichier |
