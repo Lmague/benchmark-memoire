@@ -680,6 +680,67 @@ def t_dinov3b_regimes():
           "F1 : \\texttt{scripts/rapport/registry.py} ; $p$ : \\texttt{" + src + "}.")
 
 
+def t_simb_regimes():
+    """Le backbone SimDINOv2-B gelé contre ses régimes d'adaptation (Stage A).
+    Pendant de t_dinov3b_regimes : F1 canonique depuis le registre, p depuis le
+    bootstrap apparié contre le même backbone gelé."""
+    d, src = _signif_source()
+    frozen_key, frozen_name = "simdinov2_vitb16", "SimDINOv2 ViT-B16"
+    f0 = CANONICAL_F1[frozen_key][0]
+    regimes = [("simdinov2_vitb16_lora_r8_b911", "LoRA r8, blocs 9-11",
+                "SimDINOv2-B LoRA r8 (blocs 9-11)"),
+               ("simdinov2_vitb16_lora_r8_b611", "LoRA r8, blocs 6-11",
+                "SimDINOv2-B LoRA r8 (blocs 6-11)"),
+               ("simdinov2_vitb16_lora_r2", "LoRA r2",
+                "SimDINOv2-B LoRA r2"),
+               ("simdinov2_vitb16_lora_r8_qkv", "LoRA r8, Q+K+V",
+                "SimDINOv2-B LoRA r8 (Q+K+V)"),
+               ("simdinov2_vitb16_norm_tuning", "NormTuning",
+                "SimDINOv2-B NormTuning"),
+               ("simdinov2_vitb16_lora", "LoRA r8, tous blocs (ancre)",
+                "SimDINOv2-B LoRA r=8"),
+               ("simdinov2_vitb16_lora_r8_b05", "LoRA r8, blocs 0-5",
+                "SimDINOv2-B LoRA r8 (blocs 0-5)")]
+    rows, tested = [], 0
+    for key, lab, gname in regimes:
+        if key not in CANONICAL_F1:
+            continue
+        f1 = CANONICAL_F1[key][0]
+        pr = _pair(d, gname, frozen_name)
+        if pr is None:
+            verdict = "non couvert par le bootstrap"
+        else:
+            tested += 1
+            verdict = ("\\textbf{oui}" if pr["bh_reject"] else "non")
+            verdict += f" ($p={num(pr['p_two_sided'], 3)}$"
+            verdict += ", BH)" if pr["bh_reject"] else ")"
+        rows.append((lab, f1, f1 - f0, verdict))
+    rows.sort(key=lambda r: r[1])
+    best = max(r[1] for r in rows)
+    lines = ["\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+             "\\setlength{\\tabcolsep}{4pt}",
+             "\\caption{Le backbone SimDINOv2 ViT-B/16 gelé contre ses régimes "
+             "d'adaptation (Stage~A, tableau~\\ref{tab:simbabl}). $\\Delta$ = "
+             f"écart au gelé ({num(f0)}). « Significatif ? » : bootstrap apparié "
+             "hiérarchique contre le \\emph{même} backbone gelé, $p$ bilatéral, "
+             "correction de Benjamini-Hochberg sur l'ensemble des paires du palier "
+             f"(tableau~\\ref{{tab:signif}}). Les {tested} régimes y sont "
+             "couverts. NormTuning (normes + tête, $\\approx$47k paramètres) "
+             "égale LoRA : l'adaptation de SimB vaut ce que vaut sa normalisation.}"
+             "\\label{tab:simbreg}",
+             "\\begin{tabular}{@{}lrrl@{}}", "\\toprule",
+             "Régime (init. SimDINOv2-B) & F1 & $\\Delta$ gelé & Significatif ? \\\\",
+             "\\midrule",
+             f"Gelé & {num(f0)} & --- & --- \\\\"]
+    for lab, f1, dl, verdict in rows:
+        bold = (lambda t: "\\textbf{" + t + "}") if f1 == best else (lambda t: t)
+        lines.append(" & ".join([bold(lab), bold(num(f1)),
+                                 bold(num(dl, 4, sign=True)), verdict]) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_simb_regimes", lines,
+          "F1 : \\texttt{scripts/rapport/registry.py} ; $p$ : \\texttt{" + src + "}.")
+
+
 def t_ci():
     d, src = _signif_source()
     ng = len(d["groups"])
@@ -1248,7 +1309,7 @@ def t_ctx_distill():
              "(0,5059, tableau~\\ref{tab:ctxsweep}) : quand le pré-entraînement "
              "est aligné, la fusion est déjà linéairement décodable.}"
              "\\label{tab:ctxf1}",
-             "\\begin{tabular}{@{}llrrrrr@{}", "\\toprule",
+             "\\begin{tabular}{@{}llrrrrr@{}}", "\\toprule",
              "Design & Teacher & seed0 & seed1 & seed2 & F1 moy $\\pm$ std & "
              "F1 8cls \\\\", "\\midrule"]
     for design, teacher, seeds, m, sd, f8, _note in rows:
@@ -1259,7 +1320,7 @@ def t_ctx_distill():
             mm = "\\textbf{" + mm + "}"
         cells += [mm, num(f8)]
         lines.append(" & ".join(cells) + " \\\\")
-    lines += ["\\bottomrule", "\\end{tabular}"]
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
     write("t_ctx_distill", lines,
           "\\texttt{results/context\\_distill/runs/*/metrics.json} "
           "(\\texttt{f1\\_macro\\_pres\\_test}, \\texttt{f1\\_macro\\_8cls\\_test}).")
@@ -1295,7 +1356,7 @@ def t_ctx_matrix():
              "R2, entraîné sur features fusionnées, franchit 0,51 --- au prix "
              "d'une tuile seule dégradée : le backbone s'est spécialisé.}"
              "\\label{tab:ctxmatrix}",
-             "\\begin{tabular}{@{}lrrrr@{}", "\\toprule",
+             "\\begin{tabular}{@{}lrrrr@{}}", "\\toprule",
              "Modèle & tuile (768) & fusionné (1536) & $\\Delta$ contexte & "
              "best\\_C / fused \\\\", "\\midrule"]
     for lab, tv, fv, bc, bcf in rows:
@@ -1305,7 +1366,7 @@ def t_ctx_matrix():
                  (num(dl, 3, sign=True) if dl is not None else "---"),
                  f"{bc} / {bcf}"]
         lines.append(" & ".join(cells) + " \\\\")
-    lines += ["\\bottomrule", "\\end{tabular}"]
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
     write("t_ctx_matrix", lines,
           "\\texttt{results/context\\_distill/controls/fused\\_probe\\_*.json} "
           "(seed~0). Sanity : gelé/tuile 0,4716 $\\approx$ canonique 0,4712 ; "
@@ -1333,7 +1394,8 @@ def t_ctx_controls():
                f"{len(missing)}/{len(need)} fichiers manquants. Valeurs publiées "
                "dans \\texttt{results/context\\_distill/CONTROLES\\_BOUGUESSA.md}.}",
                "\\begin{tabular}{@{}l@{}}", "\\toprule",
-               "En attente \\\\", "\\bottomrule", "\\end{tabular}"],
+               "En attente \\\\", "\\bottomrule", "\\end{tabular}",
+               "\\end{table}"],
               "\\texttt{results/context\\_distill/controls\\_bouguessa/}.")
         print(f"  [ATTENTE] t_ctx_controls : {len(missing)} fichiers manquants")
         return
@@ -1367,7 +1429,7 @@ def t_ctx_controls():
              "\\emph{sous} la tuile seule : le gain de R2 vient de l'information "
              "spatiale appariée, pas de la concaténation.}"
              "\\label{tab:ctxcontrols}",
-             "\\begin{tabular}{@{}lrr@{}", "\\toprule",
+             "\\begin{tabular}{@{}lrr@{}}", "\\toprule",
              "Représentation & F1 (moy $\\pm$ std) & seeds \\\\", "\\midrule"]
     for key, lab in order:
         m, sd, v = agg[key]
@@ -1376,7 +1438,7 @@ def t_ctx_controls():
         if key == "fused":
             cell = "\\textbf{" + cell + "}"
         lines.append(" & ".join([lab, cell, seeds_txt]) + " \\\\")
-    lines += ["\\bottomrule", "\\end{tabular}"]
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
     write("t_ctx_controls", lines,
           "\\texttt{results/context\\_distill/controls\\_bouguessa/" 
           "r2\\_dB\\_tL\\_seed{0,1,2}\\_*.json}.")
@@ -1424,7 +1486,7 @@ def t_ctx_sweep():
              "le pré-entraînement iNat-Plantae décode le voisinage mieux que "
              "DINOv3-LVD à toutes les tailles ; 512 $>$ 1024 $\\gg$ 2048 partout.}"
              "\\label{tab:ctxsweep}",
-             "\\begin{tabular}{@{}llrrrrr@{}", "\\toprule",
+             "\\begin{tabular}{@{}llrrrrr@{}}", "\\toprule",
              "Modèle & Taille & fusionné & tuile & ctx seul & $\\Delta$ctx "
              "& permuté \\\\", "\\midrule"]
     for disp, size, rec in rows:
@@ -1436,7 +1498,7 @@ def t_ctx_sweep():
                                   num(rec.get("ctx")),
                                   num(dl, 3, sign=True), num(rec["perm"])])
                      + " \\\\")
-    lines += ["\\bottomrule", "\\end{tabular}"]
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
     write("t_ctx_sweep", lines,
           "\\texttt{results/context\\_distill/controls\\_bouguessa/" 
           "frozen\\_*.json} (DINOv3-B = fichiers sans infixe modèle, première campagne).")
@@ -1491,7 +1553,7 @@ def t_simb_ablation():
              f"({num(anchor)}) au-delà du bruit ; NormTuning (normes + tête, "
              "$\\approx$47k params) égale l'ancre au millième près.}"
              "\\label{tab:simbabl}",
-             "\\begin{tabular}{@{}lrrrrr@{}", "\\toprule",
+             "\\begin{tabular}{@{}lrrrrr@{}}", "\\toprule",
              "Bras & F1 canonique & $\\sigma$ & best\\_C (mode) & "
              "époque (moy) & params entr. \\\\", "\\midrule"]
     for k in order:
@@ -1516,7 +1578,7 @@ def t_simb_ablation():
                                   (num(float(a["best_epoch_mean"]), 0)
                                    if a.get("best_epoch_mean") else "---"),
                                   thousands(budget)]) + " \\\\")
-    lines += ["\\bottomrule", "\\end{tabular}"]
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
     write("t_simb_ablation", lines,
           "\\texttt{results/simb\\_stageA\\_probe\\_CANONICAL.json} (F1) ; "
           "\\texttt{results/rapport\\_data/screening\\_agg.csv} (best\\_C, époque) ; "
@@ -1553,17 +1615,17 @@ def t_sources():
          path("scripts/rapport/significance_tier.py")),
         ("Contrôle $k$-means", path("results/T2a_kmeans_control.json"), "---"),
         ("Ablation LoRA/PEFT SimB (13 bras, F1 canonique)",
-         path("results/simb\\_stageA\\_probe\\_CANONICAL.json"),
-         path("scripts/rapport/probe\\_simb\\_stageA\\_canonical.py")),
+         path("results/simb_stageA_probe_CANONICAL.json"),
+         path("scripts/rapport/probe_simb_stageA_canonical.py")),
         ("Sweep contexte gelé (5 backbones $\\times$ 3 tailles)",
-         path("results/context\\_distill/controls\\_bouguessa/frozen\\_*.json"),
+         path("results/context_distill/controls_bouguessa/frozen_*.json"),
          "---"),
         ("Contrôles Bouguessa R2 (tuile/ctx/permuté)",
-         path("results/context\\_distill/controls\\_bouguessa/r2\\_*.json"),
-         path("scripts/context\\_bouguessa\\_controls.py")),
+         path("results/context_distill/controls_bouguessa/r2_*.json"),
+         path("scripts/context_bouguessa_controls.py")),
         ("SimDINOv2-B @512 entraînés (Design B, 2 configs)",
-         path("results/context\\_distill/runs/simdinov2\\_vitb16\\_ctxdistill\\_*.json"),
-         path("scripts/slurm\\_context\\_distill.sh")),
+         path("results/context_distill/runs/simdinov2_vitb16_ctxdistill_*.json"),
+         path("scripts/slurm_context_distill.sh")),
         ("Effectifs par classe", path("results/tiles_per_class_per_split.json"), "---"),
         ("LogME", path("results/all_models_full_table.json"),
          path("scripts/compute_all_clustering_logme.py")),
@@ -1630,6 +1692,16 @@ def t_tier_ranking():
     rows = [r for r in load("tier_ranking_metrics.csv")
             if int(r["tier"]) == TIER_K]
     rows.sort(key=lambda r: -float(r["pair_acc"]))
+    # Verdict calculé, pas saisi : quelles métriques passent BH par famille ?
+    _pass = sorted({r["label"] for r in rows
+                    if r["p_bh_family"] not in ("", None)
+                    and float(r["p_bh_family"]) < 0.05})
+    _verdict = ("Aucune métrique n'atteint le seuil de 0,05 ; seule la famille "
+                "spectrale ordonne franchement à l'envers."
+                if not _pass else
+                "Passent le seuil de 0,05 après correction BH par famille : "
+                + ", ".join(_pass) + ". La famille spectrale ordonne "
+                "franchement à l'envers.")
     noise = load("tier_ranking_noise.csv")[0]
     n_pairs = int(rows[0]["pairs_total"])
     f1_sorted = sorted((v[0] for v in CANONICAL_F1.values()), reverse=True)
@@ -1647,8 +1719,7 @@ def t_tier_ranking():
              f"au rang {TIER_K + 1} : {num(gap, 4, sign=True)}, soit environ "
              f"{gap_ratio:.1f} fois l'écart médian "
              "entre rangs consécutifs), et non par une coupe de rang choisie. "
-             "Aucune métrique n'atteint le seuil de 0,05 ; seule la famille "
-             "spectrale ordonne franchement à l'envers.}\\label{tab:tier}",
+             f"{_verdict}}}\\label{{tab:tier}}",
              "\\begin{tabular}{@{}llrrrrl@{}}", "\\toprule",
              "Famille & Métrique & Paires & \\% & $\\rho$ & $p_{BH}$ (fam.) & "
              "n\\textsuperscript{o}1 \\\\", "\\midrule"]
@@ -1727,6 +1798,7 @@ def main():
     t_geometry_datacurve()
     t_master()
     t_dinov3b_regimes()
+    t_simb_regimes()
     t_ci()
     t_signif()
     t_signif_bh()

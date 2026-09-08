@@ -1,0 +1,46 @@
+{
+ "tiers": [
+  6,
+  8,
+  10,
+  12,
+  35,
+  42
+ ],
+ "families": {
+  "séparabilité": [
+   "fisher_ratio",
+   "silhouette",
+   "chi",
+   "nc1_canonical"
+  ],
+  "spectrale": [
+   "eff_rank_sigma2",
+   "stable_rank",
+   "participation_ratio",
+   "rankme_sigma_raw"
+  ],
+  "voisinage": [
+   "knn_purity",
+   "aniso_cosine",
+   "intrinsic_dim_twonn",
+   "dbi"
+  ],
+  "transférabilité": [
+   "logme_train",
+   "logme_test"
+  ]
+ },
+ "n_bootstrap": 2000,
+ "seed": 42,
+ "noise": {
+  "tier": 35,
+  "n_bootstrap": 2000,
+  "p_ordre_identique": 0.0,
+  "rho_ordre_moyen": 0.8977973389355745,
+  "rho_ordre_ic95_bas": 0.8521008403361345,
+  "n_modeles_multi_seed": 28,
+  "note": "modèles gelés traités comme fixes — estimation optimiste"
+ },
+ "n_models": 40
+}
