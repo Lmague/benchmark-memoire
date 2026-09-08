@@ -136,8 +136,8 @@ def c_tier_covered():
     # documentés, jamais testés formellement)…
     expected = tier_keys - set(NO_BOOTSTRAP_EMBEDDINGS)
     # …comparés aux groupes du bootstrap via TIER_GROUP_KEY (display → clé).
-    inv = {v: k for k, v in TIER_GROUP_KEY.items()}
-    covered = {inv[g["name"]] for g in d["groups"] if g["name"] in inv}
+    covered = {TIER_GROUP_KEY[g["name"]] for g in d["groups"]
+               if g["name"] in TIER_GROUP_KEY}
     missing = sorted(expected - covered)
     extra = sorted(covered - tier_keys)
     n = len(d["groups"])
@@ -215,6 +215,23 @@ def c_forbidden_values():
           "; ".join(hits))
 
 
+def c_tables_balanced():
+    """Chaque fragment de tableau doit fermer ses environnements (2026-09-08 :
+    `t_simb_regimes.tex` généré sans `\\end{tabular}` a cassé la compilation du
+    compendium — erreur `Missing \\endgroup` au `\\end{table}`)."""
+    bad = []
+    for fp in sorted(glob.glob(p("rapport_bouguessa", "tables", "*.tex"))):
+        txt = open(fp, encoding="utf-8", errors="replace").read()
+        for env in ("tabular", "table", "longtable"):
+            n_open = len(re.findall(r"\\begin\{" + env + r"\}", txt))
+            n_close = len(re.findall(r"\\end\{" + env + r"\}", txt))
+            if n_open != n_close:
+                bad.append(f"{os.path.basename(fp)}: {env} {n_open}×begin / "
+                           f"{n_close}×end")
+    check("fragments de tableaux équilibrés (begin/end par environnement)",
+          not bad, "; ".join(bad))
+
+
 def c_figures_exist():
     """Toutes les figures référencées par les .tex doivent exister."""
     missing = []
@@ -261,6 +278,7 @@ def main():
     c_tier_reproduces_8group()
     c_no_explora()
     c_no_deprecated_models()
+    c_tables_balanced()
     c_figures_exist()
 
     n_ok = sum(c["ok"] for c in CHECKS)

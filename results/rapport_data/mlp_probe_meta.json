@@ -1,0 +1,424 @@
+{
+ "date": "2026-07-26 06:35",
+ "protocole": "MLP 1 couche cachée sur embeddings cachés standardisés (StandardScaler fit train) ; schéma 11cls ; f1_macro_pres sur test n=17598 ; early stopping sur val f1_macro_pres, patience 15 fixe ; best_config = moyenne val la plus haute sur 3 seeds ; test jamais utilisé en sélection.",
+ "grille": {
+  "hidden": [
+   64,
+   128,
+   256
+  ],
+  "dropout": [
+   0.0,
+   0.2
+  ],
+  "weight_decay": [
+   0.0,
+   0.0001,
+   0.001
+  ],
+  "n_configs": 18,
+  "lr": 0.0003,
+  "batch": 512,
+  "max_epochs": 200,
+  "optimizer": "AdamW",
+  "loss": "CrossEntropy non pondérée"
+ },
+ "baseline_lineaire": "LR canonique make_canonical_lr (lbfgs, max_iter=2000, seed=42), C_grid [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0] sélectionné sur val f1_macro_pres, fit final sur train complet — recalculée ici sur les MÊMES tableaux standardisés que le MLP (AGENTS.md §4.3 : symétrie de grille).",
+ "conventions": {
+  "seed_source": "frozen = init_only (1 jeu d'embeddings, 3 inits) ; ft = backbone+init (3 dossiers de seed)",
+  "mlp_seed": "42 + seed_de_finetuning",
+  "interpretable": "|delta| > 0.01 (AGENTS.md §4.4, σ inter-seed ≈ 0,008)",
+  "classes_mortes": [
+   "ARCA",
+   "DRYI",
+   "RUBC"
+  ]
+ },
+ "n_modeles": 20,
+ "duree_s": 12578.19790673256,
+ "controles": [
+  {
+   "model": "dinov3_vitb16_lvd_lora_r8",
+   "kind": "ft",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4835,
+   "got": 0.48201381103646224,
+   "abs_err": 0.001486188963537749,
+   "bloquant": false,
+   "ok": true
+  },
+  {
+   "model": "dinov3_vitb16_lvd_explora",
+   "kind": "ft",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4816,
+   "got": 0.48162480502871235,
+   "abs_err": 2.4805028712382438e-05,
+   "bloquant": false,
+   "ok": true
+  },
+  {
+   "model": "dinov3_vitb16_lvd_mhsa",
+   "kind": "ft",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.48,
+   "got": 0.4789840862196116,
+   "abs_err": 0.0010159137803884,
+   "bloquant": false,
+   "ok": true
+  },
+  {
+   "model": "simdinov2_vitb16_full",
+   "kind": "ft",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4677,
+   "got": 0.4781627498055189,
+   "abs_err": 0.010462749805518923,
+   "bloquant": false,
+   "ok": true
+  },
+  {
+   "model": "dinov3_vitb16_lvd_full",
+   "kind": "ft",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4786,
+   "got": 0.4788139386762971,
+   "abs_err": 0.0002139386762970985,
+   "bloquant": false,
+   "ok": true
+  },
+  {
+   "model": "simdinov2_vitl16",
+   "kind": "frozen",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.476,
+   "got": 0.47600071743326294,
+   "abs_err": 7.174332629644731e-07,
+   "bloquant": true,
+   "ok": true
+  },
+  {
+   "model": "dinov3_vitl16_lvd",
+   "kind": "frozen",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4792,
+   "got": 0.4792139302399709,
+   "abs_err": 1.3930239970871838e-05,
+   "bloquant": true,
+   "ok": true
+  },
+  {
+   "model": "vitb16_full_old",
+   "kind": "ft",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4708,
+   "got": 0.47476381824152525,
+   "abs_err": 0.003963818241525252,
+   "bloquant": false,
+   "ok": true
+  },
+  {
+   "model": "dinov3_vitb16_lvd",
+   "kind": "frozen",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4712,
+   "got": 0.4712123536830693,
+   "abs_err": 1.2353683069288302e-05,
+   "bloquant": true,
+   "ok": true
+  },
+  {
+   "model": "simdinov2_vitb16",
+   "kind": "frozen",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4723,
+   "got": 0.47225573315523817,
+   "abs_err": 4.426684476183107e-05,
+   "bloquant": true,
+   "ok": true
+  },
+  {
+   "model": "simdinov2_vitb16_mhsa",
+   "kind": "ft",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4691,
+   "got": 0.4690530012214999,
+   "abs_err": 4.699877850011802e-05,
+   "bloquant": false,
+   "ok": true
+  },
+  {
+   "model": "vitb16_explora_old",
+   "kind": "ft",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4668,
+   "got": 0.47052245495466777,
+   "abs_err": 0.0037224549546677754,
+   "bloquant": false,
+   "ok": true
+  },
+  {
+   "model": "vitb16_mhsa_old",
+   "kind": "ft",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4689,
+   "got": 0.46887154938359094,
+   "abs_err": 2.8450616409048113e-05,
+   "bloquant": false,
+   "ok": true
+  },
+  {
+   "model": "resnet50_fulft_sota",
+   "kind": "ft",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4571,
+   "got": 0.4572156955039621,
+   "abs_err": 0.00011569550396212103,
+   "bloquant": false,
+   "ok": true
+  },
+  {
+   "model": "dinov3_vitl16_sat",
+   "kind": "frozen",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.462,
+   "got": 0.46204819824639976,
+   "abs_err": 4.819824639973325e-05,
+   "bloquant": true,
+   "ok": true
+  },
+  {
+   "model": "vitb16_imagenet",
+   "kind": "frozen",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.45,
+   "got": 0.4499673184267636,
+   "abs_err": 3.268157323643717e-05,
+   "bloquant": true,
+   "ok": true
+  },
+  {
+   "model": "scalemae_vitl16",
+   "kind": "frozen",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.448,
+   "got": 0.44804610126842087,
+   "abs_err": 4.610126842086171e-05,
+   "bloquant": true,
+   "ok": true
+  },
+  {
+   "model": "satmae_vitl16",
+   "kind": "frozen",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4091,
+   "got": 0.4091129384679247,
+   "abs_err": 1.2938467924661357e-05,
+   "bloquant": true,
+   "ok": true
+  },
+  {
+   "model": "resnet50_imagenet",
+   "kind": "frozen",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.4076,
+   "got": 0.40762026192794515,
+   "abs_err": 2.0261927945131042e-05,
+   "bloquant": true,
+   "ok": true
+  },
+  {
+   "model": "vitb16_scratch_old",
+   "kind": "ft",
+   "metric": "f1_macro_pres_linear",
+   "expected": 0.3561,
+   "got": 0.3547707121641865,
+   "abs_err": 0.0013292878358135418,
+   "bloquant": false,
+   "ok": true
+  }
+ ],
+ "controle_labels_permutes": [
+  {
+   "model": "dinov3_vitb16_lvd",
+   "config_origine": "best_config",
+   "hidden": 128,
+   "dropout": 0.2,
+   "weight_decay": 0.001,
+   "n_epochs": 60,
+   "train_accuracy_labels_permutes": 0.3696353564253972,
+   "val_f1_pres": 0.08131408121108515,
+   "test_f1_macro_pres": 0.09217810359835826,
+   "hasard_stratifie": 0.08722196166105403,
+   "hasard_majoritaire": 0.03983298707061742,
+   "seuil": 0.15,
+   "ok": true
+  },
+  {
+   "model": "simdinov2_vitb16_full",
+   "config_origine": "best_config",
+   "hidden": 128,
+   "dropout": 0.2,
+   "weight_decay": 0.0001,
+   "n_epochs": 60,
+   "train_accuracy_labels_permutes": 0.4190864633428705,
+   "val_f1_pres": 0.07389023863629293,
+   "test_f1_macro_pres": 0.09008516518953658,
+   "hasard_stratifie": 0.08722196166105403,
+   "hasard_majoritaire": 0.03983298707061742,
+   "seuil": 0.15,
+   "ok": true
+  }
+ ],
+ "pilote_regularisation": {
+  "modele": "dinov3_vitb16_lvd",
+  "hidden": 256,
+  "dropout": 0.2,
+  "reference_lineaire": {
+   "best_C": 0.001,
+   "val_f1_pres": 0.4606,
+   "test_f1_pres": 0.4712
+  },
+  "grille": [
+   {
+    "lr": 0.001,
+    "weight_decay": 0.001,
+    "val_f1_pres": 0.4569,
+    "test_f1_pres": 0.4689
+   },
+   {
+    "lr": 0.001,
+    "weight_decay": 0.01,
+    "val_f1_pres": 0.4569,
+    "test_f1_pres": 0.4642
+   },
+   {
+    "lr": 0.001,
+    "weight_decay": 0.1,
+    "val_f1_pres": 0.455,
+    "test_f1_pres": 0.4642
+   },
+   {
+    "lr": 0.001,
+    "weight_decay": 1.0,
+    "val_f1_pres": 0.4604,
+    "test_f1_pres": 0.4564
+   },
+   {
+    "lr": 0.0003,
+    "weight_decay": 0.001,
+    "val_f1_pres": 0.4607,
+    "test_f1_pres": 0.4643
+   },
+   {
+    "lr": 0.0003,
+    "weight_decay": 0.01,
+    "val_f1_pres": 0.4606,
+    "test_f1_pres": 0.4648
+   },
+   {
+    "lr": 0.0003,
+    "weight_decay": 0.1,
+    "val_f1_pres": 0.4609,
+    "test_f1_pres": 0.4639
+   },
+   {
+    "lr": 0.0003,
+    "weight_decay": 1.0,
+    "val_f1_pres": 0.4631,
+    "test_f1_pres": 0.4666
+   }
+  ],
+  "conclusion": "lr=3e-4 retenu (val plus stable sur toute la plage wd) et figé pour les 20 modèles ; élargir la grille wd au-delà de 1e-3 ne renverse pas le signe du delta."
+ },
+ "decomposition": {
+  "temoin": "readout Dropout → Linear(D,11) entraîné par la MÊME boucle que le MLP (AdamW, early stopping, grille dropout × weight_decay, 3 seeds)",
+  "pourquoi": "le delta brut MLP(AdamW) − probe(lbfgs) fait varier la non-linéarité ET l'optimiseur ; son signe est dominé par le second",
+  "delta_protocole_mediane": -0.0060634342736025915,
+  "delta_nonlinearite_mediane": 0.003195118141637643,
+  "n_modeles_nonlin_positifs": 14,
+  "n_modeles_interpretables": 0,
+  "config_temoin": {
+   "dinov3_vitl16_lvd": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "simdinov2_vitl16": {
+    "dropout": 0.2,
+    "weight_decay": 0.001
+   },
+   "simdinov2_vitb16": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "dinov3_vitb16_lvd": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "dinov3_vitl16_sat": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "vitb16_imagenet": {
+    "dropout": 0.2,
+    "weight_decay": 0.001
+   },
+   "scalemae_vitl16": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "satmae_vitl16": {
+    "dropout": 0.0,
+    "weight_decay": 0.001
+   },
+   "resnet50_imagenet": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "dinov3_vitb16_lvd_full": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "dinov3_vitb16_lvd_mhsa": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "simdinov2_vitb16_full": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "simdinov2_vitb16_mhsa": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "dinov3_vitb16_lvd_explora": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "dinov3_vitb16_lvd_lora_r8": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "resnet50_fulft_sota": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "vitb16_full_old": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "vitb16_mhsa_old": {
+    "dropout": 0.0,
+    "weight_decay": 0.0
+   },
+   "vitb16_explora_old": {
+    "dropout": 0.2,
+    "weight_decay": 0.0
+   },
+   "vitb16_scratch_old": {
+    "dropout": 0.0,
+    "weight_decay": 0.0
+   }
+  }
+ }
+}

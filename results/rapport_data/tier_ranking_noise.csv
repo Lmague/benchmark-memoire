@@ -1,0 +1,2 @@
+tier,n_bootstrap,p_ordre_identique,rho_ordre_moyen,rho_ordre_ic95_bas,n_modeles_multi_seed,note
+35,2000,0.0,0.8977973389355745,0.8521008403361345,28,modèles gelés traités comme fixes — estimation optimiste

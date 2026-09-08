@@ -35,28 +35,42 @@ def bar(ax, labels, means, stds, colors, ylim, title, ylabel="F1 macro (canoniqu
     x = range(len(labels))
     b = ax.bar(x, means, yerr=stds, color=colors, edgecolor="black", lw=0.6,
                capsize=3, width=0.58, error_kw=dict(lw=0.9))
+    top = max(v + s for v, s in zip(means, stds)) + 0.0028
     for i, (v, s) in enumerate(zip(means, stds)):
         ax.text(i, v + s + 0.0009, f"{v:.4f}", ha="center", fontsize=7)
     ax.axhline(ANCHOR, color=GRAY, ls=":", lw=1.0)
-    ax.text(len(labels) - 0.5, ANCHOR + 0.0004, "ancre r8a8", ha="right",
+    ax.text(0.05, ANCHOR + 0.0004, "ancre r8a8", ha="left",
             fontsize=7, color=GRAY)
     ax.set_xticks(list(x)); ax.set_xticklabels(labels, fontsize=7.4)
     ax.set_ylabel(ylabel, fontsize=8.5); ax.set_title(title, fontsize=9.5)
-    ax.set_ylim(*ylim); ax.grid(axis="y", alpha=0.25, lw=0.5)
+    ax.set_ylim(ylim[0], max(ylim[1], top)); ax.grid(axis="y", alpha=0.25, lw=0.5)
 
 
 # (a) échelle de scaling à rang fixé
+# Le point s=1 à r=8 est l'ancre canonique (merged JSON, campagne 3models) :
+# aucun bras s=1/r=8 tous blocs n'a été re-entraîné dans la Stage A.
+_merged = {m["model"]: m for m in json.load(open(os.path.join(
+    ROOT, "results", "all_models_canonical_merged.json")))["models"]}
+_anchor = _merged["simdinov2_vitb16_lora"]
 fig, axes = plt.subplots(1, 2, figsize=(8.2, 3.1), sharey=True)
-for ax, r, keys, scal in zip(
-        axes, (8, 16),
-        (["simdinov2_vitb16_lora_r8", "simdinov2_vitb16_lora_r8_s2",
-          "simdinov2_vitb16_lora_r8_rslora"],
-         ["simdinov2_vitb16_lora_r16", "simdinov2_vitb16_lora_r16_s2",
-          "simdinov2_vitb16_lora_r16_rslora"]),
-        (["s=1", "s=2", "s=√8"], ["s=1", "s=2", "s=√16"])):
-    bar(ax, scal, [d[k]["f1_linear_probe"] for k in keys],
-        [d[k]["f1_std"] for k in keys], [BLUE, ORANGE, RED], (0.470, 0.484),
-        f"(a{r//8}) r={r} — plus de scaling = pire" if r == 8 else f"(b) r={r}")
+ax = axes[0]
+bar(ax, ["s=1", "s=2", "s=√8"],
+    [_anchor["f1_linear_probe"],
+     d["simdinov2_vitb16_lora_r8_s2"]["f1_linear_probe"],
+     d["simdinov2_vitb16_lora_r8_rslora"]["f1_linear_probe"]],
+    [_anchor["f1_std"],
+     d["simdinov2_vitb16_lora_r8_s2"]["f1_std"],
+     d["simdinov2_vitb16_lora_r8_rslora"]["f1_std"]],
+    [BLUE, ORANGE, RED], (0.470, 0.484), "")
+ax = axes[1]
+bar(ax, ["s=1", "s=2", "s=√16"],
+    [d["simdinov2_vitb16_lora_r16"]["f1_linear_probe"],
+     d["simdinov2_vitb16_lora_r16_s2"]["f1_linear_probe"],
+     d["simdinov2_vitb16_lora_r16_rslora"]["f1_linear_probe"]],
+    [d["simdinov2_vitb16_lora_r16"]["f1_std"],
+     d["simdinov2_vitb16_lora_r16_s2"]["f1_std"],
+     d["simdinov2_vitb16_lora_r16_rslora"]["f1_std"]],
+    [BLUE, ORANGE, RED], (0.470, 0.484), "")
 axes[0].set_title("(a) r=8 — plus de scaling = pire", fontsize=9.5)
 axes[1].set_title("(b) r=16 — idem (rsLoRA infirmé)", fontsize=9.5)
 fig.suptitle("Échelle de scaling à rang fixé — le scaling dégrade partout",

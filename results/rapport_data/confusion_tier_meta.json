@@ -1,0 +1,134 @@
+{
+ "Contexte R1 (A, tuile)": {
+  "label": "Contexte R1 (distil. A, tuile)",
+  "f1_macro_pres": 0.4870063483387577
+ },
+ "Contexte R2 (B, fusion)": {
+  "label": "Contexte R2 (distil. B, fusion)",
+  "f1_macro_pres": 0.5078957446260424
+ },
+ "Contexte R3 (A, EMA)": {
+  "label": "Contexte R3 (distil. A, EMA)",
+  "f1_macro_pres": 0.4834536059243218
+ },
+ "DINOv3 ViT-B16": {
+  "label": "DINOv3 ViT-B/16 LVD",
+  "f1_macro_pres": 0.4714766711294216
+ },
+ "DINOv3 ViT-H+16": {
+  "label": "DINOv3 ViT-H+/16 LVD",
+  "f1_macro_pres": 0.48046029368423665
+ },
+ "DINOv3 ViT-L16": {
+  "label": "DINOv3 ViT-L/16 LVD",
+  "f1_macro_pres": 0.47912015745014486
+ },
+ "DINOv3 ViT-S/16": {
+  "label": "DINOv3 ViT-S/16 LVD",
+  "f1_macro_pres": 0.4690246036263561
+ },
+ "DINOv3 ViT-S/16 LoRA r=8": {
+  "label": "DINOv3 ViT-S/16 LoRA r=8",
+  "f1_macro_pres": 0.47747234837148045
+ },
+ "DINOv3-B Full": {
+  "label": "DINOv3 ViT-B/16 Full",
+  "f1_macro_pres": 0.4786828389644711
+ },
+ "DINOv3-B LoRA r=8": {
+  "label": "DINOv3 ViT-B/16 LoRA r=8",
+  "f1_macro_pres": 0.48289615768555744
+ },
+ "DINOv3-B MHSA": {
+  "label": "DINOv3 ViT-B/16 MHSA",
+  "f1_macro_pres": 0.48000292301701636
+ },
+ "DINOv3-L LoRA r=8": {
+  "label": "DINOv3 ViT-L/16 LoRA r=8",
+  "f1_macro_pres": 0.4815874608063156
+ },
+ "SimDINOv2 ViT-B16": {
+  "label": "SimDINOv2 ViT-B/16",
+  "f1_macro_pres": 0.4719132112384914
+ },
+ "SimDINOv2 ViT-L16": {
+  "label": "SimDINOv2 ViT-L/16",
+  "f1_macro_pres": 0.47549801094334204
+ },
+ "SimDINOv2-B Full": {
+  "label": "SimDINOv2 ViT-B/16 Full",
+  "f1_macro_pres": 0.47816274980551904
+ },
+ "SimDINOv2-B LoRA r16": {
+  "label": "SimDINOv2-B LoRA r16",
+  "f1_macro_pres": 0.4768959883136379
+ },
+ "SimDINOv2-B LoRA r16 (rsLoRA)": {
+  "label": "SimDINOv2-B LoRA r16 (rsLoRA)",
+  "f1_macro_pres": 0.4736514072231588
+ },
+ "SimDINOv2-B LoRA r16 (scaling 2)": {
+  "label": "SimDINOv2-B LoRA r16 (scaling 2)",
+  "f1_macro_pres": 0.47488015212447154
+ },
+ "SimDINOv2-B LoRA r2": {
+  "label": "SimDINOv2-B LoRA r2",
+  "f1_macro_pres": 0.47929498810753124
+ },
+ "SimDINOv2-B LoRA r32": {
+  "label": "SimDINOv2-B LoRA r32",
+  "f1_macro_pres": 0.47500561568178323
+ },
+ "SimDINOv2-B LoRA r4": {
+  "label": "SimDINOv2-B LoRA r4",
+  "f1_macro_pres": 0.47852557176343447
+ },
+ "SimDINOv2-B LoRA r8 (Q+K+V)": {
+  "label": "SimDINOv2-B LoRA r8 (Q+K+V)",
+  "f1_macro_pres": 0.48125297350570656
+ },
+ "SimDINOv2-B LoRA r8 (blocs 0-5)": {
+  "label": "SimDINOv2-B LoRA r8 (blocs 0-5)",
+  "f1_macro_pres": 0.4770029708198434
+ },
+ "SimDINOv2-B LoRA r8 (blocs 6-11)": {
+  "label": "SimDINOv2-B LoRA r8 (blocs 6-11)",
+  "f1_macro_pres": 0.4802315369281617
+ },
+ "SimDINOv2-B LoRA r8 (blocs 9-11)": {
+  "label": "SimDINOv2-B LoRA r8 (blocs 9-11)",
+  "f1_macro_pres": 0.48042529942881446
+ },
+ "SimDINOv2-B LoRA r8 (rsLoRA)": {
+  "label": "SimDINOv2-B LoRA r8 (rsLoRA)",
+  "f1_macro_pres": 0.4753338993798757
+ },
+ "SimDINOv2-B LoRA r8 (scaling 2)": {
+  "label": "SimDINOv2-B LoRA r8 (scaling 2)",
+  "f1_macro_pres": 0.4760162604863431
+ },
+ "SimDINOv2-B LoRA r=8": {
+  "label": "SimDINOv2 ViT-B/16 LoRA r=8",
+  "f1_macro_pres": 0.47806437689161124
+ },
+ "SimDINOv2-B MHSA": {
+  "label": "SimDINOv2 ViT-B/16 MHSA",
+  "f1_macro_pres": 0.469070113993981
+ },
+ "SimDINOv2-B NormTuning": {
+  "label": "SimDINOv2-B NormTuning",
+  "f1_macro_pres": 0.4782796646034945
+ },
+ "SimDINOv2-L LoRA r=8": {
+  "label": "SimDINOv2 ViT-L/16 LoRA r=8",
+  "f1_macro_pres": 0.483514736355391
+ },
+ "ViT-B/16 IN-Full": {
+  "label": "ViT-B/16 IN-Full",
+  "f1_macro_pres": 0.4747974924909487
+ },
+ "ViT-B/16 IN-MHSA": {
+  "label": "ViT-B/16 IN-MHSA",
+  "f1_macro_pres": 0.4689434339780672
+ }
+}

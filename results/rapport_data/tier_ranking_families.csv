@@ -1,0 +1,92 @@
+tier,family_a,metric_a,label_a,family_b,metric_b,label_b,rho
+35,séparabilité,fisher_ratio,Ratio de Fisher,séparabilité,silhouette,Silhouette,0.7633053221288516
+35,séparabilité,fisher_ratio,Ratio de Fisher,séparabilité,chi,Calinski-Harabasz,0.9596638655462185
+35,séparabilité,fisher_ratio,Ratio de Fisher,séparabilité,nc1_canonical,NC1 (intra/inter),-0.9568627450980394
+35,séparabilité,fisher_ratio,Ratio de Fisher,spectrale,eff_rank_sigma2,Rang effectif (σ²),-0.7352941176470589
+35,séparabilité,fisher_ratio,Ratio de Fisher,spectrale,stable_rank,Stable rank,-0.6142857142857143
+35,séparabilité,fisher_ratio,Ratio de Fisher,spectrale,participation_ratio,Participation ratio,-0.7938375350140058
+35,séparabilité,fisher_ratio,Ratio de Fisher,spectrale,rankme_sigma_raw,RankMe (σ),-0.45154061624649866
+35,séparabilité,fisher_ratio,Ratio de Fisher,voisinage,knn_purity,Pureté k-NN,0.33305322128851544
+35,séparabilité,fisher_ratio,Ratio de Fisher,voisinage,aniso_cosine,Anisotropie,-0.5260504201680674
+35,séparabilité,fisher_ratio,Ratio de Fisher,voisinage,intrinsic_dim_twonn,Dim. intrinsèque,-0.04089635854341737
+35,séparabilité,fisher_ratio,Ratio de Fisher,voisinage,dbi,Davies-Bouldin,-0.9352941176470588
+35,séparabilité,fisher_ratio,Ratio de Fisher,transférabilité,logme_train,LogME (train),-0.03473389355742297
+35,séparabilité,fisher_ratio,Ratio de Fisher,transférabilité,logme_test,LogME (test),0.20504201680672268
+35,séparabilité,silhouette,Silhouette,séparabilité,chi,Calinski-Harabasz,0.7680672268907563
+35,séparabilité,silhouette,Silhouette,séparabilité,nc1_canonical,NC1 (intra/inter),-0.769747899159664
+35,séparabilité,silhouette,Silhouette,spectrale,eff_rank_sigma2,Rang effectif (σ²),-0.37675070028011204
+35,séparabilité,silhouette,Silhouette,spectrale,stable_rank,Stable rank,-0.28655462184873953
+35,séparabilité,silhouette,Silhouette,spectrale,participation_ratio,Participation ratio,-0.4708683473389356
+35,séparabilité,silhouette,Silhouette,spectrale,rankme_sigma_raw,RankMe (σ),-0.15714285714285714
+35,séparabilité,silhouette,Silhouette,voisinage,knn_purity,Pureté k-NN,0.3969187675070029
+35,séparabilité,silhouette,Silhouette,voisinage,aniso_cosine,Anisotropie,-0.7378151260504202
+35,séparabilité,silhouette,Silhouette,voisinage,intrinsic_dim_twonn,Dim. intrinsèque,-0.02997198879551821
+35,séparabilité,silhouette,Silhouette,voisinage,dbi,Davies-Bouldin,-0.7518207282913165
+35,séparabilité,silhouette,Silhouette,transférabilité,logme_train,LogME (train),0.12633053221288518
+35,séparabilité,silhouette,Silhouette,transférabilité,logme_test,LogME (test),0.13837535014005603
+35,séparabilité,chi,Calinski-Harabasz,séparabilité,nc1_canonical,NC1 (intra/inter),-0.9983193277310926
+35,séparabilité,chi,Calinski-Harabasz,spectrale,eff_rank_sigma2,Rang effectif (σ²),-0.7170868347338937
+35,séparabilité,chi,Calinski-Harabasz,spectrale,stable_rank,Stable rank,-0.6924369747899161
+35,séparabilité,chi,Calinski-Harabasz,spectrale,participation_ratio,Participation ratio,-0.8296918767507002
+35,séparabilité,chi,Calinski-Harabasz,spectrale,rankme_sigma_raw,RankMe (σ),-0.4084033613445379
+35,séparabilité,chi,Calinski-Harabasz,voisinage,knn_purity,Pureté k-NN,0.33081232492997203
+35,séparabilité,chi,Calinski-Harabasz,voisinage,aniso_cosine,Anisotropie,-0.47647058823529415
+35,séparabilité,chi,Calinski-Harabasz,voisinage,intrinsic_dim_twonn,Dim. intrinsèque,-0.01988795518207283
+35,séparabilité,chi,Calinski-Harabasz,voisinage,dbi,Davies-Bouldin,-0.9072829131652662
+35,séparabilité,chi,Calinski-Harabasz,transférabilité,logme_train,LogME (train),0.023529411764705885
+35,séparabilité,chi,Calinski-Harabasz,transférabilité,logme_test,LogME (test),0.17871148459383757
+35,séparabilité,nc1_canonical,NC1 (intra/inter),spectrale,eff_rank_sigma2,Rang effectif (σ²),0.7148459383753503
+35,séparabilité,nc1_canonical,NC1 (intra/inter),spectrale,stable_rank,Stable rank,0.7008403361344538
+35,séparabilité,nc1_canonical,NC1 (intra/inter),spectrale,participation_ratio,Participation ratio,0.8333333333333334
+35,séparabilité,nc1_canonical,NC1 (intra/inter),spectrale,rankme_sigma_raw,RankMe (σ),0.40728291316526616
+35,séparabilité,nc1_canonical,NC1 (intra/inter),voisinage,knn_purity,Pureté k-NN,-0.34089635854341743
+35,séparabilité,nc1_canonical,NC1 (intra/inter),voisinage,aniso_cosine,Anisotropie,0.4728291316526611
+35,séparabilité,nc1_canonical,NC1 (intra/inter),voisinage,intrinsic_dim_twonn,Dim. intrinsèque,0.029691876750700282
+35,séparabilité,nc1_canonical,NC1 (intra/inter),voisinage,dbi,Davies-Bouldin,0.8960784313725492
+35,séparabilité,nc1_canonical,NC1 (intra/inter),transférabilité,logme_train,LogME (train),-0.025490196078431372
+35,séparabilité,nc1_canonical,NC1 (intra/inter),transférabilité,logme_test,LogME (test),-0.19355742296918768
+35,spectrale,eff_rank_sigma2,Rang effectif (σ²),spectrale,stable_rank,Stable rank,0.7686274509803922
+35,spectrale,eff_rank_sigma2,Rang effectif (σ²),spectrale,participation_ratio,Participation ratio,0.9156862745098039
+35,spectrale,eff_rank_sigma2,Rang effectif (σ²),spectrale,rankme_sigma_raw,RankMe (σ),0.7890756302521009
+35,spectrale,eff_rank_sigma2,Rang effectif (σ²),voisinage,knn_purity,Pureté k-NN,0.1131652661064426
+35,spectrale,eff_rank_sigma2,Rang effectif (σ²),voisinage,aniso_cosine,Anisotropie,0.05798319327731092
+35,spectrale,eff_rank_sigma2,Rang effectif (σ²),voisinage,intrinsic_dim_twonn,Dim. intrinsèque,-0.29327731092436976
+35,spectrale,eff_rank_sigma2,Rang effectif (σ²),voisinage,dbi,Davies-Bouldin,0.638655462184874
+35,spectrale,eff_rank_sigma2,Rang effectif (σ²),transférabilité,logme_train,LogME (train),0.3775910364145659
+35,spectrale,eff_rank_sigma2,Rang effectif (σ²),transférabilité,logme_test,LogME (test),0.11092436974789917
+35,spectrale,stable_rank,Stable rank,spectrale,participation_ratio,Participation ratio,0.9156862745098039
+35,spectrale,stable_rank,Stable rank,spectrale,rankme_sigma_raw,RankMe (σ),0.5347338935574231
+35,spectrale,stable_rank,Stable rank,voisinage,knn_purity,Pureté k-NN,-0.08263305322128851
+35,spectrale,stable_rank,Stable rank,voisinage,aniso_cosine,Anisotropie,-0.08795518207282914
+35,spectrale,stable_rank,Stable rank,voisinage,intrinsic_dim_twonn,Dim. intrinsèque,-0.10308123249299721
+35,spectrale,stable_rank,Stable rank,voisinage,dbi,Davies-Bouldin,0.45154061624649866
+35,spectrale,stable_rank,Stable rank,transférabilité,logme_train,LogME (train),0.20252100840336137
+35,spectrale,stable_rank,Stable rank,transférabilité,logme_test,LogME (test),-0.03893557422969188
+35,spectrale,participation_ratio,Participation ratio,spectrale,rankme_sigma_raw,RankMe (σ),0.6551820728291318
+35,spectrale,participation_ratio,Participation ratio,voisinage,knn_purity,Pureté k-NN,-0.06750700280112044
+35,spectrale,participation_ratio,Participation ratio,voisinage,aniso_cosine,Anisotropie,0.1473389355742297
+35,spectrale,participation_ratio,Participation ratio,voisinage,intrinsic_dim_twonn,Dim. intrinsèque,-0.17759103641456586
+35,spectrale,participation_ratio,Participation ratio,voisinage,dbi,Davies-Bouldin,0.6773109243697479
+35,spectrale,participation_ratio,Participation ratio,transférabilité,logme_train,LogME (train),0.24369747899159663
+35,spectrale,participation_ratio,Participation ratio,transférabilité,logme_test,LogME (test),-0.032492997198879554
+35,spectrale,rankme_sigma_raw,RankMe (σ),voisinage,knn_purity,Pureté k-NN,0.2901960784313726
+35,spectrale,rankme_sigma_raw,RankMe (σ),voisinage,aniso_cosine,Anisotropie,-0.12661064425770308
+35,spectrale,rankme_sigma_raw,RankMe (σ),voisinage,intrinsic_dim_twonn,Dim. intrinsèque,-0.22268907563025211
+35,spectrale,rankme_sigma_raw,RankMe (σ),voisinage,dbi,Davies-Bouldin,0.3988795518207283
+35,spectrale,rankme_sigma_raw,RankMe (σ),transférabilité,logme_train,LogME (train),0.2582633053221289
+35,spectrale,rankme_sigma_raw,RankMe (σ),transférabilité,logme_test,LogME (test),0.017647058823529415
+35,voisinage,knn_purity,Pureté k-NN,voisinage,aniso_cosine,Anisotropie,-0.384593837535014
+35,voisinage,knn_purity,Pureté k-NN,voisinage,intrinsic_dim_twonn,Dim. intrinsèque,-0.7212885154061626
+35,voisinage,knn_purity,Pureté k-NN,voisinage,dbi,Davies-Bouldin,-0.32296918767507005
+35,voisinage,knn_purity,Pureté k-NN,transférabilité,logme_train,LogME (train),0.4025210084033614
+35,voisinage,knn_purity,Pureté k-NN,transférabilité,logme_test,LogME (test),0.5492997198879552
+35,voisinage,aniso_cosine,Anisotropie,voisinage,intrinsic_dim_twonn,Dim. intrinsèque,0.0700280112044818
+35,voisinage,aniso_cosine,Anisotropie,voisinage,dbi,Davies-Bouldin,0.5745098039215687
+35,voisinage,aniso_cosine,Anisotropie,transférabilité,logme_train,LogME (train),-0.20980392156862743
+35,voisinage,aniso_cosine,Anisotropie,transférabilité,logme_test,LogME (test),-0.2369747899159664
+35,voisinage,intrinsic_dim_twonn,Dim. intrinsèque,voisinage,dbi,Davies-Bouldin,0.08067226890756303
+35,voisinage,intrinsic_dim_twonn,Dim. intrinsèque,transférabilité,logme_train,LogME (train),-0.4725490196078432
+35,voisinage,intrinsic_dim_twonn,Dim. intrinsèque,transférabilité,logme_test,LogME (test),-0.5403361344537816
+35,voisinage,dbi,Davies-Bouldin,transférabilité,logme_train,LogME (train),-0.009243697478991597
+35,voisinage,dbi,Davies-Bouldin,transférabilité,logme_test,LogME (test),-0.17310924369747901
+35,transférabilité,logme_train,LogME (train),transférabilité,logme_test,LogME (test),0.42997198879551823
