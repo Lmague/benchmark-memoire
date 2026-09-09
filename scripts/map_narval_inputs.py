@@ -102,17 +102,19 @@ def index_scratch():
 
 def valid_run_dir(d: str, dim: int) -> bool:
     try:
-        shapes = {}
+        info = {}
         for s in ("train", "val", "test"):
             X = np.load(os.path.join(d, f"{s}.npy"), mmap_mode="r")
             y = np.load(os.path.join(d, f"{s}_labels.npy"), mmap_mode="r")
-            shapes[s] = (X.shape, y.shape, int(y.max()))
+            info[s] = (int(X.shape[0]), int(X.shape[1]), int(y.max()))
     except Exception:
         return False
-    (nt, dt), (nv, dv), (ne, ddim) = shapes["train"], shapes["val"], shapes["test"]
+    nt, dt, mxt = info["train"]
+    nv, dv, mxv = info["val"]
+    ne, ddim, mxe = info["test"]
     return (ne == N_TEST and nt >= 40_000 and nv >= 10_000
             and dt == dv == ddim == dim
-            and shapes["test"][2] <= 10)
+            and max(mxt, mxv, mxe) <= 10)
 
 
 def link_mirror(src_dir: str, rel_tmpl: str, seed) -> None:
@@ -222,17 +224,19 @@ def main() -> None:
 
 def valid_run_dir_flat(d: str, key: str, dim: int) -> bool:
     try:
-        shapes = []
+        info = []
         for s in ("train", "val", "test"):
             X = np.load(os.path.join(d, f"{key}_{s}.npy"), mmap_mode="r")
             y = np.load(os.path.join(d, f"{key}_{s}_labels.npy"), mmap_mode="r")
-            shapes.append((X.shape[0], X.shape[1], int(y.max())))
+            info.append((int(X.shape[0]), int(X.shape[1]), int(y.max())))
     except Exception:
         return False
-    return (shapes[2][0] == N_TEST and shapes[0][0] >= 40_000
-            and shapes[1][0] >= 10_000
-            and {d1 for _, d1, _ in shapes} == {dim}
-            and all(mx <= 11 for *_, mx in shapes))   # frozen: labels 12cls possibles
+    nt, dt, mxt = info[0]
+    nv, dv, mxv = info[1]
+    ne, ddim, mxe = info[2]
+    return (ne == N_TEST and nt >= 40_000 and nv >= 10_000
+            and {dt, dv, ddim} == {dim}
+            and max(mxt, mxv, mxe) <= 11)   # frozen: labels 12cls possibles
 
 
 if __name__ == "__main__":
