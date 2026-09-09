@@ -41,13 +41,28 @@ set -euo pipefail
 cd "$HOME/benchmark-memoire"
 git pull --ff-only
 
+VENV="$HOME/ENV/bin/activate"
+[[ -f "$VENV" ]] && { module load python/3.11; source "$VENV"; } \
+    || echo "[WARN] venv absent — numpy/torch introuvables ?"
+
 SIG_DIR="$SCRATCH/context_distill/sig_embeddings"
 OUT_DIR="$SCRATCH/context_distill/fusion_heads"
 
 if [[ ! -d "$SIG_DIR" ]]; then
     echo "[ERROR] $SIG_DIR introuvable" >&2; exit 1
 fi
-mkdir -p "$OUT_DIR" logs "$SCRATCH/context_distill/logs_fusion"
+mkdir -p "$OUT_DIR" logs
+
+# GARDE-FOU : audit des inputs avant de consommer l'allocation.
+# SKIP_AUDIT=1 sbatch ... pour forcer si l'audit est déjà passé ailleurs.
+if [[ "${SKIP_AUDIT:-0}" != "1" ]]; then
+    if ! python3 scripts/check_fusion_heads_inputs.py --sig-dir "$SIG_DIR"; then
+        echo "[FUSION-HEADS] audit EN ÉCHEC — le sweep tournerait partiel." >&2
+        echo "[FUSION-HEADS] relancer avec SKIP_AUDIT=1 sbatch $0 pour forcer," >&2
+        echo "[FUSION-HEADS] ou ré-extraire les tags manquants d'abord." >&2
+        exit 1
+    fi
+fi
 # Liste des tags (mêmes motifs que le python par défaut)
 TAGS=$(ls -d \
     "$SIG_DIR"/*_FROZEN_fused_ctx* \
@@ -64,6 +79,7 @@ echo "[fusion-heads] $(echo "$TAGS" | wc -l) tags, 7 processus mono-thread de fr
 # xargs : un process python par tag (mono-thread forcé dans le python).
 # Les tags déjà faits sont relancés mais sautés en 2 s (skip-if-done).
 LOGD="$SCRATCH/context_distill/logs_fusion"
+mkdir -p "$LOGD"
 echo "$TAGS" | xargs -P 7 -I{} sh -c \
     'python3 scripts/fusion_head_sweep.py --sig-dir "$1" --out-dir "$2" --only "$3" > "$4/$3.log" 2>&1 || echo "ERREUR tag $3 (voir $4/$3.log)"' \
     _ "$SIG_DIR" "$OUT_DIR" {} "$LOGD"
