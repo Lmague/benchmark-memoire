@@ -12,6 +12,16 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 NARVAL=${NARVAL:-narval}
 
+# Garde-fou : ce script lit les embeddings LOCAUX (source de vérité des chiffres
+# canoniques) et compare avec l'inventaire remote. Sur Narval, le dépôt cloné
+# n'a pas embeddings/ → rapport faux (0 fichiers).
+if [[ -n "${SLURM_SUBMIT_DIR:-}" || "$(hostname)" == narval* ]]; then
+    echo "[ERREUR] ce script se lance depuis le LAPTOP (il ssh vers narval),"
+    echo "         pas depuis narval. Re-ouvre un terminal local puis :"
+    echo "           cd ~/Documents/Mémoire && bash scripts/check_narval_inputs.sh"
+    exit 1
+fi
+
 [[ -f /tmp/head_sweep_manifest.txt ]] || python3 scripts/prepare_head_sweep_push.py
 
 echo "[check] inventaire .npy sur Narval (~1-2 min, Lustre)…"
