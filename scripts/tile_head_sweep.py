@@ -51,7 +51,8 @@ TRAIN_SEEDS = (0, 1, 2)
 # Grille réduite (16→8 configs vs fused) : 33 groupes, pas 24 tags — le coût
 # total doit rester sous ~2 jours CPU parallélisés.
 HP_MLP = [(H, p, wd) for H in (256, 512) for p in (0.2, 0.5) for wd in (0.0, 1e-4)]
-OUT_DIR = _os.path.join(_os.path.dirname(_HERE), "results", "rapport_data", "tile_heads")
+OUT_DIR = _os.environ.get("TILE_HEAD_OUT", _os.path.join(
+    _os.path.dirname(_HERE), "results", "rapport_data", "tile_heads"))
 MAX_ITER_LBFGS = 2000
 EPOCHS = int(_os.environ.get("TILE_HEAD_EPOCHS", "120"))
 
@@ -204,7 +205,8 @@ def sweep_group(name):
         best_cfg = max(per_cfg.items(), key=lambda kv: kv[1]["val_mean"])
         te = np.array(best_cfg[1]["test"])
         out[head] = {"best_hp": best_cfg[0], "f1_mean": float(te.mean()),
-                     "f1_std": float(te.std(ddof=1)), "test_per_seed": te.tolist(),
+                     "f1_std": float(te.std(ddof=1)) if len(te) > 1 else 0.0,
+                     "test_per_seed": te.tolist(),
                      "val_mean": best_cfg[1]["val_mean"]}
     out["delta_mlp2_vs_lin_adamw"] = round(out["mlp2"]["f1_mean"] - out["lin_adamw"]["f1_mean"], 4)
     out["delta_mlp2_vs_lin_lbfgs"] = round(out["mlp2"]["f1_mean"] - out["lin_lbfgs"]["f1_mean"], 4)
@@ -235,9 +237,16 @@ def aggregate():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--group", nargs="*")
+    ap.add_argument("--root", default=None,
+                    help="racine alternative pour les chemins de GROUPS "
+                         "(défaut : dépôt local). Sur Narval : "
+                         "$SCRATCH/head_sweep_inputs")
     ap.add_argument("--all", action="store_true", help="liste les groupes et quitte")
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args()
+    if args.root:
+        import registry
+        registry.ROOT = args.root
     if args.all:
         print("\n".join(g[0] for g in GROUPS)); return
     _os.makedirs(OUT_DIR, exist_ok=True)

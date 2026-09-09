@@ -90,3 +90,15 @@ Runs terminés et intégrés : frozen 0.4689, LoRA r=8 0.4774 ± 0.0022,
 ### 2026-07-15 — Retrain FT canoniques en 11cls, 3 seeds, recette Tier 1
 
 Date de résolution : 2026-07-19. ResNet-50 full FT 3 seeds terminé (F1 = 0.4573 ± 0.0032), résultats dans `runs/frac100_seed{0,1,2}/metrics.json`. MHSA_cui abandonné (ne marchait pas).
+
+### (complément 2026-09-08 — décision utilisateur : TOUT sur Narval)
+
+Le front local est abandonné (-runner arrêté, 5 JSON locaux jetés). Pipeline unique :
+
+1. Local : `python3 scripts/prepare_head_sweep_push.py && bash scripts/push_head_sweep_inputs.sh`
+   (rsync ~12,8 Go, idempotent, vers $SCRATCH/head_sweep_inputs/)
+2. Narval : `sbatch scripts/slurm_head_sweep_all.sh` — phase 1 fused (24 tags × 5 têtes)
+   + phase 2 tile-only (33 groupes × 3 têtes), 7 process mono-thread, 48 h allouées,
+   idempotent par JSON (re-sbatch après coupure). Bug corrigé : std(ddof=1) sur les
+   gelés 1-seed.
+3. Rapatrier `$SCRATCH/head_results/{fusion_heads,tile_heads}` → mêmes chemins locaux.
