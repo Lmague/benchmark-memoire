@@ -37,17 +37,29 @@ import sys
 
 import numpy as np
 
-VUE_FROZEN = {"dinov3_vits16": 384, "dinov3_vitb16_lvd": 768,
-              "dinov3_vitl16_lvd": 1024, "simdinov2_vitb16": 768,
-              "simdinov2_vitl16": 1024}
+VUE_FROZEN = {"dinov3_vits16": (384, ["dinov3_vits16"]),
+              "dinov3_vitb16_lvd": (768, ["dinov3_vitb16_lvd"]),
+              "dinov3_vitl16_lvd": (1024, ["dinov3_vitl16_lvd", "dinov3_vitl16"]),
+              "simdinov2_vitb16": (768, ["simdinov2_vitb16"]),
+              "simdinov2_vitl16": (1024, ["simdinov2_vitl16"])}
+# Aliases : l'ancien batch (slurm_context_frozen_models.sh) écrit ViT-L sous
+# `dinov3_vitl16` (sans suffixe _lvd) — même contenu, tag différent.
 N_TRAIN_MIN, N_VAL_MIN, N_TEST = 40_000, 10_000, 17_598
 
 
-def expected_tags():
+def expected_tags(sig_dir: str = ""):
     tags = []
-    for m, d in VUE_FROZEN.items():
+    for m, (d, aliases) in VUE_FROZEN.items():
+        chosen = m
+        if sig_dir:
+            for a in aliases:
+                for size in (512, 1024, 2048):
+                    if os.path.isdir(os.path.join(
+                            sig_dir, f"{a}_FROZEN_fused_ctx{size}_frac100_seed0")):
+                        chosen = a
+                        break
         for size in (512, 1024, 2048):
-            tags.append((f"{m}_FROZEN_fused_ctx{size}_frac100_seed0", 2 * d))
+            tags.append((f"{chosen}_FROZEN_fused_ctx{size}_frac100_seed0", 2 * d))
     base = "dinov3_vitb16_lvd_ctxdistill"
     for seed in (0, 1, 2):
         tags.append((f"{base}_dB_tL_ctx1024_r2a4_frac100_seed{seed}", 1536))
@@ -98,7 +110,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--sig-dir", required=True)
     args = ap.parse_args()
-    tags, hors = expected_tags()
+    tags, hors = expected_tags(args.sig_dir)
     n_ok = 0
     print(f"[audit] sig-dir = {args.sig_dir}\n")
     for tag, exp_dim in tags:
