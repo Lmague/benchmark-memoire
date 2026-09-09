@@ -2,6 +2,27 @@
 
 Format : un point par section, daté en titre. Résolu → déplacer en bas dans "Résolu".
 
+## 2026-09-08 — Campagne « heads » LANCÉE sur les deux fronts (Narval fused + local tile-only)
+
+**Front Narval (24 tags FUSED)** : audit 24/24 OK (après fix alias `dinov3_vitl16`),
+job à soumettre par l'humain : `sbatch scripts/slurm_fusion_head_sweep.sh` (5 têtes :
+lbfgs, lin-AdamW, MLP-2, bilinéaire-diag, FiLM). Rapatrier
+`$SCRATCH/context_distill/fusion_heads/` → `results/context_distill/`.
+
+**Front local (33 groupes du palier, tuile seule)** : `scripts/tile_head_sweep.py`
+(3 têtes : lbfgs / lin-AdamW / MLP-2 — bil/FiLM sans sens sur vue unique), lancé le
+2026-09-08 ~14:10 via `scripts/run_tile_head_sweep.sh` (nohup, 7 processus
+mono-thread, idempotent). Contrôle de cohérence validé au smoke : lbfgs NormTuning
+= 0,4783 = canonique exact. Sorties : `results/rapport_data/tile_heads/` (+
+`_aggregate.csv`) ; suivi : `tail -f results/rapport_data/tile_heads/_runner.log`,
+`ls tile_heads/*.json | wc -l` (cible 33). Durée attendue 4–10 h.
+
+**Lecture à venir (ne rien citer avant)** : critère = `delta_vs_lin_adamw` > +0,01
+(sur fused, par tête) ; attendu raisonnable au vu de juillet : rien ne dépasse.
+Si confirmation sur 33 groupes → le « plateau plat » s'étend aux classifieurs non
+linéaires (paragraphe de robustesse Article 1). Sinon → Article 3 réorienté vers
+le head de fusion.
+
 ## 2026-09-08 — Campagne « fusion heads » non linéaires : PRÊTE À LANCER sur Narval
 
 Teste si une tête non linéaire (MLP-2, bilinéaire diagonal, FiLM) récupère sur les
