@@ -73,6 +73,12 @@ PATH_FN = {
     "ViTB_L_LoRA/lora_3models/simdinov2_vitb16/embeddings/frac100_seed{s}":
         lambda d, sd: ("simdinov2_vitb16" in d
                        and "lora_simb_ablation" not in d
+                       # les dirs *_full_ / *_mhsa_ de la MÊME famille simB
+                       # matchent le prédicat (basename *_frac100_seed{sd}) —
+                       # ce ne sont pas la cible LoRA (vu 2026-09-09 : 6
+                       # candidats au lieu de 1)
+                       and "_full_" not in os.path.basename(d)
+                       and "_mhsa_" not in os.path.basename(d)
                        and (os.path.basename(d) == f"frac100_seed{sd}"
                             or os.path.basename(d).endswith(f"_seed{sd}"))),
 }
@@ -106,11 +112,18 @@ def load_forced():
 
 def index_scratch():
     """Un seul find : tous les répertoires-run (contenant test.npy) + tous les
-    profils plats *_train.npy (frozen)."""
+    profils plats *_test.npy (frozen).
+    Le miroir head_sweep_inputs est EXCLU : ses liens symboliques sont vus par
+    find et passent la validation (np.load suit les symlinks) → chaque groupe
+    déjà mappé aurait 2 candidats (original + miroir) et serait AMBIGU à chaque
+    rerun. (Observé 2026-09-09 : tous les « 2 candidats » étaient original vs
+    doublon miroir.)"""
     out = subprocess.run(
         ["find", SCRATCH, "-maxdepth", "7",
          "(", "-name", "test.npy", "-o", "-name", "*_test.npy", ")",
-         "-not", "-path", "*SLURM*", "-printf", "%p\n"],
+         "-not", "-path", "*SLURM*",
+         "-not", "-path", os.path.join(MIRROR, "*"),
+         "-printf", "%p\n"],
         capture_output=True, text=True, timeout=1200).stdout.splitlines()
     dirs = {os.path.dirname(p) for p in out if p.endswith("/test.npy")}
     flat = [p for p in out if p.endswith("_test.npy")]
@@ -166,7 +179,7 @@ def main() -> None:
     import sys as _sys
     log_path = os.path.join(SCRATCH, "map_narval_log.txt")
     _sys.stdout = open(log_path, "w", buffering=1)
-    print(f"[map] {time.strftime('%Y-%m-%d %H:%M:%S')} — map_narval_inputs v77d5fb9", flush=True)
+    print(f"[map] {time.strftime('%Y-%m-%d %H:%M:%S')} — map_narval_inputs v2026-09-09-stale-fix", flush=True)
     print(f"[map] SCRATCH={SCRATCH}  log={log_path}", flush=True)
     dirs, flat = index_scratch()
     flat_by_key = {}
@@ -198,7 +211,13 @@ def main() -> None:
                     missing.append((name, "frozen", path, dim))
                 continue
             # dédup (docs identiques listés 2× dans l'index) + validation
-            valid = []
+            # chosen DOIT être remis à None à chaque seed : sinon un seed AMBIGU
+            # hérite du choix du seed précédent (bug introduit par 77d5fb9 — le
+            # refactor a perdu le `chosen = None` de `chosen, valid = None, []`).
+            # Observé 2026-09-09 : tout groupe dont les 3 seeds étaient AMBIGU
+            # était lié à tort vers dinov3b_lora8/.../explora_frac100_seed2 (le
+            # dernier choix du groupe précédent) et rapporté OK.
+            chosen, valid = None, []
             for c in ([c1] if c1 else []) + cands:
                 if c not in valid and valid_run_dir(c, dim):
                     valid.append(c)
