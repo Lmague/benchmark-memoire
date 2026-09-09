@@ -12,10 +12,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 NARVAL=${NARVAL:-narval}
+# MANIFEST=/tmp/head_sweep_missing.txt pour ne pousser que ce que Narval n'a
+# pas déjà (voir scripts/check_narval_inputs.sh — à lancer AVANT ce push).
+MANIFEST=${MANIFEST:-/tmp/head_sweep_manifest.txt}
 
-[[ -f /tmp/head_sweep_manifest.txt ]] || { echo "lancer prepare_head_sweep_push.py d'abord"; exit 1; }
+[[ -f "$MANIFEST" ]] || { echo "lancer prepare_head_sweep_push.py (ou check_narval_inputs.sh) d'abord"; exit 1; }
 
-rsync -av --relative --files-from=/tmp/head_sweep_manifest.txt \
+echo "[push] $(wc -l < "$MANIFEST") fichiers depuis $MANIFEST"
+rsync -av --relative --files-from="$MANIFEST" \
     . "$NARVAL:/lustre07/scratch/lmague/head_sweep_inputs/"
 
 echo "[push] terminé — inputs sous \$SCRATCH/head_sweep_inputs/ (arborescence miroir du dépôt)"
