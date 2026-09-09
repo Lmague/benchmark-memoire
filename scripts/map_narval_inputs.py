@@ -63,11 +63,27 @@ for g in GROUPS:
 TAG_ALIAS = {
     "runs_vits16/embeddings/seed{s}": "dinov3_vits16_lvd_lora_r8a16_frac100_seed{s}",
 }
-# groupes cherchés par motif de chemin (le basename seul est ambigu)
-PATH_PAT = {
+# groupes cherchés par prédicat par-seed (le basename local ne dit rien du
+# layout Narval ; le numéro de seed est la seule ancre fiable)
+PATH_FN = {
+    # ancre SimDINOv2-B LoRA r=8 : dossier vivoit sous un nom inconnu — on
+    # accepte tout répertoire lié à simdinov2_vitb16, HORS ablation Stage A,
+    # dont le basename porte le seed demandé.
     "ViTB_L_LoRA/lora_3models/simdinov2_vitb16/embeddings/frac100_seed{s}":
-        "*/simdinov2_vitb16/embeddings/frac100_seed*",
+        lambda d, sd: ("simdinov2_vitb16" in d
+                       and "lora_simb_ablation" not in d
+                       and (os.path.basename(d) == f"frac100_seed{sd}"
+                            or os.path.basename(d).endswith(f"_seed{sd}"))),
 }
+# préférence quand plusieurs candidats valides (vraies ambiguïtés connues)
+PREFER = {
+    # dinov3b_lora8 = pipeline LoRA r8a8 ; sota_screening/dinov3_vitb16_lvd_explora
+    # = l'ExPLoRA réel (exclu du benchmark) — le canonique est le premier
+    "DINOv3-B LoRA r=8": "dinov3b_lora8",
+    # mhsa_cui = régime ABANDONNÉ (AGENT_MEMORY 2026-07-17) → on force /mhsa/
+    "ViT-B/16 IN-MHSA": "/sota_screening/mhsa/embeddings/",
+}
+AVOID = ["mhsa_cui"]
 
 N_TEST = 17598
 FORCED_FILE = os.path.join(SCRATCH, "head_sweep_forced.tsv")
@@ -158,18 +174,14 @@ def main() -> None:
             rel_tmpl = path
             tmpl = TAG_ALIAS.get(path, path).format(s=sd)
             basename = os.path.basename(tmpl)
-            if path in PATH_PAT:
-                pat = PATH_PAT[path].format(s=sd)
-                cands_pre = [d for d in dirs if d.endswith(pat.lstrip("*/"))]
-            else:
-                cands_pre = None
             # 1) chemin job d'origine dans SCRATCH, tel quel
             c1 = os.path.join(SCRATCH, os.path.dirname(tmpl), basename) \
                  if "{" not in tmpl else None
-            # 2) même chemin relatif sous le dépôt cloné (hasard de layout)
-            # 3) recherche par basename dans l'index des run-dirs
-            cands = cands_pre if cands_pre is not None \
-                else [d for d in dirs if os.path.basename(d) == basename]
+            # 2) candidats : prédicat par-seed (PATH_FN) ou basename exact
+            if path in PATH_FN:
+                cands = [d for d in dirs if PATH_FN[path](d, sd)]
+            else:
+                cands = [d for d in dirs if os.path.basename(d) == basename]
             if kind == "frozen":
                 fd = flat_by_key.get(path)
                 if fd and valid_run_dir_flat(fd, path, dim):
@@ -177,10 +189,19 @@ def main() -> None:
                 else:
                     missing.append((name, "frozen", path, dim))
                 continue
-            chosen, valid = None, []
+            # dédup (docs identiques listés 2× dans l'index) + validation
+            valid = []
             for c in ([c1] if c1 else []) + cands:
-                if valid_run_dir(c, dim):
+                if c not in valid and valid_run_dir(c, dim):
                     valid.append(c)
+            # AVOID : mhsa_cui ne doit JAMAIS être choisi (régime abandonné)
+            valid = [c for c in valid if not any(a in c for a in AVOID)]
+            # PREFER : vraies ambiguïtés connues — sous-chaîne discriminante
+            pref = PREFER.get(name)
+            if pref and len(valid) > 1:
+                hits = [c for c in valid if pref in c]
+                if hits:
+                    valid = hits
             key = f"{name}|seed{sd}"
             if key in forced:
                 if valid_run_dir(forced[key], dim):
