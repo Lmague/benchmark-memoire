@@ -160,6 +160,13 @@ def link_frozen(key: str, flat_dir: str) -> None:
 
 def main() -> None:
     forced = load_forced()
+    # Log fichier ligne-à-ligne : un print sans flush perdu si la session ssh
+    # meurt, ou le buffering avale la sortie. Le rapport est LÀ où que tu sois.
+    import sys as _sys
+    log_path = os.path.join(SCRATCH, "map_narval_log.txt")
+    _sys.stdout = open(log_path, "w", buffering=1)
+    print(f"[map] {time.strftime('%Y-%m-%d %H:%M:%S')} — map_narval_inputs v77d5fb9", flush=True)
+    print(f"[map] SCRATCH={SCRATCH}  log={log_path}", flush=True)
     dirs, flat = index_scratch()
     flat_by_key = {}
     for p in flat:
