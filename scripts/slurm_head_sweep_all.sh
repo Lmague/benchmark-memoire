@@ -69,14 +69,18 @@ if [[ ! -d "$TILE_ROOT" ]]; then
 fi
 export TILE_HEAD_OUT="$OUT_ROOT/tile_heads"
 GROUPS=$(python3 scripts/tile_head_sweep.py --all --root "$TILE_ROOT")
-echo "$GROUPS" | while IFS= read -r g; do
-    # 7 de front, noms avec espaces protégés
-    while [[ $(jobs -rp | wc -l) -ge 7 ]]; do wait -n; done
-    ( python3 -u scripts/tile_head_sweep.py --group "$g" --root "$TILE_ROOT" \
-        > "$LOGD/tile/$(echo "$g" | tr ' /()' '____').log" 2>&1 \
-        || echo "[ERR tile] $g" >> "$LOGD/ERREURS.log" ) &
-done
-wait
+# xargs -P 7 : MÊME motif que la phase 1 — et c'est le seul qui attende ses
+# enfants. NE PAS revenir à `echo | while ... &` : le while s'exécute alors dans
+# un SOUS-SHELL, le `wait` du shell parent ne voit aucun enfant, le script
+# annonce "0/33" en quelques ms et le job se termine en tuant les sweeps
+# (bug observé sur le job 2747670, 2026-09-09).
+# -I{} : un item par ligne → les noms de groupe avec espaces restent un
+# argument unique (pas de word-splitting).
+printf '%s\n' "$GROUPS" | xargs -r -P 7 -I{} sh -c \
+    'python3 -u scripts/tile_head_sweep.py --group "$1" --root "$2" \
+        > "$3/tile/$(printf %s "$1" | tr " /()" "____").log" 2>&1 \
+        || echo "[ERR tile] $1" >> "$3/ERREURS.log"' \
+    _ {} "$TILE_ROOT" "$LOGD"
 N=$(ls "$OUT_ROOT/tile_heads"/*.json 2>/dev/null | grep -vc _aggregate)
 echo "── phase 2 finie : $N/33 groupes"
 
