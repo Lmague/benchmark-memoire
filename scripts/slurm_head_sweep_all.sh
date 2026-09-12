@@ -68,7 +68,12 @@ if [[ ! -d "$TILE_ROOT" ]]; then
     exit 1
 fi
 export TILE_HEAD_OUT="$OUT_ROOT/tile_heads"
-GROUPS=$(python3 scripts/tile_head_sweep.py --all --root "$TILE_ROOT")
+# NE PAS NOMMER CETTE VARIABLE « GROUPS » : GROUPS est une variable SPÉCIALE de
+# bash (tableau des GIDs de l'utilisateur) — `GROUPS=$(...)` est silencieusement
+# IGNORÉ et `$GROUPS` vaut le GID (3161800 sur Narval). Symptôme : un unique
+# item "3161800" envoyé à xargs -> un seul log 3161800.log, phase 2 « 0/33 »
+# instantanée malgré un --all correct (jobs 2747670 / 2873873, 2026-09-09).
+TILE_GROUPS=$(python3 scripts/tile_head_sweep.py --all --root "$TILE_ROOT")
 # xargs -P 7 : MÊME motif que la phase 1 — et c'est le seul qui attende ses
 # enfants. NE PAS revenir à `echo | while ... &` : le while s'exécute alors dans
 # un SOUS-SHELL, le `wait` du shell parent ne voit aucun enfant, le script
@@ -76,7 +81,7 @@ GROUPS=$(python3 scripts/tile_head_sweep.py --all --root "$TILE_ROOT")
 # (bug observé sur le job 2747670, 2026-09-09).
 # -I{} : un item par ligne → les noms de groupe avec espaces restent un
 # argument unique (pas de word-splitting).
-printf '%s\n' "$GROUPS" | xargs -r -P 7 -I{} sh -c \
+printf '%s\n' "$TILE_GROUPS" | xargs -r -P 7 -I{} sh -c \
     'python3 -u scripts/tile_head_sweep.py --group "$1" --root "$2" \
         > "$3/tile/$(printf %s "$1" | tr " /()" "____").log" 2>&1 \
         || echo "[ERR tile] $1" >> "$3/ERREURS.log"' \
