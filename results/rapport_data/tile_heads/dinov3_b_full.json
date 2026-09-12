@@ -1,0 +1,41 @@
+{
+ "group": "DINOv3-B Full",
+ "kind": "ft",
+ "path": "ft_ssl_results/dinov3_vitb16_lvd_full_embeddings/dinov3_vitb16_lvd_full_frac100_seed{s}",
+ "n_seeds": 3,
+ "x_dim": 768,
+ "fused": false,
+ "lin_lbfgs": {
+  "f1_mean": 0.4788588265221261,
+  "best_C": [
+   0.001,
+   0.001,
+   0.0001
+  ]
+ },
+ "lin_adamw": {
+  "best_hp": "(0, 0.0, 0.0)",
+  "f1_mean": 0.4706679861174979,
+  "f1_std": 0.003454372002553254,
+  "test_per_seed": [
+   0.4713088026443254,
+   0.47375707951359874,
+   0.4669380761945697
+  ],
+  "val_mean": 0.49473240009462555
+ },
+ "mlp2": {
+  "best_hp": "(256, 0.5, 0.0001)",
+  "f1_mean": 0.47281965760135886,
+  "f1_std": 0.0014948028075501107,
+  "test_per_seed": [
+   0.47202745702739096,
+   0.4745438200560945,
+   0.4718876957205911
+  ],
+  "val_mean": 0.49764026763136604
+ },
+ "delta_mlp2_vs_lin_adamw": 0.0022,
+ "delta_mlp2_vs_lin_lbfgs": -0.006,
+ "runtime_s": 1718.7
+}

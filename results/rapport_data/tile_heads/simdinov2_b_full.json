@@ -1,0 +1,41 @@
+{
+ "group": "SimDINOv2-B Full",
+ "kind": "ft",
+ "path": "ft_ssl_results/simdinov2_vitb16_full_embeddings/simdinov2_vitb16_full_frac100_seed{s}",
+ "n_seeds": 3,
+ "x_dim": 768,
+ "fused": false,
+ "lin_lbfgs": {
+  "f1_mean": 0.4781627498055189,
+  "best_C": [
+   0.0001,
+   0.0001,
+   0.0001
+  ]
+ },
+ "lin_adamw": {
+  "best_hp": "(0, 0.0, 0.0)",
+  "f1_mean": 0.46582431786487627,
+  "f1_std": 0.003691840255037914,
+  "test_per_seed": [
+   0.468827266245448,
+   0.4617024600697656,
+   0.46694322727941523
+  ],
+  "val_mean": 0.486956803196643
+ },
+ "mlp2": {
+  "best_hp": "(256, 0.5, 0.0)",
+  "f1_mean": 0.4721633663450968,
+  "f1_std": 0.003305003292339569,
+  "test_per_seed": [
+   0.4683489975293113,
+   0.47417538235723034,
+   0.4739657191487488
+  ],
+  "val_mean": 0.48464238620510586
+ },
+ "delta_mlp2_vs_lin_adamw": 0.0063,
+ "delta_mlp2_vs_lin_lbfgs": -0.006,
+ "runtime_s": 1225.5
+}

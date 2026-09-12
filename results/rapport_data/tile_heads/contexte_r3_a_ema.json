@@ -1,0 +1,41 @@
+{
+ "group": "Contexte R3 (A, EMA)",
+ "kind": "ft",
+ "path": "results/context_distill/sig_embeddings/dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed{s}",
+ "n_seeds": 3,
+ "x_dim": 768,
+ "fused": false,
+ "lin_lbfgs": {
+  "f1_mean": 0.4835787417817643,
+  "best_C": [
+   0.001,
+   0.001,
+   0.001
+  ]
+ },
+ "lin_adamw": {
+  "best_hp": "(0, 0.0, 0.0)",
+  "f1_mean": 0.47319595814782894,
+  "f1_std": 0.006839417113627097,
+  "test_per_seed": [
+   0.47538840908108937,
+   0.47867031071004135,
+   0.4655291546523561
+  ],
+  "val_mean": 0.48697273212807013
+ },
+ "mlp2": {
+  "best_hp": "(512, 0.5, 0.0001)",
+  "f1_mean": 0.4723720684411608,
+  "f1_std": 0.0016581249715850771,
+  "test_per_seed": [
+   0.4728830560807771,
+   0.4705185924107153,
+   0.4737145568319901
+  ],
+  "val_mean": 0.49517859081230364
+ },
+ "delta_mlp2_vs_lin_adamw": -0.0008,
+ "delta_mlp2_vs_lin_lbfgs": -0.0112,
+ "runtime_s": 1960.8
+}

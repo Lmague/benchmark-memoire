@@ -1,0 +1,41 @@
+{
+ "group": "SimDINOv2-B NormTuning",
+ "kind": "ft",
+ "path": "results/lora_simb_ablation/embeddings/simdinov2_vitb16_norm_tuning_frac100_seed{s}",
+ "n_seeds": 3,
+ "x_dim": 768,
+ "fused": false,
+ "lin_lbfgs": {
+  "f1_mean": 0.47810824419246706,
+  "best_C": [
+   0.001,
+   0.001,
+   0.001
+  ]
+ },
+ "lin_adamw": {
+  "best_hp": "(0, 0.0, 0.0)",
+  "f1_mean": 0.46710673988077334,
+  "f1_std": 0.0018082516976608708,
+  "test_per_seed": [
+   0.46517414982970456,
+   0.4673884942041023,
+   0.46875757560851317
+  ],
+  "val_mean": 0.47593776179060393
+ },
+ "mlp2": {
+  "best_hp": "(256, 0.2, 0.0)",
+  "f1_mean": 0.4678043287961587,
+  "f1_std": 0.002577479088879024,
+  "test_per_seed": [
+   0.465618914388482,
+   0.4671473585000994,
+   0.4706467134998947
+  ],
+  "val_mean": 0.48364869616520756
+ },
+ "delta_mlp2_vs_lin_adamw": 0.0007,
+ "delta_mlp2_vs_lin_lbfgs": -0.0103,
+ "runtime_s": 1714.2
+}

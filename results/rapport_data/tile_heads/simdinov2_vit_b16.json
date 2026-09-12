@@ -1,0 +1,35 @@
+{
+ "group": "SimDINOv2 ViT-B16",
+ "kind": "frozen",
+ "path": "simdinov2_vitb16",
+ "n_seeds": 1,
+ "x_dim": 768,
+ "fused": false,
+ "lin_lbfgs": {
+  "f1_mean": 0.4719979455461775,
+  "best_C": [
+   0.001
+  ]
+ },
+ "lin_adamw": {
+  "best_hp": "(0, 0.0, 0.0)",
+  "f1_mean": 0.4598658257271987,
+  "f1_std": 0.0,
+  "test_per_seed": [
+   0.4598658257271987
+  ],
+  "val_mean": 0.4554796148455686
+ },
+ "mlp2": {
+  "best_hp": "(256, 0.2, 0.0001)",
+  "f1_mean": 0.4573011506063454,
+  "f1_std": 0.0,
+  "test_per_seed": [
+   0.4573011506063454
+  ],
+  "val_mean": 0.4677209639411408
+ },
+ "delta_mlp2_vs_lin_adamw": -0.0026,
+ "delta_mlp2_vs_lin_lbfgs": -0.0147,
+ "runtime_s": 623.3
+}

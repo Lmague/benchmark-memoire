@@ -1,0 +1,35 @@
+{
+ "group": "DINOv3 ViT-S/16",
+ "kind": "frozen",
+ "path": "dinov3_vits16_lvd",
+ "n_seeds": 1,
+ "x_dim": 384,
+ "fused": false,
+ "lin_lbfgs": {
+  "f1_mean": 0.4689844760436587,
+  "best_C": [
+   0.01
+  ]
+ },
+ "lin_adamw": {
+  "best_hp": "(0, 0.0, 0.0)",
+  "f1_mean": 0.46630321853251394,
+  "f1_std": 0.0,
+  "test_per_seed": [
+   0.46630321853251394
+  ],
+  "val_mean": 0.4605109132000264
+ },
+ "mlp2": {
+  "best_hp": "(256, 0.5, 0.0)",
+  "f1_mean": 0.46640969372725566,
+  "f1_std": 0.0,
+  "test_per_seed": [
+   0.46640969372725566
+  ],
+  "val_mean": 0.47010073196911234
+ },
+ "delta_mlp2_vs_lin_adamw": 0.0001,
+ "delta_mlp2_vs_lin_lbfgs": -0.0026,
+ "runtime_s": 346.9
+}

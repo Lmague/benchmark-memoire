@@ -1,0 +1,109 @@
+tag,fused,head,f1_mean,f1_std,delta_vs_lin_adamw,best
+dinov3_vitb16_lvd_FROZEN_fused_ctx1024_frac100_seed0,True,lin_lbfgs,0.4862,0.0,,0.001
+dinov3_vitb16_lvd_FROZEN_fused_ctx1024_frac100_seed0,True,lin_adamw,0.4686,0.0023,,"(0, 0.0, 0.0)"
+dinov3_vitb16_lvd_FROZEN_fused_ctx1024_frac100_seed0,True,mlp2,0.4812,0.0046,0.0127,"(256, 0.5, 0.0001)"
+dinov3_vitb16_lvd_FROZEN_fused_ctx1024_frac100_seed0,True,bil_diag,0.4641,0.0043,-0.0045,"(512, 0.5, 0.0)"
+dinov3_vitb16_lvd_FROZEN_fused_ctx1024_frac100_seed0,True,film,0.4661,0.004,-0.0024,"(512, 0.2, 0.0)"
+dinov3_vitb16_lvd_FROZEN_fused_ctx2048_frac100_seed0,True,lin_lbfgs,0.4715,0.0,,0.001
+dinov3_vitb16_lvd_FROZEN_fused_ctx2048_frac100_seed0,True,lin_adamw,0.4501,0.0044,,"(0, 0.0, 0.0)"
+dinov3_vitb16_lvd_FROZEN_fused_ctx2048_frac100_seed0,True,mlp2,0.4623,0.005,0.0122,"(256, 0.5, 0.0)"
+dinov3_vitb16_lvd_FROZEN_fused_ctx2048_frac100_seed0,True,bil_diag,0.4578,0.005,0.0077,"(256, 0.5, 0.0)"
+dinov3_vitb16_lvd_FROZEN_fused_ctx2048_frac100_seed0,True,film,0.4524,0.0039,0.0024,"(512, 0.5, 0.0)"
+dinov3_vitb16_lvd_FROZEN_fused_ctx512_frac100_seed0,True,lin_lbfgs,0.4953,0.0,,0.001
+dinov3_vitb16_lvd_FROZEN_fused_ctx512_frac100_seed0,True,lin_adamw,0.4821,0.0033,,"(0, 0.0, 0.0)"
+dinov3_vitb16_lvd_FROZEN_fused_ctx512_frac100_seed0,True,mlp2,0.4891,0.0015,0.007,"(256, 0.5, 0.0)"
+dinov3_vitb16_lvd_FROZEN_fused_ctx512_frac100_seed0,True,bil_diag,0.4835,0.0011,0.0013,"(256, 0.5, 0.0)"
+dinov3_vitb16_lvd_FROZEN_fused_ctx512_frac100_seed0,True,film,0.4782,0.009,-0.0039,"(512, 0.5, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed0,False,lin_lbfgs,0.4854,0.0,,0.001
+dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed0,False,lin_adamw,0.4769,0.0023,,"(0, 0.0, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed0,False,mlp2,0.479,0.0037,0.0021,"(512, 0.5, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed1,False,lin_lbfgs,0.4837,0.0,,0.001
+dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed1,False,lin_adamw,0.4742,0.0047,,"(0, 0.0, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed1,False,mlp2,0.4691,0.0021,-0.005,"(512, 0.5, 0.0001)"
+dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed2,False,lin_lbfgs,0.4816,0.0,,0.001
+dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed2,False,lin_adamw,0.4707,0.0047,,"(0, 0.0, 0.0001)"
+dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed2,False,mlp2,0.4707,0.0051,-0.0,"(512, 0.5, 0.0001)"
+dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed0,False,lin_lbfgs,0.4857,0.0,,0.001
+dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed0,False,lin_adamw,0.4754,0.0019,,"(0, 0.0, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed0,False,mlp2,0.4809,0.0021,0.0054,"(512, 0.5, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed1,False,lin_lbfgs,0.4873,0.0,,0.001
+dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed1,False,lin_adamw,0.4767,0.0026,,"(0, 0.0, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed1,False,mlp2,0.4758,0.0041,-0.0009,"(512, 0.5, 0.0001)"
+dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed2,False,lin_lbfgs,0.4879,0.0,,0.001
+dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed2,False,lin_adamw,0.477,0.0017,,"(0, 0.0, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed2,False,mlp2,0.4812,0.0054,0.0042,"(512, 0.5, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed0,True,lin_lbfgs,0.5097,0.0,,0.0001
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed0,True,lin_adamw,0.4957,0.001,,"(0, 0.0, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed0,True,mlp2,0.5033,0.0021,0.0076,"(256, 0.5, 0.0001)"
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed0,True,bil_diag,0.4974,0.0074,0.0017,"(512, 0.5, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed0,True,film,0.498,0.0062,0.0023,"(256, 0.5, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed1,True,lin_lbfgs,0.5069,0.0,,0.0001
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed1,True,lin_adamw,0.4908,0.0005,,"(0, 0.0, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed1,True,mlp2,0.4901,0.0066,-0.0007,"(512, 0.5, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed1,True,bil_diag,0.4957,0.0075,0.0049,"(512, 0.5, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed1,True,film,0.494,0.0033,0.0032,"(256, 0.5, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed2,True,lin_lbfgs,0.5072,0.0,,0.0001
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed2,True,lin_adamw,0.4975,0.0009,,"(0, 0.0, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed2,True,mlp2,0.4986,0.004,0.0011,"(256, 0.5, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed2,True,bil_diag,0.4965,0.0042,-0.001,"(512, 0.5, 0.0)"
+dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100_seed2,True,film,0.4868,0.0021,-0.0106,"(512, 0.2, 0.0)"
+dinov3_vitl16_FROZEN_fused_ctx1024_frac100_seed0,True,lin_lbfgs,0.483,0.0,,0.0001
+dinov3_vitl16_FROZEN_fused_ctx1024_frac100_seed0,True,lin_adamw,0.4677,0.0048,,"(0, 0.0, 0.0)"
+dinov3_vitl16_FROZEN_fused_ctx1024_frac100_seed0,True,mlp2,0.467,0.0003,-0.0007,"(512, 0.5, 0.0001)"
+dinov3_vitl16_FROZEN_fused_ctx1024_frac100_seed0,True,bil_diag,0.4702,0.0074,0.0025,"(256, 0.5, 0.0001)"
+dinov3_vitl16_FROZEN_fused_ctx1024_frac100_seed0,True,film,0.4656,0.0053,-0.0021,"(256, 0.5, 0.0)"
+dinov3_vitl16_FROZEN_fused_ctx2048_frac100_seed0,True,lin_lbfgs,0.4636,0.0,,0.001
+dinov3_vitl16_FROZEN_fused_ctx2048_frac100_seed0,True,lin_adamw,0.4526,0.0028,,"(0, 0.0, 0.0)"
+dinov3_vitl16_FROZEN_fused_ctx2048_frac100_seed0,True,mlp2,0.4517,0.0018,-0.0009,"(256, 0.5, 0.0)"
+dinov3_vitl16_FROZEN_fused_ctx2048_frac100_seed0,True,bil_diag,0.4553,0.004,0.0028,"(256, 0.5, 0.0)"
+dinov3_vitl16_FROZEN_fused_ctx2048_frac100_seed0,True,film,0.4439,0.0063,-0.0086,"(256, 0.5, 0.0)"
+dinov3_vitl16_FROZEN_fused_ctx512_frac100_seed0,True,lin_lbfgs,0.4973,0.0,,0.001
+dinov3_vitl16_FROZEN_fused_ctx512_frac100_seed0,True,lin_adamw,0.4895,0.0019,,"(0, 0.0, 0.0)"
+dinov3_vitl16_FROZEN_fused_ctx512_frac100_seed0,True,mlp2,0.4867,0.0027,-0.0029,"(512, 0.5, 0.0)"
+dinov3_vitl16_FROZEN_fused_ctx512_frac100_seed0,True,bil_diag,0.4821,0.0068,-0.0074,"(256, 0.5, 0.0)"
+dinov3_vitl16_FROZEN_fused_ctx512_frac100_seed0,True,film,0.4714,0.0059,-0.0181,"(256, 0.5, 0.0)"
+dinov3_vits16_FROZEN_fused_ctx1024_frac100_seed0,True,lin_lbfgs,0.4831,0.0,,0.001
+dinov3_vits16_FROZEN_fused_ctx1024_frac100_seed0,True,lin_adamw,0.4744,0.0031,,"(0, 0.0, 0.0)"
+dinov3_vits16_FROZEN_fused_ctx1024_frac100_seed0,True,mlp2,0.4624,0.0054,-0.012,"(512, 0.5, 0.0001)"
+dinov3_vits16_FROZEN_fused_ctx1024_frac100_seed0,True,bil_diag,0.4761,0.0006,0.0017,"(256, 0.5, 0.0)"
+dinov3_vits16_FROZEN_fused_ctx1024_frac100_seed0,True,film,0.4672,0.0058,-0.0072,"(256, 0.2, 0.0)"
+dinov3_vits16_FROZEN_fused_ctx2048_frac100_seed0,True,lin_lbfgs,0.4664,0.0,,0.001
+dinov3_vits16_FROZEN_fused_ctx2048_frac100_seed0,True,lin_adamw,0.4598,0.002,,"(0, 0.0, 0.0)"
+dinov3_vits16_FROZEN_fused_ctx2048_frac100_seed0,True,mlp2,0.4446,0.0053,-0.0152,"(512, 0.5, 0.0001)"
+dinov3_vits16_FROZEN_fused_ctx2048_frac100_seed0,True,bil_diag,0.4545,0.0008,-0.0053,"(256, 0.5, 0.0001)"
+dinov3_vits16_FROZEN_fused_ctx2048_frac100_seed0,True,film,0.4563,0.0051,-0.0035,"(256, 0.5, 0.0)"
+dinov3_vits16_FROZEN_fused_ctx512_frac100_seed0,True,lin_lbfgs,0.481,0.0,,0.01
+dinov3_vits16_FROZEN_fused_ctx512_frac100_seed0,True,lin_adamw,0.4854,0.0022,,"(0, 0.0, 0.0)"
+dinov3_vits16_FROZEN_fused_ctx512_frac100_seed0,True,mlp2,0.4804,0.0091,-0.005,"(512, 0.5, 0.0001)"
+dinov3_vits16_FROZEN_fused_ctx512_frac100_seed0,True,bil_diag,0.4886,0.0021,0.0031,"(256, 0.5, 0.0)"
+dinov3_vits16_FROZEN_fused_ctx512_frac100_seed0,True,film,0.4772,0.0086,-0.0082,"(512, 0.5, 0.0)"
+simdinov2_vitb16_FROZEN_fused_ctx1024_frac100_seed0,True,lin_lbfgs,0.4913,0.0,,0.001
+simdinov2_vitb16_FROZEN_fused_ctx1024_frac100_seed0,True,lin_adamw,0.4811,0.0097,,"(0, 0.0, 0.0)"
+simdinov2_vitb16_FROZEN_fused_ctx1024_frac100_seed0,True,mlp2,0.4762,0.0041,-0.0049,"(512, 0.2, 0.0)"
+simdinov2_vitb16_FROZEN_fused_ctx1024_frac100_seed0,True,bil_diag,0.4879,0.0088,0.0069,"(256, 0.2, 0.0)"
+simdinov2_vitb16_FROZEN_fused_ctx1024_frac100_seed0,True,film,0.4706,0.0164,-0.0105,"(512, 0.5, 0.0)"
+simdinov2_vitb16_FROZEN_fused_ctx2048_frac100_seed0,True,lin_lbfgs,0.4789,0.0,,0.0001
+simdinov2_vitb16_FROZEN_fused_ctx2048_frac100_seed0,True,lin_adamw,0.4658,0.006,,"(0, 0.0, 0.0)"
+simdinov2_vitb16_FROZEN_fused_ctx2048_frac100_seed0,True,mlp2,0.4563,0.0125,-0.0095,"(512, 0.5, 0.0001)"
+simdinov2_vitb16_FROZEN_fused_ctx2048_frac100_seed0,True,bil_diag,0.4597,0.0065,-0.0061,"(256, 0.2, 0.0)"
+simdinov2_vitb16_FROZEN_fused_ctx2048_frac100_seed0,True,film,0.4541,0.0104,-0.0117,"(512, 0.2, 0.0)"
+simdinov2_vitb16_FROZEN_fused_ctx512_frac100_seed0,True,lin_lbfgs,0.5059,0.0,,0.0001
+simdinov2_vitb16_FROZEN_fused_ctx512_frac100_seed0,True,lin_adamw,0.4888,0.0023,,"(0, 0.0, 0.0)"
+simdinov2_vitb16_FROZEN_fused_ctx512_frac100_seed0,True,mlp2,0.4856,0.0034,-0.0032,"(512, 0.5, 0.0)"
+simdinov2_vitb16_FROZEN_fused_ctx512_frac100_seed0,True,bil_diag,0.4883,0.0089,-0.0005,"(256, 0.2, 0.0)"
+simdinov2_vitb16_FROZEN_fused_ctx512_frac100_seed0,True,film,0.4932,0.0085,0.0043,"(512, 0.5, 0.0)"
+simdinov2_vitl16_FROZEN_fused_ctx1024_frac100_seed0,True,lin_lbfgs,0.4975,0.0,,0.001
+simdinov2_vitl16_FROZEN_fused_ctx1024_frac100_seed0,True,lin_adamw,0.4879,0.0019,,"(0, 0.0, 0.0)"
+simdinov2_vitl16_FROZEN_fused_ctx1024_frac100_seed0,True,mlp2,0.4904,0.0056,0.0025,"(256, 0.5, 0.0001)"
+simdinov2_vitl16_FROZEN_fused_ctx1024_frac100_seed0,True,bil_diag,0.4818,0.0133,-0.0061,"(256, 0.5, 0.0001)"
+simdinov2_vitl16_FROZEN_fused_ctx1024_frac100_seed0,True,film,0.4783,0.0136,-0.0096,"(256, 0.5, 0.0)"
+simdinov2_vitl16_FROZEN_fused_ctx2048_frac100_seed0,True,lin_lbfgs,0.4733,0.0,,0.001
+simdinov2_vitl16_FROZEN_fused_ctx2048_frac100_seed0,True,lin_adamw,0.4772,0.0066,,"(0, 0.0, 0.0)"
+simdinov2_vitl16_FROZEN_fused_ctx2048_frac100_seed0,True,mlp2,0.4763,0.0064,-0.001,"(256, 0.5, 0.0001)"
+simdinov2_vitl16_FROZEN_fused_ctx2048_frac100_seed0,True,bil_diag,0.4711,0.0216,-0.0061,"(256, 0.2, 0.0)"
+simdinov2_vitl16_FROZEN_fused_ctx2048_frac100_seed0,True,film,0.4677,0.0124,-0.0095,"(512, 0.5, 0.0)"
+simdinov2_vitl16_FROZEN_fused_ctx512_frac100_seed0,True,lin_lbfgs,0.5022,0.0,,0.001
+simdinov2_vitl16_FROZEN_fused_ctx512_frac100_seed0,True,lin_adamw,0.4912,0.0007,,"(0, 0.0, 0.0)"
+simdinov2_vitl16_FROZEN_fused_ctx512_frac100_seed0,True,mlp2,0.483,0.007,-0.0082,"(256, 0.5, 0.0)"
+simdinov2_vitl16_FROZEN_fused_ctx512_frac100_seed0,True,bil_diag,0.4877,0.0078,-0.0035,"(256, 0.5, 0.0)"
+simdinov2_vitl16_FROZEN_fused_ctx512_frac100_seed0,True,film,0.4776,0.0162,-0.0136,"(256, 0.5, 0.0)"
