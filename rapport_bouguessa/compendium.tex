@@ -591,6 +591,31 @@ pré-alignée (sonde sur backbone non fusionné : plafond $\approx$0,495 ; Desig
 sur DINOv3 : 0,5080 ; gelé-fusionné sur SimDINOv2-B : 0,5059 sans entraînement).
 
 % ════════════════════════════════════════════════════════════
+\section{Têtes non linéaires : la non-linéarité sauve-t-elle le contexte ?}\label{sec:heads}
+% ════════════════════════════════════════════════════════════
+
+La sonde canonique est \emph{linéaire}. Si la part d'interaction
+tuile$\times$contexte était manquée par la linéarité, une tête plus riche (MLP-2,
+bilinéaire-diagonale, FiLM) devrait récupérer le $+0{,}013$ qui sépare la fusion
+gelée sondée ($\approx$0,495) de la fusion apprise (R2, 0,5080). Test sur (i)~les
+33~groupes tuile du palier et (ii)~les 24~tags fusionnés.
+
+\input{tables/t_head_tile}
+
+\input{tables/t_head_fused}
+
+\noindent\textbf{Réponse : non.} Sur la tuile seule, le MLP-2 est \emph{négatif}
+contre la sonde linéaire dans 33/33~groupes ($\Delta$ moyen $-0{,}0103$) ; sur les
+embeddings fusionnés, la meilleure tête non linéaire reste sous \texttt{lbfgs}
+partout ($\Delta$ moyen $-0{,}0082$, 2/24~positifs). Les têtes d'interaction
+elles-mêmes (\texttt{bil\_diag}, \texttt{film}) sont neutres à négatives. Le
+$+0{,}013$ de R2 est donc un gain de \emph{représentation apprise}, déjà capté par
+la sonde linéaire — pas une interaction que le classifieur laissait sur la table.
+Corollaire méthodologique : l'écart \texttt{lbfgs}$\leftrightarrow$AdamW
+($+0{,}010$ à $+0{,}013$) est un artefact d'optimiseur ; citer un $\Delta$ de tête
+contre AdamW surestime l'apport de la non-linéarité.
+
+% ════════════════════════════════════════════════════════════
 \appendix
 \section{Annexe A — les runs d'affinage}
 % ════════════════════════════════════════════════════════════

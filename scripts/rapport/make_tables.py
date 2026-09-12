@@ -1664,6 +1664,130 @@ def t_ctx_sweep():
           "frozen\\_*.json} (DINOv3-B = fichiers sans infixe modèle, première campagne).")
 
 
+# ═════════════════════════════════════════ têtes non linéaires (2026-09) ══════
+# Source : sweep Narval `slurm_head_sweep_all.sh` (job 2929768), 2026-09-09.
+# Tile-only : 33 groupes du palier ; fused : 24 tags [tuile;contexte].
+
+def _head_tag_label(tag):
+    """Libellé lisible d'un tag de `fusion_heads`."""
+    MOD = {"dinov3_vits16": "DINOv3 ViT-S/16", "dinov3_vitb16_lvd": "DINOv3 ViT-B/16",
+           "dinov3_vitl16": "DINOv3 ViT-L/16", "simdinov2_vitb16": "SimDINOv2-B",
+           "simdinov2_vitl16": "SimDINOv2-L"}
+    if "_FROZEN_fused_ctx" in tag:
+        base, ctx = tag.split("_FROZEN_fused_ctx")
+        return f"{MOD.get(base, base)} @{ctx.split('_')[0]}"
+    sd = tag.rsplit("_", 1)[-1]
+    for key, lab in (("ctxdistill_dB_tL", "R2 (fusion apprise)"),
+                     ("ctxdistill_dA_tEMA", "R3 (A, EMA)"),
+                     ("ctxdistill_dA_tL", "R1 (A, tuile)")):
+        if key in tag:
+            return f"{lab} {sd}"
+    return tag
+
+
+def _head_family(tag):
+    if "_FROZEN_fused_ctx" in tag:
+        return 0
+    if "ctxdistill_dB_tL" in tag:
+        return 1
+    if "ctxdistill_dA_tEMA" in tag:
+        return 2
+    return 3
+
+
+def t_head_tile():
+    """Têtes (lbfgs canonique / lin-AdamW / MLP-2) sur les 33 groupes tuile du palier.
+    Réponse mesurée : aucune tête non linéaire ne bat la sonde linéaire canonique."""
+    d = os.path.join(OUT, "tile_heads")
+    if not os.path.isdir(d):
+        print("  [skip] t_head_tile : results/rapport_data/tile_heads absent")
+        return
+    rows = []
+    for f in sorted(os.listdir(d)):
+        if f.endswith(".json"):
+            j = json.load(open(os.path.join(d, f)))
+            rows.append((j["group"], j["lin_lbfgs"]["f1_mean"],
+                         j["lin_adamw"]["f1_mean"], j["mlp2"]["f1_mean"]))
+    rows.sort(key=lambda r: -r[1])
+    mp_lb = float(np.mean([r[3] - r[1] for r in rows]))
+    mp_ad = float(np.mean([r[3] - r[2] for r in rows]))
+    n_neg = sum((r[3] - r[1]) < 0 for r in rows)
+    lines = ["\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+             "\\setlength{\\tabcolsep}{3pt}",
+             "\\caption{Têtes de classification sur les %d groupes tuile du palier "
+             "(3~seeds) : sonde canonique \\texttt{lbfgs} (référence publiée), "
+             "linéaire entraînée par la même boucle AdamW, et MLP-2. Le MLP-2 ne bat "
+             "jamais la sonde linéaire : $\\Delta$ moyen vs \\texttt{lbfgs} $= %s$ "
+             "(%d/%d groupes négatifs) et $= %s$ vs AdamW : aucune récupération de "
+             "l'écart lbfgs$\\leftrightarrow$AdamW. "
+             "\\emph{La non-linéarité ne crée pas d'information.}}"
+             "\\label{tab:headstile}"
+             % (len(rows), num(mp_lb, 4, sign=True), n_neg, len(rows), num(mp_ad, 4, sign=True)),
+             "\\begin{tabular}{@{}lrrrrr@{}}", "\\toprule",
+             "Groupe & \\texttt{lbfgs} & lin-AdamW & MLP-2 & $\\Delta$ vs \\texttt{lbfgs} "
+             "& $\\Delta$ vs AdamW \\\\", "\\midrule"]
+    for g, lb, ad, mp in rows:
+        lines.append(" & ".join([esc(g), num(lb), num(ad), num(mp),
+                                 num(mp - lb, 4, sign=True), num(mp - ad, 4, sign=True)])
+                     + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_head_tile", lines,
+          "\\texttt{results/rapport\\_data/tile\\_heads/*.json} (sweep Narval "
+          "\\texttt{scripts/slurm\\_head\\_sweep\\_all.sh}, job 2929768, 2026-09-09).")
+
+
+def t_head_fused():
+    """MLP-2 / bilinéaire-diagonale / FiLM sur les embeddings fusionnés [tuile;contexte]."""
+    d = p("results", "context_distill", "fusion_heads")
+    if not os.path.isdir(d):
+        print("  [skip] t_head_fused : results/context_distill/fusion_heads absent")
+        return
+    recs = [json.load(open(os.path.join(d, f))) for f in sorted(os.listdir(d))
+            if f.endswith(".json")]
+
+    def v(j, k):
+        x = j.get(k)
+        return x.get("f1_mean", x.get("f1_test")) if isinstance(x, dict) else None
+
+    recs.sort(key=lambda j: (_head_family(j["tag"]), j["tag"]))
+    rows = []
+    for j in recs:
+        lb, ad = v(j, "lin_lbfgs"), v(j, "lin_adamw")
+        mp, bil, film = v(j, "mlp2"), v(j, "bil_diag"), v(j, "film")
+        nl = [x for x in (mp, bil, film) if x is not None]
+        rows.append((_head_family(j["tag"]), _head_tag_label(j["tag"]),
+                     lb, ad, mp, bil, film, (max(nl) - lb) if nl else None))
+    dbest = [r[7] for r in rows if r[7] is not None]
+    lines = ["\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+             "\\setlength{\\tabcolsep}{3pt}",
+             "\\caption{Têtes non linéaires sur les embeddings fusionnés "
+             "[tuile;contexte] (24~tags, seed indiqué). \\texttt{bil\\_diag} "
+             "(termes croisés $t_i c_i$) et \\texttt{film} (le contexte module les "
+             "canaux de la tuile) testent explicitement l'interaction. "
+             "\\textbf{Aucune ne bat la sonde linéaire} : meilleure non-linéaire vs "
+             "\\texttt{lbfgs}, $\\Delta$ moyen $= %s$, %d/%d tags positifs. "
+             "Le $+0{,}013$ de R2 n'est donc pas une interaction manquée par la "
+             "linéarité : c'est un gain de \\emph{représentation}, capté par la "
+             "sonde linéaire elle-même. En 768d (design~A) les deux têtes "
+             "d'interaction sont sans objet et non lancées.}"
+             "\\label{tab:headsfused}"
+             % (num(float(np.mean(dbest)), 4, sign=True), sum(x > 0 for x in dbest), len(dbest)),
+             "\\begin{tabular}{@{}lrrrrrr@{}}", "\\toprule",
+             "Tag & \\texttt{lbfgs} & lin-AdamW & MLP-2 & bil-diag & FiLM "
+             "& meilleur non-lin. $-$ \\texttt{lbfgs} \\\\", "\\midrule"]
+    prev = None
+    for fam, lab, lb, ad, mp, bil, film, db in rows:
+        if prev is not None and fam != prev:
+            lines.append("\\midrule")
+        prev = fam
+        lines.append(" & ".join([esc(lab), num(lb), num(ad), num(mp), num(bil),
+                                 num(film), num(db, 4, sign=True)]) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_head_fused", lines,
+          "\\texttt{results/context\\_distill/fusion\\_heads/*.json} (sweep Narval "
+          "\\texttt{scripts/slurm\\_head\\_sweep\\_all.sh}, job 2929768, 2026-09-09).")
+
+
 def t_simb_ablation():
     """Ablation LoRA/PEFT SimDINOv2-B, Stage A (13 bras × 3 seeds) — le palier plat.
     F1 canonique (reprobe mono-thread) + probe interne (best_C, best_epoch) + budget.
@@ -1835,6 +1959,12 @@ def t_sources():
         ("Sweep contexte gelé (5 backbones $\\times$ 3 tailles)",
          path("results/context_distill/controls_bouguessa/frozen_*.json"),
          "---"),
+        ("Têtes non linéaires, tuile (33 groupes)",
+         path("results/rapport_data/tile_heads/*.json"),
+         path("scripts/tile_head_sweep.py")),
+        ("Têtes non linéaires, fusionné [tuile;ctx] (24 tags)",
+         path("results/context_distill/fusion_heads/*.json"),
+         path("scripts/fusion_head_sweep.py")),
         ("Contrôles Bouguessa R2 (tuile/ctx/permuté)",
          path("results/context_distill/controls_bouguessa/r2_*.json"),
          path("scripts/context_bouguessa_controls.py")),
@@ -2035,6 +2165,8 @@ def main():
     t_ctx_matrix()
     t_ctx_controls()
     t_ctx_sweep()
+    t_head_tile()
+    t_head_fused()
     t_simb_ablation()
     print(f"[OK] {TAB}")
 

@@ -1,0 +1,41 @@
+{
+ "group": "SimDINOv2-B LoRA r8 (rsLoRA)",
+ "kind": "ft",
+ "path": "results/lora_simb_ablation/embeddings/simdinov2_vitb16_lora_r8a22_frac100_seed{s}",
+ "n_seeds": 3,
+ "x_dim": 768,
+ "fused": false,
+ "lin_lbfgs": {
+  "f1_mean": 0.47534261736044764,
+  "best_C": [
+   0.001,
+   0.001,
+   0.001
+  ]
+ },
+ "lin_adamw": {
+  "best_hp": "(0, 0.0, 0.0)",
+  "f1_mean": 0.4694904451720629,
+  "f1_std": 0.0027373170121521555,
+  "test_per_seed": [
+   0.4668497121510357,
+   0.4693065506484603,
+   0.4723150727166926
+  ],
+  "val_mean": 0.48170653253879037
+ },
+ "mlp2": {
+  "best_hp": "(512, 0.5, 0.0)",
+  "f1_mean": 0.46377843679767833,
+  "f1_std": 0.011232233604739928,
+  "test_per_seed": [
+   0.4766106234130097,
+   0.45573007152939093,
+   0.45899461545063436
+  ],
+  "val_mean": 0.48768152650392066
+ },
+ "delta_mlp2_vs_lin_adamw": -0.0057,
+ "delta_mlp2_vs_lin_lbfgs": -0.0116,
+ "runtime_s": 1815.0
+}

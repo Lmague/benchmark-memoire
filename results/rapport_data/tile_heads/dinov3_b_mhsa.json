@@ -1,0 +1,41 @@
+{
+ "group": "DINOv3-B MHSA",
+ "kind": "ft",
+ "path": "ft_ssl_results/dinov3_vitb16_lvd_mhsa_embeddings/dinov3_vitb16_lvd_mhsa_frac100_seed{s}",
+ "n_seeds": 3,
+ "x_dim": 768,
+ "fused": false,
+ "lin_lbfgs": {
+  "f1_mean": 0.47910329976380456,
+  "best_C": [
+   0.0001,
+   0.0001,
+   0.001
+  ]
+ },
+ "lin_adamw": {
+  "best_hp": "(0, 0.0, 0.0)",
+  "f1_mean": 0.4757181751397514,
+  "f1_std": 0.001534700331275853,
+  "test_per_seed": [
+   0.47567521717501565,
+   0.4772739034717256,
+   0.4742054047725129
+  ],
+  "val_mean": 0.49013266235070135
+ },
+ "mlp2": {
+  "best_hp": "(256, 0.5, 0.0001)",
+  "f1_mean": 0.47568377049698957,
+  "f1_std": 0.003335302743644622,
+  "test_per_seed": [
+   0.4771721708393775,
+   0.47186341319272385,
+   0.4780157274588672
+  ],
+  "val_mean": 0.4958229612974836
+ },
+ "delta_mlp2_vs_lin_adamw": -0.0,
+ "delta_mlp2_vs_lin_lbfgs": -0.0034,
+ "runtime_s": 1678.7
+}

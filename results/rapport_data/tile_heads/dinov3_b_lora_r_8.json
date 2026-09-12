@@ -1,0 +1,41 @@
+{
+ "group": "DINOv3-B LoRA r=8",
+ "kind": "ft",
+ "path": "DINOv3_LoRA_8/embeddings/dinov3_vitb16_lvd_explora_frac100_seed{s}",
+ "n_seeds": 3,
+ "x_dim": 768,
+ "fused": false,
+ "lin_lbfgs": {
+  "f1_mean": 0.48286520387620163,
+  "best_C": [
+   0.001,
+   0.001,
+   0.001
+  ]
+ },
+ "lin_adamw": {
+  "best_hp": "(0, 0.0, 0.0)",
+  "f1_mean": 0.4779193702050312,
+  "f1_std": 0.0031839944260231,
+  "test_per_seed": [
+   0.48031445469603506,
+   0.47913750554887363,
+   0.47430615037018486
+  ],
+  "val_mean": 0.493141767667199
+ },
+ "mlp2": {
+  "best_hp": "(256, 0.5, 0.0)",
+  "f1_mean": 0.4779075360042036,
+  "f1_std": 0.002157464572122983,
+  "test_per_seed": [
+   0.475986773343163,
+   0.4802418374488244,
+   0.4774939972206233
+  ],
+  "val_mean": 0.4985271724138849
+ },
+ "delta_mlp2_vs_lin_adamw": -0.0,
+ "delta_mlp2_vs_lin_lbfgs": -0.005,
+ "runtime_s": 1960.4
+}
