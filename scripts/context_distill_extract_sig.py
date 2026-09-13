@@ -9,7 +9,15 @@ par ``load_split(kind="ft", path, seed)`` (labels en 11 classes, RHOL retirée).
 Design A : tuile seule (768). Design B : fusionné tuile⊕contexte (1536) — la
 représentation qui donne le F1 0,508.
 
-Usage (via scripts/slurm_context_distill_extract_sig.sh) :
+``--pretrain-checkpoint`` est REQUIS pour les backbones SimDINOv2 (le loader
+`build_frozen_extractor` refuse `checkpoint=None` pour eux — src/models.py) ; inutile
+pour DINOv3 (résolu depuis le cache HuggingFace). Le rang LoRA du run N'EST PAS requis
+ici : `merge_lora_state_dict` replie l'adaptateur dans les poids de base à partir du
+`scaling_buf` contenu dans le checkpoint, donc r2a4 et r8a16 se chargent avec la même
+config.
+
+Usage (via scripts/slurm_context_distill_extract_sig.sh, ou
+scripts/slurm_context_extract_sig_simb.sh pour les runs SimDINOv2-B) :
     python scripts/context_distill_extract_sig.py \\
         --config configs/context_distill_dinov3b.yaml \\
         --context-dir $SLURM_TMPDIR/context_1024 \\
@@ -45,6 +53,9 @@ def main() -> None:
     ap.add_argument("--ckpt-path", required=True)
     ap.add_argument("--tag", required=True, help="nom de sortie (tag du run, avec seed)")
     ap.add_argument("--fused", action="store_true", help="Design B : features fusionnées 1536")
+    ap.add_argument("--pretrain-checkpoint", default=None,
+                    help="backbone pré-entraîné du student — REQUIS pour SimDINOv2 "
+                         "(src/models.py : build_frozen_extractor lève ValueError sinon)")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -58,14 +69,15 @@ def main() -> None:
 
     if args.fused:
         feats = _extract_fused_embeddings(model_key, args.ckpt_path, cfg, args.context_dir,
-                                          splits=("train", "val", "test"))
+                                          splits=("train", "val", "test"),
+                                          pretrain_checkpoint=args.pretrain_checkpoint)
         for s, (E, L) in feats.items():
             np.save(_os.path.join(out_dir, f"{s}.npy"), E.astype(np.float32))
             np.save(_os.path.join(out_dir, f"{s}_labels.npy"), L)
             print(f"  [fused] {s}: {E.shape}", flush=True)
     else:
         feats12 = _extract_backbone_embeddings(model_key, args.ckpt_path, cfg,
-                                               pretrain_checkpoint=None,
+                                               pretrain_checkpoint=args.pretrain_checkpoint,
                                                splits=("train", "val", "test"))
         for s, (E12, L12) in feats12.items():
             E, L = _apply_11cls_remap(E12, L12)
