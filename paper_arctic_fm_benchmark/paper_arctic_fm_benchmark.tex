@@ -389,6 +389,23 @@ La Figure~\ref{fig:scatter} met en relation le score de silhouette (espace laten
 
 Ce résultat suggère un protocole de présélection à faible coût (silhouette ou Fisher sur embeddings figés avant toute évaluation supervisée), sous réserve d'une validation \emph{leave-one-model-out} et d'un test sur un second jeu de données (\S\ref{sec:discussion}).
 
+\paragraph{Combien de dimensions la tâche utilise-t-elle ?} Une explication candidate du fait que le rang effectif ordonne à l'envers est que la tâche ne dépend que d'un petit sous-espace des dimensions de l'embedding. Une sonde tronquée par analyse en composantes principales sur DINOv3-B LVD (Tableau~\ref{tab:dimprobe}) confirme cette lecture~: $k=50$ composantes suffisent déjà à atteindre 98,2\,\% du F1 obtenu avec les 768 dimensions, et $k=100$ en atteint 99,1\,\%~; les 668 dimensions restantes n'apportent que $+0{,}004$. La tâche vit donc dans un sous-espace d'environ 100 dimensions, ce qui explique à la fois pourquoi le rang effectif (mesure globale) ne prédit pas le F1 et pourquoi la géométrie \emph{globale} — isotropie, rang — n'est pas le bon levier~: c'est le contenu informationnel des directions utiles qui compte, pas le nombre de directions occupées.
+
+\begin{table}[H]
+	\centering
+	\small
+	\caption{Sonde tronquée par PCA sur DINOv3-B LVD gelé~: F1 test de la sonde canonique selon le nombre $k$ de composantes principales conservées (test 17\,598~tuiles).}
+	\label{tab:dimprobe}
+	\begin{tabular}{lrrrrrrr}
+		\toprule
+		$k$ & 10 & 20 & 50 & 100 & 200 & 400 & 768 \\
+		\midrule
+		F1 test & 0,408 & 0,446 & 0,463 & 0,467 & 0,467 & 0,469 & 0,472 \\
+		\% du plein & 86,6 & 94,7 & 98,2 & 99,1 & 99,1 & 99,5 & 100 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
 \subsection{Coût, déploiement et classes apprenables}
 \label{sec:cost}
 
@@ -442,6 +459,8 @@ La corrélation forte et stable de la famille séparabilité avec le F1 aval (\S
 \subsection{Perspectives futures}
 
 Au-delà de la validation \emph{leave-one-model-out} du protocole de triage par silhouette (\S5.3), plusieurs directions découlent directement des limites identifiées~: (i)~compléter le bootstrap d'intervalles de confiance sur l'ensemble de la courbe de données plutôt que sur les 12~modèles canoniques seuls~; (ii)~résoudre la contrainte d'accès disque limitant l'analyse layerwise afin d'obtenir un F1 par couche pour DINOv3 ViT-L/16 et tester si la corrélation géométrie-F1 intra-modèle observée sur ViT-B/16 ImageNet se généralise aux architectures plus profondes et à plus grande échelle~; (iii)~étendre le corpus de modèles figés à des architectures convolutionnelles modernes (ConvNeXt) et à des architectures hybrides, afin de vérifier si le fossé satellite-vers-drone et l'avantage d'échelle observés sont spécifiques à la famille ViT~; (iv)~valider les résultats sur un second site ou biome arctique afin de tester la portée géographique des conclusions.
+
+\paragraph{Ajouter de l'information plutôt que de la capacité.} Nos résultats montrent que le plafond est déplacé par l'information (le contexte spatial, \S\ref{sec:context_results}) et non par la capacité ni par la géométrie globale — la tâche ne mobilise qu'environ 100 dimensions (\S\ref{sec:latent}). Trois sources d'information complémentaires, documentées dans la littérature, méritent d'être testées sur Arctic-TVC. (i)~La \emph{structure topographique}~: la végétation arctique est organisée par la microtopographie (polygones de glace, humidité, drainage), et l'ajout de métriques structurelles issues de LiDAR ou d'un modèle numérique de surface améliore la discrimination des communautés végétales par rapport au RGB seul~\autocite{banerjee2022uavlidar}~; un tel canal peut être dérivé d'une acquisition photogrammétrique, sans nouvelle campagne de terrain. (ii)~L'\emph{information spectrale}~: les canaux proche-infrarouge et \emph{red edge}, absents du RGB, codent la productivité et la composition et améliorent la cartographie de la toundra~\autocite{bhuiyan2020spectral}~; l'imagerie multispectrale embarquée sur drone est une pratique établie pour l'écologie arctique~\autocite{yang2022uas} et la combinaison optimale des bandes reste ouverte. (iii)~Le \emph{signal temporel et la saisonnalité}~: le suivi multi-date (phénologie) porte une information écologique absente d'une acquisition unique, et les corpus de pré-entraînement saisonniers pour les modèles de fondation écologiques~\autocite{plekhanova2025ssl4eco} indiquent une direction prometteuse. Un \emph{pré-entraînement aligné au domaine} — corpus arctique à très haute résolution~\autocite{perera2026arctic} ou SSL sur imagerie de plantes avec des augmentations adaptées à la granularité fine~\autocite{moummad2026selfsupervised} — prolonge directement notre résultat sur l'alignement iNat-Plantae. À l'inverse, l'ajout de \emph{coordonnées géographiques} brutes~\autocite{zermatten2026gamma} doit être manipulé avec prudence sur ce corpus~: le split par orthomosaïque existe précisément pour éliminer la fuite spatiale, qu'une telle variable réintroduirait.
 
 %==========================================================================
 \section{Conclusion}
