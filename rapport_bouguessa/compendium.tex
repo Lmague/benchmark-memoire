@@ -392,6 +392,24 @@ mais séparées d'un facteur 4,9 à 19,2 en valeur (médiane 7,5).}
 puissance dont la pente donne $\alpha$.}
 \end{figure}
 
+\subsection{Dimension utile de la représentation}
+\label{sec:dimprobe}
+
+Combien de dimensions la tâche mobilise-t-elle réellement ? Une sonde tronquée
+(\texttt{scripts/rapport/dim\_probe.py}) reprojette les features gelées de DINOv3-B
+LVD sur leurs $k$ premières composantes principales, puis rejoue la sonde canonique
+(mono-thread, \texttt{best\_C} sur validation).
+
+\input{tables/t_dim_probe}
+
+\noindent\textbf{La tâche ne mobilise qu'environ 100 dimensions} (99,1\,\% du F1
+plein) ; les 668 dimensions restantes n'ajoutent que $+0{,}004$. Conséquence pour la
+lecture des métriques : ni le rang effectif ni l'« utilisation de toutes les
+directions » ne sont le facteur limitant — c'est le \emph{contenu informationnel}
+de la représentation. Corollaire pratique : maximiser le rang effectif au-delà de
+$\approx$100 n'apporte rien, et c'est l'ajout d'information (contexte, canal
+spectral ou topographique) qui déplace le plafond.
+
 \subsection{Famille DINOv3 ViT-B/16}
 
 \input{tables/t_family}

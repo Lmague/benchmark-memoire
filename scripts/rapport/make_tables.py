@@ -1788,6 +1788,40 @@ def t_head_fused():
           "\\texttt{scripts/slurm\\_head\\_sweep\\_all.sh}, job 2929768, 2026-09-09).")
 
 
+def t_dim_probe():
+    """Sonde tronquée par PCA : dimension utile de la représentation (DINOv3-B LVD)."""
+    fp = os.path.join(OUT, "dim_probe_dinov3_vitb16_lvd.json")
+    if not os.path.exists(fp):
+        print("  [skip] t_dim_probe : dim_probe_dinov3_vitb16_lvd.json absent")
+        return
+    rows = json.load(open(fp))
+    full = max(rows, key=lambda r: r["k"])
+    k50 = next(r for r in rows if r["k"] == 50)
+    k100 = next(r for r in rows if r["k"] == 100)
+    pct50 = 100.0 * k50["test_f1"] / full["test_f1"]
+    cap = ("\\caption{Sonde tronquée par PCA sur DINOv3-B LVD gelé : F1 test de la "
+           "sonde canonique selon le nombre $k$ de composantes principales "
+           "conservées. \\textbf{La tâche ne nécessite qu'environ 100 dimensions} : "
+           "$k=50$ atteint déjà " + num(pct50, 1) + "\\,\\% du F1 plein, et les "
+           + str(full["k"] - 100) + " dimensions restantes n'ajoutent que "
+           + num(full["test_f1"] - k100["test_f1"], 4, sign=True)
+           + ". Le facteur limitant est donc l'\\emph{information} de la "
+           "représentation, pas la part de dimensions « utilisées ».}"
+           "\\label{tab:dimprobe}")
+    lines = ["\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+             "\\setlength{\\tabcolsep}{4pt}", cap,
+             "\\begin{tabular}{@{}rrrr@{}}", "\\toprule",
+             "$k$ & F1 validation & F1 test & \\% du F1 plein \\\\", "\\midrule"]
+    for r in rows:
+        pct = 100.0 * r["test_f1"] / full["test_f1"]
+        lines.append(" & ".join([str(r["k"]), num(r["val_f1"]), num(r["test_f1"]),
+                                 num(pct, 1) + "\\,\\%"]) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_dim_probe", lines,
+          "\\texttt{results/rapport\\_data/dim\\_probe\\_dinov3\\_vitb16\\_lvd.json} "
+          "(\\texttt{scripts/rapport/dim\\_probe.py}, sonde canonique mono-thread).")
+
+
 def t_simb_ablation():
     """Ablation LoRA/PEFT SimDINOv2-B, Stage A (13 bras × 3 seeds) — le palier plat.
     F1 canonique (reprobe mono-thread) + probe interne (best_C, best_epoch) + budget.
@@ -2167,6 +2201,7 @@ def main():
     t_ctx_sweep()
     t_head_tile()
     t_head_fused()
+    t_dim_probe()
     t_simb_ablation()
     print(f"[OK] {TAB}")
 
