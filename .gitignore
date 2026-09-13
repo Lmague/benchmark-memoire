@@ -7,6 +7,12 @@
 /*
 
 # 1b) …mais ré-inclure explicitement les sous-dossiers de résultats pour la repro.
+#      NB : il faut d'abord ré-inclure `docs/` puis ré-ignorer son contenu, sinon
+#      git ne peut pas ré-inclure un fichier dont un parent est exclu.
+!/docs/
+/docs/*
+!/docs/RELEASE.md
+!/docs/audit/
 !/docs/figures/
 
 # 2) …puis ré-inclure explicitement le code
@@ -19,6 +25,14 @@
 !/make_figures.py
 !/requirements.txt
 !/.gitignore
+# Méta-docs racine — indispensables (AGENTS.md est le point d'entrée des agents
+# et porte les sources canoniques ; ils étaient absents de la liste blanche).
+!/AGENTS.md
+!/README.md
+!/Makefile
+# CI et tests (garde-fous de reproductibilité).
+!/.github/
+!/tests/
 !/paper_arctic_fm_benchmark/
 !/tools/
 /tools/*
@@ -42,8 +56,28 @@ __pycache__/
 # Utilitaires chemin absolu : validate_split.py  _gen_project_index.py
 
 # --- Fichiers de résultats canoniques (reproduction du manuscrit) ---
+# Ré-inclure le parent `results/` puis ré-ignorer son contenu par défaut : sans
+# cela, git ne peut pas ré-inclure un fichier dont un parent est exclu (même piège
+# que pour docs/). Les seules exceptions sont les lignes `!/results/...` ci-dessous.
+!/results/
+/results/*
 # Relance2 (11cls + 8cls, source canonique unique du manuscript, corrélations n12 incluses)
 !/results/relance2/
+# Nouveaux résultats 2026-09-13 (cités par le manuscrit et le compendium)
+!/results/rapport_data/
+/results/rapport_data/*
+!/results/rapport_data/loo_triage.csv
+!/results/rapport_data/loo_triage.json
+!/results/rapport_data/loo_triage.md
+!/results/rapport_data/head_sweep_summary.csv
+!/results/rapport_data/head_sweep_summary.json
+!/results/rapport_data/head_sweep_summary.md
+!/results/rapport_data/dim_probe_summary.csv
+!/results/rapport_data/dim_probe_summary.md
+!/results/rapport_data/dim_probe_dinov3_vitl16_lvd.json
+!/results/rapport_data/dim_probe_dinov3_vitl16_sat.json
+!/results/rapport_data/dim_probe_simdinov2_vitb16.json
+!/results/rapport_data/dim_probe_vitb16_imagenet.json
 # Métriques latentes et corrélations
 !/results/all_scores_consolidated.json
 !/results/T2a_kmeans_control.json
@@ -126,6 +160,9 @@ __pycache__/
 !/NEEDS_HUMAN.md
 !/mail_bouguessa.md
 !/scripts/slurm_context_distill_extract_sig.sh
+# Extraction sig_embeddings des runs SimDINOv2-B (rangs 2-3 du tableau maître, absents
+# du palier de significativité faute d'embeddings) — 2026-09-13 :
+!/scripts/slurm_context_extract_sig_simb.sh
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/
