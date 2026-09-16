@@ -118,14 +118,23 @@ python3 scripts/generate_splits_11cls.py --splits-dir "$SCRATCH/splits" \
 ```
 
 **Vérification d'alignement automatique.** Avant d'extraire, le job compare le nombre de
-lignes de chaque CSV au nombre de lignes de l'embedding du même split :
+lignes de chaque CSV au nombre de lignes d'embedding **effectivement utilisées** :
 
 ```
+[slurm] alignement train: csv=49281  embeddings=49281 (49433 bruts, RHOL retirée)  OK
+[slurm] alignement val: csv=13209  embeddings=13209  OK
 [slurm] alignement test: csv=17598  embeddings=17598  OK
 ```
 
-Un désalignement annule l'extraction. C'est le garde-fou qui aurait attrapé l'erreur de
-chemin de la première soumission.
+Le « effectivement » compte : les embeddings gelés comptent **49 433** lignes sur train car
+la tuile RHOL y est **intercalée** (positions 16 764…, 152 tuiles). Le chargeur les retire
+avant la sonde, ce qui redonne exactement les 49 281 lignes de `splits_11cls/train.csv` —
+vérifié élément par élément, **0 désaccord**. Comparer au nombre brut de lignes déclencherait
+une fausse alerte sur train, et seulement sur train (val et test n'ont aucune tuile RHOL).
+
+Un désalignement (mauvais CSV, ou mauvais schéma dans `MODELS_SPEC`) annule l'extraction avant
+qu'elle ne tourne. C'est le garde-fou qui a rattrapé l'erreur de chemin de la première
+soumission et la confusion 11cls/12cls de la seconde.
 
 ### Lancement nominal
 
@@ -164,7 +173,13 @@ Extrait seulement le split test et s'arrête. Vérifie dans le log :
 
 ### Ajouter des modèles
 
-`MODELS_SPEC` est une liste `<préfixe>:<schéma>`, une par ligne :
+`MODELS_SPEC` est une liste `<spec>:<schéma>`, une par ligne. `<spec>` accepte les **deux
+conventions d'embeddings du dépôt**, auto-détectées :
+
+| Convention | Chemin | Source |
+|---|---|---|
+| **gelé** | `<spec>_<split>.npy` — ex. `embeddings/simdinov2_vitb16_train.npy` | `load_features` |
+| **affiné** | `<spec>/<split>.npy` — ex. `<run_dir>/train.npy` | `load_sota_features` |
 
 ```bash
 export MODELS_SPEC="$SCRATCH/embeddings/simdinov2_vitb16:12cls
@@ -172,7 +187,9 @@ $SCRATCH/embeddings/dinov3_vitb16_lvd:12cls
 $SCRATCH/ft_ssl_results/dinov3_vitb16_lvd_lora_runs/dinov3_vitb16_lvd_lora_frac100_seed0:11cls"
 sbatch scripts/slurm_texture.sh
 ```
-Un run affiné a ses `.npy` sans préfixe modèle et ses labels déjà en 11 classes → `11cls`.
+
+Gelé → `12cls`. Run affiné → `11cls`. Déclarer le mauvais schéma n'est pas silencieux : la
+vérification d'alignement le détecte (49 433 vs 49 281 sur train) et annule l'extraction.
 
 ### Ablations seules, sur un cache déjà extrait
 

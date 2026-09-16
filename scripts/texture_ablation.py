@@ -95,18 +95,41 @@ KEEP_8CLS = [i for i, c in enumerate(CLASS_NAMES_11) if c not in DROP_8CLS]
 # ────────────────────────────────────────────────────────────────────── chargement
 
 
+def resolve_split_paths(spec: str, split: str) -> tuple[str, str]:
+    """Résout les ``.npy`` d'un split pour les DEUX conventions du dépôt.
+
+    - **gelé**   : ``<spec>_<split>.npy``   — ex. ``embeddings/simdinov2_vitb16_train.npy``
+      (source : ``src/features.load_features`` / ``load_npy``)
+    - **affiné** : ``<spec>/<split>.npy``   — ex. ``DINOv3_LoRA_8/embeddings/<run>/train.npy``
+      (source : ``src/features.load_sota_features``, ``scripts/rapport/significance_tier.py``)
+
+    Les deux conventions coexistent dans le dépôt et n'ont pas le même nommage : sans
+    auto-détection, passer un dossier de run produirait un ``FileNotFoundError`` sur
+    ``<run>_train.npy``. L'erreur liste les deux chemins essayés.
+    """
+    cands = [(f"{spec}_{split}.npy", f"{spec}_{split}_labels.npy"),
+             (os.path.join(spec, f"{split}.npy"), os.path.join(spec, f"{split}_labels.npy"))]
+    for ep, lp in cands:
+        if os.path.exists(ep) and os.path.exists(lp):
+            return ep, lp
+    raise FileNotFoundError(
+        f"embeddings introuvables pour le split '{split}' — essayé :\n  "
+        + "\n  ".join(f"{e}  (+ {l})" for e, l in cands))
+
+
 def load_embeddings(prefix: str, schema: str) -> dict[str, tuple[np.ndarray, np.ndarray]]:
-    """Charge ``<prefix>_<split>.npy`` + labels, en schéma 11 classes."""
+    """Charge les embeddings + labels en schéma 11 classes.
+
+    ``prefix`` : préfixe (gelé) OU dossier de run (affiné) — cf. :func:`resolve_split_paths`.
+    """
     out: dict[str, tuple[np.ndarray, np.ndarray]] = {}
     for s in SPLITS:
-        ep = f"{prefix}_{s}.npy"
-        lp = f"{prefix}_{s}_labels.npy"
-        if not (os.path.exists(ep) and os.path.exists(lp)):
-            raise FileNotFoundError(f"embeddings introuvables : {ep} / {lp}")
+        ep, lp = resolve_split_paths(prefix, s)
         X = np.load(ep).astype(np.float32)
         y = np.load(lp).astype(np.int64).ravel()
         if schema == "12cls":
-            # RHOL (idx 7) absente du split : on la retire et on décale les indices > 7.
+            # RHOL (idx 7) est INTERCALÉE dans les embeddings gelés (ex. positions 16764…
+            # sur train) : on la retire et on décale les indices > 7.
             keep = np.array([v != 7 for v in y])
             X, y = X[keep], np.array([LABEL_REMAP_12TO11[int(v)] for v in y[keep]], dtype=np.int64)
         elif schema != "11cls":
@@ -261,7 +284,9 @@ def _strip(r: dict) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--emb", required=True, help="préfixe des embeddings (sans _<split>.npy)")
+    ap.add_argument("--emb", required=True,
+                    help="préfixe des embeddings (gelé, ex. embeddings/simdinov2_vitb16) "
+                         "OU dossier de run affiné (ex. <run>/ contenant train.npy)")
     ap.add_argument("--label-schema", default="11cls", choices=("11cls", "12cls"))
     ap.add_argument("--texture-dir", default="results/texture", help="cache de texture")
     ap.add_argument("--tag", default=None, help="nom de sortie (défaut : stem de --emb)")

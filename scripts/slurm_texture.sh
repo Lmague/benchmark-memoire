@@ -195,35 +195,57 @@ fi
 
 # ── Vérification d'alignement CSV ↔ embeddings, AVANT d'extraire ───────────────
 # Le seul invariant qui compte : le nombre de lignes du CSV doit égaler le nombre de
-# lignes de l'embedding du MÊME split. Un désalignement ici produirait un cache de
-# texture attribué aux mauvaises tuiles — silencieusement, et pour toujours.
+# lignes d'embedding EFFECTIVEMENT utilisées pour ce split. Un désalignement produirait
+# un cache de texture attribué aux mauvaises tuiles — silencieusement, et pour toujours.
+#
+# ⚠ « effectivement utilisées » ≠ « lignes du .npy ». Les embeddings gelés sont en schéma
+# 12 classes : <modèle>_train.npy compte 49 433 lignes, RHOL INTERCALÉE (positions
+# 16 764…, 152 tuiles). Le chargeur (texture_ablation.load_embeddings, schéma « 12cls »)
+# retire ces lignes avant la sonde, ce qui redonne exactement les 49 281 lignes de
+# splits_11cls/train.csv — vérifié élément par élément, 0 désaccord. Comparer le CSV au
+# nombre BRUT de lignes du .npy déclenche donc une fausse alerte sur train (et seulement
+# sur train : val et test n'ont aucune tuile RHOL).
 if [[ "$NEED_TILES" == "1" ]]; then
-    FIRST_PREFIX="${MODELS_SPEC%%$'\n'*}"; FIRST_PREFIX="${FIRST_PREFIX%:*}"
-    ARGS=("$FIRST_PREFIX")
+    FIRST_ENTRY="${MODELS_SPEC%%$'\n'*}"
+    FIRST_PREFIX="${FIRST_ENTRY%:*}"
+    FIRST_SCHEMA="${FIRST_ENTRY##*:}"
+    ARGS=("$FIRST_PREFIX" "$FIRST_SCHEMA")
     for s in $SPLITS_TO_DO; do ARGS+=("$s" "${CSV_OF[$s]}"); done
     python - "${ARGS[@]}" <<'PY'
-import csv, sys
-prefix = sys.argv[1]
-pairs = list(zip(sys.argv[2::2], sys.argv[3::2]))
+import csv, os, sys
+prefix, schema = sys.argv[1], sys.argv[2]
+pairs = list(zip(sys.argv[3::2], sys.argv[4::2]))
+import numpy as np
+
+def label_path(spec, split):
+    """Les DEUX conventions du dépôt : <spec>_<split>_labels.npy (gelé) ou
+    <spec>/<split>_labels.npy (dossier de run affiné)."""
+    for cand in (f"{spec}_{split}_labels.npy", os.path.join(spec, f"{split}_labels.npy")):
+        if os.path.exists(cand):
+            return cand
+    return None
+
 bad = False
 for split, csv_path in pairs:
     with open(csv_path) as fh:
         n_csv = sum(1 for _ in csv.reader(fh)) - 1
-    n_emb = None
-    try:
-        import numpy as np
-        n_emb = np.load(f"{prefix}_{split}.npy", mmap_mode="r").shape[0]
-    except FileNotFoundError:
-        print(f"[slurm] alignement {split}: embeddings absents ({prefix}_{split}.npy) "
+    lp = label_path(prefix, split)
+    if lp is None:
+        print(f"[slurm] alignement {split}: labels introuvables pour {prefix} "
               f"— non vérifié (csv={n_csv})")
         continue
-    ok = n_csv == n_emb
+    labels = np.load(lp)
+    n_raw = int(labels.shape[0])
+    n_eff = int((labels != 7).sum()) if schema == "12cls" else n_raw
+    note = f" ({n_raw} bruts, RHOL retirée)" if n_eff != n_raw else ""
+    ok = n_csv == n_eff
     bad |= not ok
-    print(f"[slurm] alignement {split}: csv={n_csv}  embeddings={n_emb}  "
+    print(f"[slurm] alignement {split}: csv={n_csv}  embeddings={n_eff}{note}  "
           f"{'OK' if ok else 'DÉSALIGNÉ'}")
 if bad:
     print("[slurm] Le CSV ne décrit pas les mêmes tuiles (ou pas dans le même ordre) que "
-          "les embeddings. Vérifier SPLITS_11_DIR / SPLITS_DIR.", file=sys.stderr)
+          "les embeddings. Vérifier SPLITS_11_DIR / SPLITS_DIR et le schéma déclaré "
+          "dans MODELS_SPEC.", file=sys.stderr)
 sys.exit(1 if bad else 0)
 PY
     ALIGN_EXIT=$?
