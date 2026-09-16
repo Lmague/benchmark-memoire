@@ -75,6 +75,37 @@ avant cette note — à reprendre pour publication.
 
 ## Sur Narval (le seul endroit où les tuiles existent)
 
+### Pré-requis sur `$SCRATCH`
+
+| Chemin | Contenu |
+|---|---|
+| `tiles.zip` | tuiles 224 px (dézippées dans `$SLURM_TMPDIR`) |
+| `splits_11cls/{train,val,test}.csv` | schéma **remappé 11 classes** — convention des configs SOTA (`csv_dir: ${SCRATCH}/splits_11cls`, chargé en `{split}.csv`) |
+| `embeddings/<modèle>_{train,val,test}{,_labels}.npy` | embeddings canoniques |
+
+Le script accepte aussi `splits/<split>_11cls.csv` (suffixe, sortie par défaut de
+`scripts/generate_splits_11cls.py`) et teste les deux dans cet ordre. Il ne retombe **jamais**
+sur `splits/<split>.csv` : c'est le schéma **brut 12 classes**, dont `train.csv` compte
+49 433 lignes (RHOL incluse) contre 49 281 dans les embeddings — un cache extrait dessus
+serait désaligné et l'ablation porterait sur les mauvaises tuiles.
+
+Si aucun des deux n'existe :
+
+```bash
+python3 scripts/generate_splits_11cls.py --splits-dir "$SCRATCH/splits" \
+    --out-dir "$SCRATCH/splits_11cls" --suffix ""
+```
+
+**Vérification d'alignement automatique.** Avant d'extraire, le job compare le nombre de
+lignes de chaque CSV au nombre de lignes de l'embedding du même split :
+
+```
+[slurm] alignement test: csv=17598  embeddings=17598  OK
+```
+
+Un désalignement annule l'extraction. C'est le garde-fou qui aurait attrapé l'erreur de
+chemin de la première soumission.
+
 ### Lancement nominal
 
 ```bash
@@ -99,13 +130,16 @@ Le job affiche la commande en fin de log ; la voici :
 rsync -avP <user>@narval.alliancecan.ca:$SCRATCH/texture/ results/texture/
 ```
 
-### Avant de dépenser 8 h : le dry-run d'extraction (5 min)
+### Avant de dépenser 8 h : le dry-run d'extraction (1 min)
 
 ```bash
 SPLITS=test SKIP_ABLATION=1 sbatch scripts/slurm_texture.sh
 ```
-Extrait seulement le split test et s'arrête. Vérifie dans le log que le nombre de tuiles
-illisibles est 0 et que `csv=test_11cls.csv` (donc pas le `splits/` du dépôt).
+Extrait seulement le split test et s'arrête. Vérifie dans le log :
+
+- `[slurm] CSV test : .../splits_11cls/test.csv  [splits_11cls/ (configs SOTA)]` — le bon schéma ;
+- `[slurm] alignement test: csv=17598  embeddings=17598  OK` — l'ordre des tuiles ;
+- `cache test: [17598, 106]  non-finis=0` — 0 tuile illisible.
 
 ### Ajouter des modèles
 
