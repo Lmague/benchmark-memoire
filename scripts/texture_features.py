@@ -60,18 +60,26 @@ if str(PROJ) not in sys.path:
 _W: dict = {}
 
 
-def _init_worker(tiles_root: str, fallback: str, params: dict, feature_names: list[str]) -> None:
+def _init_worker(tiles_root: str, fallback: str, params: dict, feature_names: list[str],
+                 strict: bool = False) -> None:
     from PIL import Image  # noqa: F401  (importé ici : un seul import par worker)
     _W["tiles_root"] = tiles_root
     _W["fallback"] = fallback
     _W["params"] = params
     _W["names"] = feature_names
+    _W["strict"] = strict
     from src.texture import tile_features  # noqa: F401
     _W["fn"] = tile_features
 
 
 def _extract_one(filepath: str) -> np.ndarray:
-    """Features d'une tuile, dans l'ORDRE DU CONTRAT (jamais celui du dict interne)."""
+    """Features d'une tuile, dans l'ORDRE DU CONTRAT (jamais celui du dict interne).
+
+    Une tuile manquante ou illisible renvoie une ligne NaN au lieu de lever : sur 80 000
+    fichiers lus depuis un zip de cluster, un PNG corrompu ne doit pas coûter 8 h de GPU.
+    Le compte de NaN et la liste des fichiers fautifs sont écrits dans le JSON de
+    provenance, et ``--strict`` rétablit le comportement levant.
+    """
     from PIL import Image
     from src.texture import to_gray
     root = _W["tiles_root"]
@@ -84,6 +92,16 @@ def _extract_one(filepath: str) -> np.ndarray:
         arr = np.asarray(im, dtype=np.uint8)
     feats = _W["fn"](to_gray(arr), **_W["params"])
     return np.asarray([feats[n] for n in _W["names"]], dtype=np.float32)
+
+
+def _extract_safe(filepath: str) -> tuple[np.ndarray | None, str]:
+    """Enveloppe : ``(features, "")`` ou ``(None, message_d_erreur)``."""
+    try:
+        return _extract_one(filepath), ""
+    except Exception as exc:                                   # noqa: BLE001
+        if _W.get("strict"):
+            raise
+        return None, f"{filepath}\t{type(exc).__name__}: {exc}"
 
 
 def _read_split(csv_path: str, limit: int | None) -> list[str]:
@@ -124,6 +142,9 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=None, help="ne traiter que les N premières tuiles")
     ap.add_argument("--force", action="store_true", help="recalculer même si la sortie existe")
     ap.add_argument("--keep-parts", action="store_true")
+    ap.add_argument("--strict", action="store_true",
+                    help="lever sur une tuile manquante/illisible (défaut : ligne NaN + "
+                         "fichier listé dans le JSON de provenance)")
     args = ap.parse_args()
 
     csv_path = args.csv or str(PROJ / "splits" / f"{args.split}_11cls.csv")
@@ -168,6 +189,9 @@ def main() -> int:
     # ── calcul par chunks, repartable
     chunks = [(i, min(i + args.chunk_size, n)) for i in range(0, n, args.chunk_size)]
     t_start = time.time()
+    failures: list[str] = []
+    init = (args.tiles_dir, os.environ.get("ARCTIC_TILES_FALLBACK", ""), params, names,
+            args.strict)
     for k, (lo, hi) in enumerate(chunks, 1):
         part = out_npy.with_name(f"{out_npy.stem}.part{k - 1:04d}.npy")
         if part.exists() and part.with_suffix(".done").exists() and not args.force:
@@ -176,19 +200,25 @@ def main() -> int:
         t0 = time.time()
         if args.n_jobs > 1:
             with ProcessPoolExecutor(max_workers=args.n_jobs, initializer=_init_worker,
-                                     initargs=(args.tiles_dir,
-                                               os.environ.get("ARCTIC_TILES_FALLBACK", ""),
-                                               params, names)) as ex:
-                rows = list(ex.map(_extract_one, sub, chunksize=8))
+                                     initargs=init) as ex:
+                res = list(ex.map(_extract_safe, sub, chunksize=8))
         else:
-            _init_worker(args.tiles_dir, os.environ.get("ARCTIC_TILES_FALLBACK", ""), params, names)
-            rows = [_extract_one(fp) for fp in sub]
+            _init_worker(*init)
+            res = [_extract_safe(fp) for fp in sub]
+        rows = []
+        for fp, (arr, err) in zip(sub, res):
+            if arr is None:
+                rows.append(np.full(len(names), np.nan, dtype=np.float32))
+                failures.append(err)
+            else:
+                rows.append(arr)
         arr = np.stack(rows).astype(np.float32)
         np.save(part, arr)
         part.with_suffix(".done").touch()
         rate = (hi - lo) / max(time.time() - t0, 1e-9)
+        suffix = f"  ({len(failures)} tuile(s) illisible(s) depuis le début)" if failures else ""
         print(f"  chunk {k}/{len(chunks)}  [{lo}:{hi}]  {arr.shape}  "
-              f"{rate:.0f} tuiles/s  (total {time.time() - t_start:.0f}s)", flush=True)
+              f"{rate:.0f} tuiles/s  (total {time.time() - t_start:.0f}s){suffix}", flush=True)
 
     parts = [out_npy.with_name(f"{out_npy.stem}.part{k - 1:04d}.npy") for k in range(1, len(chunks) + 1)]
     missing = [p for p in parts if not p.exists()]
@@ -208,6 +238,8 @@ def main() -> int:
     np.save(out_npy, X)
     provenance["shape"] = list(X.shape)
     provenance["n_non_finis"] = int((~np.isfinite(X)).sum())
+    provenance["n_tuiles_illisibles"] = len(failures)
+    provenance["tuiles_illisibles"] = failures[:200]
     provenance["date_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     out_json.write_text(json.dumps(provenance, ensure_ascii=False, indent=1))
     if not args.keep_parts:
@@ -216,7 +248,10 @@ def main() -> int:
             p.with_suffix(".done").unlink(missing_ok=True)
     print(f"[texture] OK → {out_npy}  {X.shape}  en {time.time() - t_start:.0f}s", flush=True)
     if provenance["n_non_finis"]:
-        print(f"[texture] ATTENTION : {provenance['n_non_finis']} valeurs non finies", file=sys.stderr)
+        print(f"[texture] ATTENTION : {provenance['n_non_finis']} valeurs non finies "
+              f"({len(failures)} tuile(s) illisible(s), liste dans {out_json.name}) — "
+              f"la sonde REFUSERA ce cache (StandardScaler propagerait les NaN).",
+              file=sys.stderr)
     return 0
 
 

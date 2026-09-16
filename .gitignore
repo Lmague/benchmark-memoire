@@ -145,6 +145,7 @@ __pycache__/
 !/scripts/texture_features.py
 !/scripts/texture_ablation.py
 !/scripts/texture_README.md
+!/scripts/slurm_texture.sh
 
 # Self-distillation contexte→tuile (2026-08-29) — voir scripts/context_distill_README.md :
 !/scripts/context_crop.py
