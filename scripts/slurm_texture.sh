@@ -19,7 +19,15 @@
 #
 # Pré-requis présents sous $SCRATCH (mêmes conventions que les autres campagnes) :
 #   $SCRATCH/tiles.zip          — tuiles 224px (dézippées dans $SLURM_TMPDIR)
-#   $SCRATCH/splits/            — {train,val,test}_11cls.csv — ORDRE DES EMBEDDINGS
+#   $SCRATCH/splits_11cls/      — {train,val,test}.csv REMAPPÉS 11 classes (ORDRE DES
+#                                 EMBEDDINGS). C'est la convention des configs SOTA
+#                                 (ex. configs/resnet50_fulft_sota.yaml : csv_dir =
+#                                 ${SCRATCH}/splits_11cls, chargé en {split}.csv).
+#                                 À défaut : $SCRATCH/splits/<split>_11cls.csv (suffixe,
+#                                 sortie par défaut de scripts/generate_splits_11cls.py).
+#                                 ⚠ $SCRATCH/splits/<split>.csv est le schéma BRUT :
+#                                 train.csv y compte 49 433 lignes (RHOL incluse) contre
+#                                 49 281 dans les embeddings → jamais utilisable ici.
 #   $SCRATCH/embeddings/        — <modèle>_{train,val,test}{,_labels}.npy
 #
 # Sortie : $SCRATCH/texture/{train,val,test}.{npy,json} + ablation_<tag>.json
@@ -49,7 +57,8 @@
 #     OUT_DIR=/tmp/tex_out SKIP_ABLATION=1 LIMIT="--limit 300" bash scripts/slurm_texture.sh
 CODE_DIR="${CODE_DIR:-$HOME/benchmark-memoire}"
 VENV="${VENV:-$HOME/ENV/bin/activate}"
-SPLITS_DIR="${SPLITS_DIR:-$SCRATCH/splits}"
+SPLITS_DIR="${SPLITS_DIR:-$SCRATCH/splits}"              # schéma BRUT 12 classes
+SPLITS_11_DIR="${SPLITS_11_DIR:-$SCRATCH/splits_11cls}"   # schéma remappé 11 classes
 TILES_ZIP="${TILES_ZIP:-$SCRATCH/tiles.zip}"
 EMB_DIR="${EMB_DIR:-$SCRATCH/embeddings}"
 OUT_DIR="${OUT_DIR:-$SCRATCH/texture}"
@@ -101,10 +110,8 @@ if [[ "$SKIP_EXTRACTION" == "1" && -f "$OUT_DIR/train.npy" ]]; then
 fi
 if [[ "$NEED_TILES" == "1" ]]; then
     [[ -f "$TILES_ZIP" ]] || fail "$TILES_ZIP introuvable (tuiles 224px)"
-    [[ -d "$SPLITS_DIR" ]] || fail "$SPLITS_DIR introuvable (CSV de split = ordre des embeddings)"
-    for s in $SPLITS_TO_DO; do
-        [[ -f "$SPLITS_DIR/${s}_11cls.csv" ]] || fail "CSV manquant : $SPLITS_DIR/${s}_11cls.csv"
-    done
+    # SPLITS_DIR n'est pas exigé en dur : resolve_csv() accepte aussi
+    # $SPLITS_11_DIR/<split>.csv, donc un cluster qui n'a que splits_11cls/ doit marcher.
 else
     echo "[slurm] extraction sautée → ni tiles.zip ni CSV de split requis"
 fi
@@ -131,6 +138,79 @@ if manquants:
     sys.exit(1)
 print("[slurm] dépendances OK (numpy, scipy, pywt)")
 PY
+
+# ── Résolution des CSV de split (11 classes) ──────────────────────────────────
+# Deux conventions coexistent dans le dépôt, on accepte les deux :
+#   $SPLITS_11_DIR/<split>.csv     ← configs SOTA Narval (csv_dir = ${SCRATCH}/splits_11cls,
+#                                    chargé en {split}.csv) — PRIORITÉ
+#   $SPLITS_DIR/<split>_11cls.csv  ← sortie par défaut de generate_splits_11cls.py (suffixe)
+# On ne retombe JAMAIS sur $SPLITS_DIR/<split>.csv : c'est le schéma BRUT 12 classes, dont
+# train.csv contient 152 tuiles RHOL de plus que les embeddings (49 433 vs 49 281).
+fail_csv() {
+    local s="$1"
+    echo "[ERROR] CSV 11 classes introuvable pour le split '$s'." >&2
+    echo "  essayé : $SPLITS_11_DIR/${s}.csv" >&2
+    echo "           $SPLITS_DIR/${s}_11cls.csv" >&2
+    echo "  contenu de $SPLITS_DIR      : $(ls "$SPLITS_DIR" 2>/dev/null | tr '\n' ' ')" >&2
+    echo "  contenu de $SPLITS_11_DIR : $(ls "$SPLITS_11_DIR" 2>/dev/null | tr '\n' ' ')" >&2
+    echo "  → générer le schéma 11 classes :" >&2
+    echo "      python3 scripts/generate_splits_11cls.py --splits-dir \"\$SPLITS_DIR\" \\" >&2
+    echo "          --out-dir \"\$SPLITS_11_DIR\" --suffix \"\"" >&2
+    exit 1
+}
+resolve_csv() {
+    local s="$1"
+    [[ -f "$SPLITS_11_DIR/${s}.csv" ]]   && { echo "$SPLITS_11_DIR/${s}.csv"; return 0; }
+    [[ -f "$SPLITS_DIR/${s}_11cls.csv" ]] && { echo "$SPLITS_DIR/${s}_11cls.csv"; return 0; }
+    return 1
+}
+declare -A CSV_OF
+declare -A SCHEMA_OF
+if [[ "$NEED_TILES" == "1" ]]; then
+    for s in $SPLITS_TO_DO; do
+        CSV_OF[$s]="$(resolve_csv "$s")" || fail_csv "$s"
+        [[ "${CSV_OF[$s]}" == *"splits_11cls"* ]] && SCHEMA_OF[$s]="splits_11cls/ (configs SOTA)" \
+                                                  || SCHEMA_OF[$s]="suffixe _11cls"
+        echo "[slurm] CSV $s : ${CSV_OF[$s]}  [${SCHEMA_OF[$s]}]"
+    done
+fi
+
+# ── Vérification d'alignement CSV ↔ embeddings, AVANT d'extraire ───────────────
+# Le seul invariant qui compte : le nombre de lignes du CSV doit égaler le nombre de
+# lignes de l'embedding du MÊME split. Un désalignement ici produirait un cache de
+# texture attribué aux mauvaises tuiles — silencieusement, et pour toujours.
+if [[ "$NEED_TILES" == "1" ]]; then
+    FIRST_PREFIX="${MODELS_SPEC%%$'\n'*}"; FIRST_PREFIX="${FIRST_PREFIX%:*}"
+    ARGS=("$FIRST_PREFIX")
+    for s in $SPLITS_TO_DO; do ARGS+=("$s" "${CSV_OF[$s]}"); done
+    python - "${ARGS[@]}" <<'PY'
+import csv, sys
+prefix = sys.argv[1]
+pairs = list(zip(sys.argv[2::2], sys.argv[3::2]))
+bad = False
+for split, csv_path in pairs:
+    with open(csv_path) as fh:
+        n_csv = sum(1 for _ in csv.reader(fh)) - 1
+    n_emb = None
+    try:
+        import numpy as np
+        n_emb = np.load(f"{prefix}_{split}.npy", mmap_mode="r").shape[0]
+    except FileNotFoundError:
+        print(f"[slurm] alignement {split}: embeddings absents ({prefix}_{split}.npy) "
+              f"— non vérifié (csv={n_csv})")
+        continue
+    ok = n_csv == n_emb
+    bad |= not ok
+    print(f"[slurm] alignement {split}: csv={n_csv}  embeddings={n_emb}  "
+          f"{'OK' if ok else 'DÉSALIGNÉ'}")
+if bad:
+    print("[slurm] Le CSV ne décrit pas les mêmes tuiles (ou pas dans le même ordre) que "
+          "les embeddings. Vérifier SPLITS_11_DIR / SPLITS_DIR.", file=sys.stderr)
+sys.exit(1 if bad else 0)
+PY
+    ALIGN_EXIT=$?
+    [[ $ALIGN_EXIT -eq 0 ]] || fail "alignement CSV ↔ embeddings invalide — extraction annulée"
+fi
 
 # ── Tuiles → $SLURM_TMPDIR (SSD local) ────────────────────────────────────────
 if [[ "$SKIP_EXTRACTION" != "1" || ! -f "$OUT_DIR/train.npy" ]]; then
@@ -165,7 +245,7 @@ else
         # shellcheck disable=SC2086
         python scripts/texture_features.py \
             --split "$SPLIT" \
-            --csv "$SPLITS_DIR/${SPLIT}_11cls.csv" \
+            --csv "${CSV_OF[$SPLIT]}" \
             --tiles-dir "$TILES_DIR" \
             --out "$OUT_DIR/${SPLIT}.npy" \
             --n-jobs "$N_JOBS" \
