@@ -73,27 +73,68 @@ gelées (source 1) et des lignes affinées issues des `metrics.json` (source 2) 
 d'environ +0,005 en faveur des lignes gelées. C'est le cas des tableaux 8 classes produits
 avant cette note — à reprendre pour publication.
 
-## Usage
+## Sur Narval (le seul endroit où les tuiles existent)
+
+### Lancement nominal
 
 ```bash
-# 1. Extraction — À LANCER LÀ OÙ LES TUILES EXISTENT (Narval : $SLURM_TMPDIR/tiles)
-python3 scripts/texture_features.py --split train --n-jobs 8
-python3 scripts/texture_features.py --split val   --n-jobs 8
-python3 scripts/texture_features.py --split test  --n-jobs 8
-#      → results/texture/{train,val,test}.npy + .json
-
-# 2. Ablation — une famille à la fois, puis combinée
-python3 scripts/texture_ablation.py --emb embeddings/simdinov2_vitb16 \
-    --label-schema 12cls --tag simdinov2_vitb16 --include-combined
-#      → results/texture/ablation_simdinov2_vitb16.json
-
-# 3. Contrôle de non-régression : la baseline doit reproduire le F1 du registre
-python3 scripts/texture_ablation.py --emb embeddings/simdinov2_vitb16 \
-    --label-schema 12cls --baseline-only --tag controle
+# sur Narval
+ssh narval.alliancecan.ca
+cd ~/benchmark-memoire && git pull          # récupérer le commit texture
+mkdir -p logs                                # une seule fois (logs/ n'est pas versionné)
+sbatch scripts/slurm_texture.sh              # éditer --account dans l'en-tête avant !
 ```
 
-Coût mesuré : ~21 ms/tuile en extraction (85 tuiles/s à 4 processus), ~20 s par
-ajustement de sonde sur 49 281 × 768 (mono-thread BLAS obligatoire, cf. AGENTS.md §4.8).
+Le job fait tout : dézippe `$SCRATCH/tiles.zip` dans `$SLURM_TMPDIR`, extrait les 3 splits,
+lance le contrôle de non-régression, puis l'ablation des modèles listés dans `MODELS_SPEC`.
+Il est **repartable** : relancer la même commande après un time limit reprend où il s'était
+arrêté (chunks d'extraction sautés, modèles dont le JSON existe sautés).
+
+### Rapatriement
+
+Le job affiche la commande en fin de log ; la voici :
+
+```bash
+# depuis la machine locale
+rsync -avP <user>@narval.alliancecan.ca:$SCRATCH/texture/ results/texture/
+```
+
+### Avant de dépenser 8 h : le dry-run d'extraction (5 min)
+
+```bash
+SPLITS=test SKIP_ABLATION=1 sbatch scripts/slurm_texture.sh
+```
+Extrait seulement le split test et s'arrête. Vérifie dans le log que le nombre de tuiles
+illisibles est 0 et que `csv=test_11cls.csv` (donc pas le `splits/` du dépôt).
+
+### Ajouter des modèles
+
+`MODELS_SPEC` est une liste `<préfixe>:<schéma>`, une par ligne :
+
+```bash
+export MODELS_SPEC="$SCRATCH/embeddings/simdinov2_vitb16:12cls
+$SCRATCH/embeddings/dinov3_vitb16_lvd:12cls
+$SCRATCH/ft_ssl_results/dinov3_vitb16_lvd_lora_runs/dinov3_vitb16_lvd_lora_frac100_seed0:11cls"
+sbatch scripts/slurm_texture.sh
+```
+Un run affiné a ses `.npy` sans préfixe modèle et ses labels déjà en 11 classes → `11cls`.
+
+### Ablations seules, sur un cache déjà extrait
+
+```bash
+SKIP_EXTRACTION=1 sbatch scripts/slurm_texture.sh
+```
+Utile pour ajouter un modèle : l'extraction (et `tiles.zip`) est alors entièrement évitée.
+
+## Coût mesuré
+
+| Étape | Coût |
+|---|---|
+| Extraction | ~21 ms/tuile en mono-processus, **~1 min par 1000 tuiles** à 4 processus ; 80 088 tuiles ≈ **5 min** à 16 processus |
+| Contrôle de non-régression | ~4 min par modèle |
+| Ablation complète (baseline + 7 familles + combinée) | **46 min 47 s mesuré** pour un modèle (126 ajustements lbfgs mono-thread sur 49 281 × 768–874) |
+
+Une entrée de `MODELS_SPEC` ≈ **1 h**. La limite de 8 h du job couvre 8 modèles.
 
 ## Blocage connu (2026-09) : les tuiles natives sont absentes de la machine de dev
 
@@ -118,8 +159,28 @@ ou là où `out/tiles` est reconstruit par `scripts/tilerization.py`.
   de colonnes, déterminisme, cas limites GLCM (uniforme dégénéré), ordres GLSZM (grandes vs
   petites zones), GLRLM (segments longs pour des bandes), GLDM (dépendance qui chute avec le
   bruit), normalisation des énergies DWT et des profils de Fourier, sens de β.
-- **Plomberie de bout en bout** sur un cache de texture synthétique, avec `simdinov2_vitb16` :
-  - cache **bruit pur** → Δ11 = −0,0003, IC95 [−0,0019, +0,0012], p = 0,59 (aucun gain) ;
-  - cache avec **signal planté** dans 3 colonnes → Δ11 = +0,0081, p = 0,000.
 - **Contrôle de non-régression** : baseline SimDINOv2-B = 0,4719 (11cls, registre 0,4723)
-  et 0,6534 (8cls séparé, canonique 0,6537).
+  et **0,6534** (8cls sonde séparée, canonique 0,6537) — écart 0,0003–0,0004, dans la
+  tolérance de reprobe.
+- **Test de falsifiabilité** (le plus important) : ablation complète sur un cache de texture
+  **purement aléatoire**. Aucune famille ne fabrique de gain — les 8 Δ sont dans ±0,001 :
+
+  | famille | cols | Δ11cls | IC95 | p |
+  |---|---|---|---|---|
+  | glcm | 30 | −0,0003 | [−0,0019, +0,0013] | 0,70 |
+  | glrlm | 16 | +0,0002 | [−0,0012, +0,0017] | 0,87 |
+  | glszm | 16 | −0,0001 | [−0,0017, +0,0013] | 0,85 |
+  | gldm | 15 | −0,0003 | [−0,0014, +0,0007] | 0,60 |
+  | ngtdm | 5 | +0,0006 | [−0,0003, +0,0016] | 0,21 |
+  | dwt | 10 | −0,0005 | [−0,0017, +0,0006] | 0,35 |
+  | fourier | 14 | +0,0006 | [−0,0006, +0,0019] | 0,33 |
+  | combined | 106 | −0,0010 | [−0,0031, +0,0011] | 0,37 |
+
+  et `best_C` reste identique (0,001) sur les 9 jeux : ajouter 106 colonnes de bruit ne
+deplace ni la régularisation ni le F1. **Test inverse** : un signal planté dans 3 colonnes
+est détecté (Δ11 = +0,0081, p = 0,000).
+- **Dry-run du `.sh` complet** : dézippage, extraction, résumé de cache, contrôle, ablation,
+  rapatriement — sur un `tiles.zip` réduit à 120 tuiles.
+- **Robustesse aux tuiles manquantes** : par défaut une tuile illisible produit une ligne
+  NaN (comptée, listée dans le JSON, et la sonde **refuse** ensuite le cache plutôt que de
+  propager des NaN via `StandardScaler`) ; `--strict` rétablit l'arrêt immédiat.

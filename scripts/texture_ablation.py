@@ -128,6 +128,15 @@ def load_texture(cache_dir: Path, split: str) -> tuple[np.ndarray, list[str]]:
     names = list(meta["feature_names"])
     if X.shape[1] != len(names):
         raise ValueError(f"{npy} : {X.shape[1]} colonnes pour {len(names)} noms déclarés")
+    # Un NaN dans une seule tuile empoisonne la colonne entière via StandardScaler
+    # (moyenne et écart-type deviennent NaN, puis TOUTE la matrice). Refus explicite.
+    n_bad = int((~np.isfinite(X)).sum())
+    if n_bad:
+        raise ValueError(
+            f"{npy} contient {n_bad} valeurs non finies "
+            f"({meta.get('n_tuiles_illisibles', '?')} tuile(s) illisible(s) selon le JSON). "
+            f"Refaire l'extraction avec les tuiles disponibles, ou exclure ces tuiles du "
+            f"split avant de relancer scripts/texture_features.py.")
     return X, names
 
 
