@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install (léger, sans torch)
+        # scipy + PyWavelets : requis par tests/test_texture_features.py (src/texture.py).
+        # torch n'est PAS nécessaire : ni src/texture.py ni ses tests ne l'importent.
+        run: python -m pip install --quiet numpy scipy PyWavelets
+      - name: Compilation de tout le code versionné
+        run: python -m compileall -q src scripts probe.py extract.py analyze.py train.py make_figures.py
+      - name: Test split 11 classes
+        run: python tests/test_generate_splits_11cls.py
+      - name: Test descripteurs de texture
+        run: python tests/test_texture_features.py
+      - name: Garde-fous de reproductibilité
+        run: python tests/test_repo_guards.py

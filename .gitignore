@@ -141,6 +141,11 @@ __pycache__/
 # DINOv3 ViT-S/16 — frozen + LoRA r=8 (2026-08) :
 !/scripts/slurm_extract_vits16.sh
 !/scripts/slurm_lora_dinov3_vits16.sh
+# Texture classique concaténée à l'embedding (2026-09) — voir scripts/texture_README.md :
+!/scripts/texture_features.py
+!/scripts/texture_ablation.py
+!/scripts/texture_README.md
+
 # Self-distillation contexte→tuile (2026-08-29) — voir scripts/context_distill_README.md :
 !/scripts/context_crop.py
 !/scripts/context_distill.py
