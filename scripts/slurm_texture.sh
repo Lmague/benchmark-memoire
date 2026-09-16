@@ -130,14 +130,32 @@ cd "$CODE_DIR"
 mkdir -p logs "$OUT_DIR"
 
 # Dépendances de src/texture.py : numpy (cœur), scipy (GLSZM/NGTDM), PyWavelets (DWT).
-python - <<'PY' || fail "dépendances manquantes — lancer : pip install -r requirements.txt"
-import importlib, sys
+# NE PAS proposer `pip install -r requirements.txt` : il exige torch>=2.4, absent du
+# wheelhouse Alliance, et la texture n'en a aucun besoin (ni src/texture.py ni la sonde
+# n'importent torch).
+python - <<'PY'
+import importlib.util, sys
 manquants = [m for m in ("numpy", "scipy", "pywt") if importlib.util.find_spec(m) is None]
+print(f"[slurm] interpréteur : {sys.executable}")
 if manquants:
-    print("modules absents :", ", ".join(manquants), file=sys.stderr)
+    print("", file=sys.stderr)
+    print(f"[ERROR] modules absents : {', '.join(manquants)}", file=sys.stderr)
+    print("  → dans le venv activé, installer UNIQUEMENT ceux-là :", file=sys.stderr)
+    print("      pip install " + " ".join(
+        {"pywt": "PyWavelets"}.get(m, m) for m in manquants), file=sys.stderr)
+    print("  (surtout PAS `pip install -r requirements.txt` : il exige torch>=2.4, "
+          "indisponible du wheelhouse Alliance, et la texture n'utilise pas torch.)",
+          file=sys.stderr)
     sys.exit(1)
-print("[slurm] dépendances OK (numpy, scipy, pywt)")
+import numpy, scipy, pywt                                    # noqa: E402
+print(f"[slurm] dépendances OK — numpy {numpy.__version__}, scipy {scipy.__version__}, "
+      f"pywt {pywt.__version__}")
 PY
+DEPS_EXIT=$?
+if [[ $DEPS_EXIT -ne 0 ]]; then
+    echo "[ERROR] dépendances Python manquantes dans le venv ($VENV) — voir ci-dessus." >&2
+    exit 1
+fi
 
 # ── Résolution des CSV de split (11 classes) ──────────────────────────────────
 # Deux conventions coexistent dans le dépôt, on accepte les deux :

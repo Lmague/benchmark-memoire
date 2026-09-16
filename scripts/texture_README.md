@@ -75,6 +75,27 @@ avant cette note — à reprendre pour publication.
 
 ## Sur Narval (le seul endroit où les tuiles existent)
 
+### Dépendances Python
+
+La texture n'utilise **que numpy, scipy et PyWavelets** — `src/texture.py` et la sonde
+n'importent ni torch ni aucun backbone. Ne pas lancer `pip install -r requirements.txt` :
+ce fichier exige `torch>=2.4`, absent du wheelhouse Alliance, et l'installation échoue pour
+rien.
+
+```bash
+source ~/ENV/bin/activate
+python -c "import numpy, scipy, pywt; print('OK')"      # le job fait ce test lui-même
+pip install PyWavelets                                    # seulement si pywt manque
+```
+
+Le job affiche l'interpréteur utilisé et les versions, puis la commande d'installation
+exacte pour les seuls modules manquants :
+
+```
+[slurm] interpréteur : /home/lmague/ENV/bin/python
+[slurm] dépendances OK — numpy 1.26.4, scipy 1.11.4, pywt 1.5.0
+```
+
 ### Pré-requis sur `$SCRATCH`
 
 | Chemin | Contenu |
