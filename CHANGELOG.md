@@ -1,3 +1,69 @@
+# CHANGELOG
+
+## 2026-09-16 — Texture classique : résultat négatif propre (7 familles, 2 backbones)
+
+`scripts/texture_features.py` + `scripts/texture_ablation.py` + `scripts/texture_redundancy.py`
+(job Narval 3155757). Détail complet : `scripts/texture_README.md` §Résultats.
+
+- **Aucun effet.** 106 descripteurs (GLCM, GLRLM, GLSZM, GLDM, NGTDM, ondelettes, Fourier)
+  concaténés à l'embedding : **0 famille sur 8 significative après Benjamini-Hochberg**, sur
+  SimDINOv2-B et DINOv3-B LVD, en 11cls et 8cls. Sur 32 IC95, 3 excluent zéro, toutes
+  négatives. `best_C` stable à 0,001 sur les 18 ajustements. Tout combiner coûte −0,002 :
+  la signature du bruit.
+- **Pourquoi, et c'est le résultat exploitable.** La texture est **informative** (F1 = 0,3348
+  seule, hasard 0,091 ; F médian de ses features 1 299, comparable aux 1 076 de l'embedding)
+  mais **redondante** avec le FM (R² = 0,884–0,916 ; 85–87 des 106 features à R² > 0,5).
+  Surtout, le **résidu** — la part que le FM ne contient pas — a un F médian de 3,3–4,2 et un
+  F max de 8,4–11,3, contre ~1 000 pour les directions de l'embedding : **facteur ~250**.
+  Décomposition : texture = (sous-espace du FM) ⊕ (résidu non informatif).
+- **Contrôle de non-régression : la sonde 8cls séparée reproduit le registre à l'identique**
+  (0,6537 et 0,6542, valeurs canoniques exactes). L'écart avec la ré-évaluation 11cls est
+  mesuré sur nos modèles : **+0,0047 et +0,0062**, dans la fourchette des 9 modèles gelés
+  (0,0044–0,0063). Cf. `scripts/texture_README.md` §« Deux définitions du 8 classes ».
+- **Réfute l'attente de gain** qu'on pouvait tirer de Kulich et al. 2026
+  (`doi:10.3389/fpls.2026.1841696`) et Deng et al. 2022
+  (`doi:10.1038/s41598-022-17620-2`) : chez eux les features artisanales **sont** le modèle
+  (XGBoost par pixel), ici elles sont un complément à une représentation apprise qui les
+  contient déjà.
+- **Diagnostic réutilisable.** `scripts/texture_redundancy.py` est générique (n'importe quel
+  dossier `{train,val,test}.npy` + `.json`) : F1 features seules + R² de prédiction par
+  l'embedding + F du résidu → verdict. À passer **avant** toute acquisition de nouvelle
+  modalité (NIR, CHM/LiDAR) : résidu plat ⇒ l'acquisition n'apportera rien à ce FM.
+- **Bilan des leviers testés** : contexte +0,03 (réel) > adaptation +0,008–0,012 (réel, borné)
+  > échelle +0,002 (saturé) > texture −0,002 (rien). Seule l'information que le FM ne possède
+  pas déjà déplace le plafond.
+
+## 2026-09-13 — Audit de cohérence (chiffres, docs, garde-fous) + résultats manquants
+
+Voir `docs/audit/corrections_2026-09-13.md`. Aucun F1 ni p-value n'a été modifié.
+
+- **Manuscrit** : grille C « 8 points » → 6 ; « 44 configurations » → 42 (le registre en
+  a 44, dont 2 ExPLoRA exclus des tableaux) ; « DINOv2 » retiré du corpus annoncé ;
+  bootstrap précisé (33 groupes appariés, 528 paires) ; R2 σ 0,0015 → 0,0013 ;
+  décimales françaises ; « génuiniste » → « généraliste » (7 occurrences) ; ExPLoRA
+  requalifié (« variantes LoRA/PEFT ») et exclusion documentée dans les limites.
+- **Nouveaux résultats intégrés** :
+  - validation **leave-one-model-out** du triage par géométrie (§4.7 ;
+    `loo_triage.{json,csv,md}`) : séparabilité 64–69 % hors échantillon, p_BH ≤ 1,3×10⁻⁴,
+    elle classe sans prédire finement le F1 ;
+  - **head-sweep complet** lu et synthétisé (§4.6 ; `head_sweep_summary.{json,csv,md}`) :
+    0/33 têtes non linéaires ne battent la sonde lbfgs en vue tuile, 2/24 en fusion
+    (≤ +0,0076, seed unique) ;
+  - **sonde PCA étendue** à 5 modèles (tableau §4.7, `dim_probe_summary.{csv,md}`) :
+    ~100 dimensions utiles (97,4–100 % du F1 plein à k=100), ~200 pour le modèle satellite.
+- **Manuscrit/compendium** : §4.6, §4.7 et compendium mis à jour ; PDF recompilés sans erreur.
+- **Docs** : `AGENTS.md` (42 modèles, GSD 2,2 mm/px, arbitrage des sources F1 §4.1, §4.3,
+  §4.8), `README.md`, `results/README.md` (sources 11cls/8cls, BH, nouvelles sources),
+  `.gitignore` (`AGENTS.md`, `README.md`, `Makefile`, `.github/`, `tests/`, `docs/audit/`,
+  `docs/figures/` sortis de l'ombre).
+- **Reproductibilité** : `probe.py`, `scripts/run_pipeline.py` et le `Makefile` forcent le
+  BLAS mono-thread (AGENTS §4.8) ; `configs/base.yaml` passe à la grille C canonique à
+  6 points ; ajout de `tests/test_repo_guards.py` (4 garde-fous) et d'une CI GitHub
+  `.github/workflows/ci.yml` ; checklist de release/traduction dans `docs/RELEASE.md`.
+
+
+---
+
 # CHANGELOG — Passe nocturne 2 (17 juin 2026)
 
 Reconstruction complète du repo `benchmark-memoire` en un état propre, cohérent et

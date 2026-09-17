@@ -1,0 +1,37 @@
+{
+ "tag": "simdinov2_vitb16_controle",
+ "emb_prefix": "/scratch/lmague/embeddings/simdinov2_vitb16",
+ "label_schema": "12cls",
+ "n_features_emb": 768,
+ "n_features_texture": 106,
+ "n_tiles": {
+  "train": 49281,
+  "val": 13209,
+  "test": 17598
+ },
+ "n_boot": 1000,
+ "seed": 42,
+ "c_grid": [
+  0.0001,
+  0.001,
+  0.01,
+  0.1,
+  1.0,
+  10.0
+ ],
+ "protocol": "Sonde canonique lbfgs mono-thread, best_C sur val, bootstrap apparié",
+ "note_8cls": "f1_macro_8cls_sep = sonde SÉPARÉE ajustée sur 8 classes, tuiles des 3 classes retirées (définition canonique, AGENTS.md §3) ; f1_macro_8cls_remoy = ré-moyenne du F1 par classe de la sonde 11 classes (définition des metrics.json de FT). Écart systématique +0,004 à +0,006 — ne jamais mélanger les deux dans un tableau.",
+ "runs": {
+  "baseline": {
+   "best_C": 0.001,
+   "f1_macro_pres": 0.4719979455461775,
+   "f1_macro_8cls_remoy": 0.6489971751259941,
+   "n_features": 768,
+   "best_C_8cls": 0.001,
+   "f1_macro_8cls_sep": 0.6537052355070215,
+   "n_train_8cls": 48473,
+   "n_test_8cls": 17277
+  }
+ },
+ "date_utc": "2026-09-16T07:14:06Z"
+}

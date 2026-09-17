@@ -198,6 +198,109 @@ SKIP_EXTRACTION=1 sbatch scripts/slurm_texture.sh
 ```
 Utile pour ajouter un modèle : l'extraction (et `tiles.zip`) est alors entièrement évitée.
 
+## Résultats (job Narval 3155757, 2026-09-16)
+
+Expérience : concaténer les 106 features de texture à l'embedding, une famille à la fois puis
+toutes, sur deux backbones gelés. Sonde canonique, bootstrap apparié 1000 tirages.
+
+### Le contrôle de non-régression passe — et la sonde 8cls séparée reproduit le registre à l'identique
+
+| Modèle | 11cls (registre) | 8cls séparé (registre) | 8cls ré-moyenné |
+|---|---|---|---|
+| SimDINOv2-B | 0,4720 (0,4723) | **0,6537** (0,6537) | 0,6490 |
+| DINOv3-B LVD | 0,4713 (0,4712) | **0,6542** (0,6542) | 0,6480 |
+
+Écart entre les deux définitions du 8cls : **+0,0047 et +0,0062**, dans la fourchette
+mesurée sur les 9 modèles gelés (0,0044–0,0063). Le biais des tableaux mélangeant les deux
+sources est donc confirmé.
+
+### Aucune famille n'apporte rien — et tout combiner dégrade
+
+**0 famille sur 8 significative après Benjamini-Hochberg**, sur les deux modèles et les deux
+schémas de classes. Sur les 32 IC95, **3 seulement excluent zéro, et toutes sont négatives**.
+
+| Famille | Δ11cls SimB | p_BH | Δ11cls DINOv3-B | p_BH |
+|---|---|---|---|---|
+| glcm (30) | −0,0018 | 0,160 | −0,0006 | 1,000 |
+| glrlm (16) | −0,0005 | 0,542 | −0,0000 | 0,982 |
+| glszm (16) | −0,0013 | 0,176 | −0,0002 | 1,000 |
+| gldm (15) | −0,0008 | 0,309 | −0,0000 | 1,000 |
+| ngtdm (5) | −0,0008 | 0,244 | −0,0001 | 1,000 |
+| dwt (10) | −0,0008 | 0,330 | −0,0012 | 0,576 |
+| fourier (14) | +0,0007 | 0,336 | +0,0001 | 1,000 |
+| **combined (106)** | **−0,0021** | 0,112 | **−0,0018** | 0,480 |
+
+`best_C` est resté à **0,001 sur les 18 ajustements** : pas d'instabilité de sélection.
+
+Les deux p-values brutes qui semblaient significatives (`glcm` p=0,020, `combined` p=0,028 sur
+SimB) tombent à p_BH = 0,160 et 0,112. Le motif de `combined` — la seule configuration qui
+coûte plus que chaque famille prise seule — est la signature du bruit : 106 colonnes sans
+information, et la sonde paie le coût de dimensionnalité. Le test de falsifiabilité local sur
+106 colonnes aléatoires donnait −0,0010, même ordre de grandeur.
+
+### Pourquoi : la texture est informative mais redondante avec le FM
+
+Un Δ nul ne dit pas si les features sont sans information, redondantes, ou si le pipeline est
+cassé. `scripts/texture_redundancy.py` sépare les trois cas :
+
+| Mesure | SimDINOv2-B | DINOv3-B LVD |
+|---|---|---|
+| F1 des features **seules** (106 dims) | 0,3348 | — |
+| hasard (1/11) | 0,091 | 0,091 |
+| **R²** (features prédites par l'embedding) | **0,916** (87/106 > 0,5) | **0,884** (85/106) |
+| F médian des features | 1 299 | 1 299 |
+| F médian des directions de l'embedding | 1 076 | 1 038 |
+| **F médian du résidu** (features − prédiction) | **3,3** | **4,2** |
+| F max du résidu | 8,4 | 11,3 |
+
+Lecture : **la texture porte un vrai signal** (0,335 seule, et ses features sont
+individuellement aussi discriminantes que les directions de l'embedding), **le FM la contient
+déjà à 88–92 %**, et **la part que le FM ne contient pas n'a aucun signal de classe**
+(F médian 3–4 contre ~1 000 pour les directions de l'embedding, facteur ~250).
+
+Décomposition : **texture = (sous-espace déjà encodé par le FM) ⊕ (résidu non informatif)**.
+C'est pour ça que Δ = 0, et ça ne peut pas être un artefact de pipeline — un pipeline cassé ne
+donnerait ni un R² de 0,92 ni un résidu plat.
+
+Mécanisme : le patch embedding d'un ViT est une **projection linéaire apprise d'un patch
+16×16×3** — un banc de filtres de texture appris à l'échelle exacte que GLCM mesure
+(16 px = 3,5 cm ; les `d`=1–4 visent 2–9 mm, des statistiques intra-patch qu'une projection
+linéaire sur 768 dimensions encode). Les FM ont appris cette famille de descripteurs sur
+1,7 milliard d'images.
+
+### Ce que ça change
+
+Cette expérience **réfute** l'attente de gain (+0,01 à +0,03) qu'on pouvait tirer de
+Kulich et al. 2026 (`doi:10.3389/fpls.2026.1841696`) et Deng et al. 2022
+(`doi:10.1038/s41598-022-17620-2`). La différence de régime est la clé : chez eux les
+features artisanales **sont** le modèle (XGBoost par pixel sur 135 features), ici elles sont
+un **complément** à une représentation apprise qui les contient déjà.
+
+Bilan des quatre leviers testés sur Arctic-TVC :
+
+| Levier | Effet |
+|---|---|
+| Contexte spatial | **+0,03** (réel) |
+| Adaptation (LoRA/Full/MHSA) | +0,008 à +0,012 (réel, borné) |
+| Échelle B→L→H+ | +0,002 (saturé) |
+| **Texture (7 familles, 106 features)** | **−0,002 (rien, et on sait pourquoi)** |
+
+Formulation : **seule l'information que le modèle de fondation ne possède pas déjà déplace le
+plafond.** Ajouter 106 descripteurs informationnels ne fait rien *parce que* le FM les porte
+déjà — ce qui est cohérent avec la sonde PCA (~100 dimensions utiles).
+
+### Usage préventif du diagnostic
+
+`scripts/texture_redundancy.py` est générique : il prend n'importe quel dossier
+`{train,val,test}.npy` + `.json` (clé `feature_names`) et rend un verdict en trois nombres.
+À utiliser **avant** toute campagne d'acquisition : si le résidu est plat, la nouvelle
+modalité (NIR, CHM/LiDAR, indices) n'apportera rien à ce FM, et on évite l'acquisition.
+
+```bash
+python3 scripts/texture_redundancy.py --emb embeddings/simdinov2_vitb16 \
+    --label-schema 12cls --features-dir results/texture --tag simdinov2_vitb16
+```
+
 ## Coût mesuré
 
 | Étape | Coût |
