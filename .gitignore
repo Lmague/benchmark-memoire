@@ -144,8 +144,18 @@ __pycache__/
 # Texture classique concaténée à l'embedding (2026-09) — voir scripts/texture_README.md :
 !/scripts/texture_features.py
 !/scripts/texture_ablation.py
+!/scripts/texture_redundancy.py
 !/scripts/texture_README.md
 !/scripts/slurm_texture.sh
+# Résultats de texture (job Narval 3155757) — JSON seulement, les .npy de cache restent exclus :
+!/results/texture/
+/results/texture/*
+!/results/texture/ablation_simdinov2_vitb16.json
+!/results/texture/ablation_simdinov2_vitb16_controle.json
+!/results/texture/ablation_dinov3_vitb16_lvd.json
+!/results/texture/ablation_dinov3_vitb16_lvd_controle.json
+!/results/texture/redundance_dinov3_vitb16_lvd.json
+!/results/texture/redundance_simdinov2_vitb16.json
 
 # Self-distillation contexte→tuile (2026-08-29) — voir scripts/context_distill_README.md :
 !/scripts/context_crop.py
