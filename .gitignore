@@ -221,3 +221,12 @@ __pycache__/
 !/scripts/submit_size_sweep_valtest.sh
 !/scripts/slurm_context_frozen_models.sh
 !/scripts/slurm_merge_context_zip.sh
+
+# --- Dépôt public : surface minimale -------------------------------------
+# Retirés du versionnement le 2026-09-22 (conservés sur le disque).
+# Notes de travail internes, rapports d'encadrement, journaux de bord :
+!/README.md
+!/LICENSE
+!/figures/
+# Données et artefacts intermédiaires :
+!/results/README.md
