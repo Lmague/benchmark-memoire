@@ -1,13 +1,14 @@
 {
-  "_comment": "ExPLoRA SSL SimDINOv2-B -> tuiles Léo (4 sites). ~350k tuiles 224px.",
-  "tiles_dir": "$SCRATCH/leo_ssl/ssl_tiles",
+  "_comment": "ExPLoRA SSL SimDINOv2-B -> tuiles Léo web (4 sites, stretchées, canoniques). ~355k tuiles 224px.",
+  "tiles_dir": "$SCRATCH/web/tiles",
   "manifest": [
-    "$SCRATCH/leo_ssl/ssl_manifest_clairiere.json",
-    "$SCRATCH/leo_ssl/ssl_manifest_maison.json",
-    "$SCRATCH/leo_ssl/ssl_manifest_trail.json",
-    "$SCRATCH/leo_ssl/ssl_manifest_rousseau.json"
+    "$SCRATCH/web/manifest_clairiere.json",
+    "$SCRATCH/web/manifest_maison.json",
+    "$SCRATCH/web/manifest_trail.json",
+    "$SCRATCH/web/manifest_rousseau.json"
   ],
-  "simdinov2_ckpt": "$SCRATCH/leo_ssl/simdinov2_vitb_inat21plantae.pth",
+  "site_subdir": true,
+  "simdinov2_ckpt": "$SCRATCH/checkpoints/simdinov2_vitb_inat21plantae.pth",
   "out_dir": "$SCRATCH/leo_ssl/runs/leo_vitb16_ssl",
   "seed": 0,
   "epochs": 50,
@@ -16,7 +17,7 @@
   "workers": 8,
   "n_global": 2,
   "n_local": 6,
-  "green_upsample": 4.0,
+  "green_upsample": 1.0,
   "lora_r": 16,
   "lora_alpha": 16.0,
   "n_full_blocks": 2,

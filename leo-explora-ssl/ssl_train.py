@@ -270,20 +270,30 @@ def main():
     print(f"[run] seed={seed} out_dir={cfg['out_dir']}", flush=True)
 
     # --- données (un manifest ou une liste) ---
+    # Deux layouts supportés :
+    #   site_subdir=false : tiles_dir / f          (f="{site}/{idx}.jpg", export brut)
+    #   site_subdir=true  : tiles_dir / site / f   (f="{part}/{tr}/{idx}.jpg", manifests web)
     mans = cfg["manifest"] if isinstance(cfg["manifest"], list) else [cfg["manifest"]]
-    files, green = [], []
+    site_subdir = bool(cfg.get("site_subdir", False))
+    files, green, n_missing = [], [], 0
     for mf in mans:
-        man = json.loads(Path(mf).read_text())["tiles"]
-        for idx, t in man.items():
-            p = Path(cfg["tiles_dir"]) / t["f"]  # f = "{site}/{idx}.jpg"
+        raw = json.loads(Path(mf).read_text())
+        site = (raw.get("meta") or {}).get("site")
+        prefix = Path(site) if (site_subdir and site) else Path("")
+        for idx, t in raw.get("tiles", {}).items():
+            p = Path(cfg["tiles_dir"]) / prefix / t["f"]
             if p.exists():
                 files.append(str(p))
                 green.append(t.get("green", 0.0))
+            else:
+                n_missing += 1
     green = np.array(green)
     w = np.ones(len(files))
-    up = cfg.get("green_upsample", 4.0)
-    w[green > float(np.median(green))] = up
-    print(f"[data] {len(files)} tuiles (poids verts x{up} au-dessus de la médiane)")
+    up = cfg.get("green_upsample", 1.0)
+    if len(green) and up != 1.0:
+        w[green > float(np.median(green))] = up
+    print(f"[data] {len(files)} tuiles trouvées ({n_missing} manquantes), "
+          f"green_upsample x{up}")
     ds = SSLTiles(files, cfg.get("n_global", 2), cfg.get("n_local", 6))
     sampler = torch.utils.data.WeightedRandomSampler(
         torch.tensor(w), len(files), replacement=True)
