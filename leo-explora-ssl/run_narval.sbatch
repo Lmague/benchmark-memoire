@@ -15,9 +15,11 @@
 # d'annotation (moyenne des probas par espèce). Sorties suffixées _seed{N},
 # convention du dépôt Mémoire.
 #
-# PRÉ-REQUIS sur $SCRATCH/leo_ssl/ (cf. README § transfert) :
-#   ssl_tiles/, ssl_manifest_{clairiere,maison,trail,rousseau}.json,
-#   simdinov2_vitb_inat21plantae.pth
+# PRÉ-REQUIS sur Narval (déjà présents pour les embeddings gelés) :
+#   $SCRATCH/web/tiles/{clairiere,maison,trail,rousseau}/   (~355 486 tuiles)
+#   $SCRATCH/web/manifest_{clairiere,maison,trail,rousseau}.json
+#   $SCRATCH/checkpoints/simdinov2_vitb_inat21plantae.pth
+# (pas d'export brut : on réutilise web/tiles, le jeu canonique des embeddings gelés)
 # $HOME/benchmark-memoire/leo-explora-ssl = ce dépôt (git pull à jour).
 # $HOME/ENV = env standard du dépôt Mémoire (torch + einops), utilisé par défaut.
 #
@@ -53,11 +55,14 @@ echo "════════════════════════�
 
 [[ ! -d "$REPO" ]] && { echo "[ERROR] REPO absent: $REPO"; exit 1; }
 [[ -f "$VENV" ]] || { echo "[ERROR] venv absent: $VENV (export VENV=...)"; exit 1; }
-for f in ssl_manifest_clairiere ssl_manifest_maison ssl_manifest_trail ssl_manifest_rousseau; do
-  [[ -f "$DATA/$f.json" ]] || { echo "[ERROR] MANQUANT: $DATA/$f.json"; exit 1; }
+WEB="$SCRATCH/web"
+CKPT="$SCRATCH/checkpoints/simdinov2_vitb_inat21plantae.pth"
+for s in clairiere maison trail rousseau; do
+  [[ -f "$WEB/manifest_$s.json" ]] || { echo "[ERROR] MANQUANT: $WEB/manifest_$s.json"; exit 1; }
 done
-[[ -d "$DATA/ssl_tiles" ]] || { echo "[ERROR] MANQUANT: $DATA/ssl_tiles/"; exit 1; }
-[[ -f "$DATA/simdinov2_vitb_inat21plantae.pth" ]] || { echo "[ERROR] MANQUANT: $DATA/simdinov2_vitb_inat21plantae.pth"; exit 1; }
+[[ -d "$WEB/tiles" ]] || { echo "[ERROR] MANQUANT: $WEB/tiles/"; exit 1; }
+[[ -f "$CKPT" ]] || { echo "[ERROR] MANQUANT: $CKPT  (rsync ~/Documents/Mémoire/checkpoints/simdinov2_vitb_inat21plantae.pth)"; exit 1; }
+echo "[check] tuiles web : $(find "$WEB/tiles" -name '*.jpg' | wc -l) (attendu ~355486)"
 
 module load python/3.11 cuda/12.2 cudnn/8.9
 source "$VENV"
