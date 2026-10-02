@@ -69,12 +69,13 @@ class QVLoRA(nn.Module):
         for p in self.qkv.parameters():
             p.requires_grad = False
         dim = qkv.in_features
+        dev = qkv.weight.device          # créer LoRA sur le MÊME device que qkv
         self.r = r
         self.scaling = alpha / r
-        self.lora_A_q = nn.Parameter(torch.zeros(r, dim))
-        self.lora_A_v = nn.Parameter(torch.zeros(r, dim))
-        self.lora_B_q = nn.Parameter(torch.zeros(dim, r))
-        self.lora_B_v = nn.Parameter(torch.zeros(dim, r))
+        self.lora_A_q = nn.Parameter(torch.zeros(r, dim, device=dev))
+        self.lora_A_v = nn.Parameter(torch.zeros(r, dim, device=dev))
+        self.lora_B_q = nn.Parameter(torch.zeros(dim, r, device=dev))
+        self.lora_B_v = nn.Parameter(torch.zeros(dim, r, device=dev))
         nn.init.kaiming_uniform_(self.lora_A_q, a=math.sqrt(5))
         nn.init.kaiming_uniform_(self.lora_A_v, a=math.sqrt(5))
 
@@ -304,9 +305,17 @@ def main():
         print(f"[dry-run] {len(ds)} tuiles, {len(dl)} steps/époque")
 
     # --- modèle : student charge le ckpt, teacher = copie à l'identique ---
-    student_bb = load_backbone(Path(cfg["simdinov2_ckpt"])).to(device)
+    student_bb = load_backbone(Path(cfg["simdinov2_ckpt"]))
+    # IMPORTANT : apply_explora AVANT .to(device) — sinon les paramètres LoRA
+    # nouvellement créés restent sur CPU alors que le backbone est sur CUDA.
     groups = apply_explora(student_bb, cfg.get("lora_r", 16),
                            cfg.get("lora_alpha", 16.0), cfg.get("n_full_blocks", 2))
+    student_bb = student_bb.to(device)
+    want = "cuda" if device == "cuda" else "cpu"
+    off = [n for n, p in student_bb.named_parameters() if p.device.type != want]
+    if off:
+        raise RuntimeError(f"paramètres student hors {want}: {off[:5]} ...")
+    print(f"[device] student_bb sur {want} ({len(list(student_bb.parameters()))} tensors)")
     dim, out_dim = 768, cfg.get("head_dim", 16384)
     s_head = DINOHead(dim, out_dim).to(device)
     s_ihead = DINOHead(dim, out_dim).to(device)
