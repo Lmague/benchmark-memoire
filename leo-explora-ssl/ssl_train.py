@@ -276,6 +276,7 @@ def main():
     #   site_subdir=true  : tiles_dir / site / f   (f="{part}/{tr}/{idx}.jpg", manifests web)
     mans = cfg["manifest"] if isinstance(cfg["manifest"], list) else [cfg["manifest"]]
     site_subdir = bool(cfg.get("site_subdir", False))
+    verify = bool(cfg.get("verify_tiles", False))  # .exists() sur 355k est LENT sur Lustre
     files, green, n_missing = [], [], 0
     for mf in mans:
         raw = json.loads(Path(mf).read_text())
@@ -283,7 +284,7 @@ def main():
         prefix = Path(site) if (site_subdir and site) else Path("")
         for idx, t in raw.get("tiles", {}).items():
             p = Path(cfg["tiles_dir"]) / prefix / t["f"]
-            if p.exists():
+            if not verify or p.exists():
                 files.append(str(p))
                 green.append(t.get("green", 0.0))
             else:
@@ -293,8 +294,8 @@ def main():
     up = cfg.get("green_upsample", 1.0)
     if len(green) and up != 1.0:
         w[green > float(np.median(green))] = up
-    print(f"[data] {len(files)} tuiles trouvées ({n_missing} manquantes), "
-          f"green_upsample x{up}")
+    print(f"[data] {len(files)} tuiles listées ({n_missing} manquantes, "
+          f"verify={verify}), green_upsample x{up}", flush=True)
     ds = SSLTiles(files, cfg.get("n_global", 2), cfg.get("n_local", 6))
     sampler = torch.utils.data.WeightedRandomSampler(
         torch.tensor(w), len(files), replacement=True)
@@ -315,7 +316,8 @@ def main():
     off = [n for n, p in student_bb.named_parameters() if p.device.type != want]
     if off:
         raise RuntimeError(f"paramètres student hors {want}: {off[:5]} ...")
-    print(f"[device] student_bb sur {want} ({len(list(student_bb.parameters()))} tensors)")
+    print(f"[device] student_bb sur {want} ({len(list(student_bb.parameters()))} tensors)",
+          flush=True)
     dim, out_dim = 768, cfg.get("head_dim", 16384)
     s_head = DINOHead(dim, out_dim).to(device)
     s_ihead = DINOHead(dim, out_dim).to(device)
@@ -340,9 +342,9 @@ def main():
     n_tr += sum(p.numel() for p in groups["head"])
     n_tot = sum(p.numel() for p in student_bb.parameters())
     print(f"[model] entraînables backbone: {n_tr:,} / {n_tot:,} "
-          f"({100*n_tr/n_tot:.1f}%)")
+          f"({100*n_tr/n_tot:.1f}%)", flush=True)
     for g, ps in groups.items():
-        print(f"  groupe '{g}': {len(ps)} tensors")
+        print(f"  groupe '{g}': {len(ps)} tensors", flush=True)
 
     dino_loss = DINOLoss(out_dim).to(device)
     ibot_loss = iBOTPatchLoss(out_dim).to(device)
@@ -360,6 +362,7 @@ def main():
     steps_per_ep = len(dl)
     warmup = cfg.get("warmup_epochs", 3) * steps_per_ep
     total = epochs * steps_per_ep
+    print(f"[start] {steps_per_ep} steps/époque × {epochs} = {total} steps", flush=True)
     t_temp = cfg.get("teacher_temp", 0.07)
     m0, m1 = cfg.get("ema_0", 0.996), cfg.get("ema_1", 1.0)
 
