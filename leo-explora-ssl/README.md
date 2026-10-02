@@ -45,7 +45,9 @@ sont déjà sur Narval. Le préflight du sbatch vérifie leur présence.
 
 Édite `run_narval.sbatch` si besoin (`VENV=`, `BATCH_OVERRIDE=`), puis
 `sbatch run_narval.sbatch`. Config : `configs/leo_vitb16_ssl.json`.
-Array 0-2 = seeds 0,1,2. Sorties :
+Array 0-2 = seeds 0,1,2. GPU : MIG `a100_3g.20gb` par défaut (file courte) ;
+`BATCH_OVERRIDE=64`. Pour un A100 entier : éditer `--gres=gpu:a100:1` +
+`BATCH_OVERRIDE=128`. Sorties :
 `$SCRATCH/leo_ssl/runs/leo_vitb16_ssl_seed{N}/checkpoints/`
 (`ep{NNN}.pth` toutes les `save_every_epochs` + `last.pth`). On choisit l'époque
 sur le probe des tuiles labellisées — pas `last` par défaut.
