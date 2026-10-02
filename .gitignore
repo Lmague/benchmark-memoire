@@ -43,6 +43,12 @@
 #     (pipeline : datacurve_one_run.py lit csv_dir pointé par le script SLURM).
 !/spatial_datacurve/
 
+# 2c) ExPLoRA SSL « vrai » (Khanna et al. 2024) — SimDINOv2-B iNat → tuiles Léo.
+#     Rapatrié dans le dépôt Mémoire le 2026-10-02 (aplati, historique git archivé
+#     hors dépôt). Le .gitignore interne exclut data/ logs/ *.pth *.npz *.json
+#     (sauf configs/*.json) — donc seuls le code et les configs sont versionnés.
+!/leo-explora-ssl/
+
 # 3) Caches Python toujours exclus, y compris sous src/ et configs/
 __pycache__/
 *.pyc
