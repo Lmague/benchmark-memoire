@@ -8,6 +8,7 @@
     "$SCRATCH/web/manifest_rousseau.json"
   ],
   "site_subdir": true,
+  "verify_tiles": false,
   "simdinov2_ckpt": "$SCRATCH/checkpoints/simdinov2_vitb_inat21plantae.pth",
   "out_dir": "$SCRATCH/leo_ssl/runs/leo_vitb16_ssl",
   "seed": 0,
