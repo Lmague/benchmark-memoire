@@ -132,6 +132,19 @@ def apply_explora(backbone: nn.Module, r: int, alpha: float, n_full: int = 2):
     return groups
 
 
+# ---------------------------------------------------------------- seeding
+def _seed_worker(worker_id: int) -> None:
+    """Re-seed Python `random` (et numpy) par worker DataLoader.
+
+    Le DataLoader seed le RNG *torch* de chaque worker, mais PAS le module
+    `random` (utilisé par les hflips de global_view/local_view). Sans ça, tous
+    les workers héritent du même état au fork → augmentations corrélées.
+    """
+    s = torch.initial_seed() % (2 ** 32)
+    random.seed(s)
+    np.random.seed(s)
+
+
 # ---------------------------------------------------------------- dataset
 class SSLTiles(Dataset):
     """n_global vues globales (augmentations INDÉPENDANTES) + n_local locales.
@@ -297,11 +310,16 @@ def main():
     print(f"[data] {len(files)} tuiles listées ({n_missing} manquantes, "
           f"verify={verify}), green_upsample x{up}", flush=True)
     ds = SSLTiles(files, cfg.get("n_global", 2), cfg.get("n_local", 6))
+    # Générateurs dédiés (indépendants de la consommation du RNG global) +
+    # worker_init_fn : chaque worker tire ses augmentations d'un flux distinct,
+    # reproductible pour un seed donné.
+    g_sampler = torch.Generator().manual_seed(seed)
     sampler = torch.utils.data.WeightedRandomSampler(
-        torch.tensor(w), len(files), replacement=True)
+        torch.tensor(w), len(files), replacement=True, generator=g_sampler)
     dl = DataLoader(ds, batch_size=cfg.get("batch", 128), sampler=sampler,
                     num_workers=cfg.get("workers", 8), pin_memory=True,
-                    drop_last=True)
+                    drop_last=True, worker_init_fn=_seed_worker,
+                    generator=torch.Generator().manual_seed(seed + 1))
     if args.dry_run:
         print(f"[dry-run] {len(ds)} tuiles, {len(dl)} steps/époque")
 

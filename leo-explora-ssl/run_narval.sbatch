@@ -23,18 +23,19 @@
 # $HOME/benchmark-memoire/leo-explora-ssl = ce dépôt (git pull à jour).
 # $HOME/ENV = env standard du dépôt Mémoire (torch + einops), utilisé par défaut.
 #
-# Durée : ~27 h/seed sur A100 entier ; ~60-65 h/seed sur MIG 3g.20gb (observé
-# ~0,41 s/step à batch 32). --time=72h pour couvrir la queue du cosine.
-# Mémoire : 2 globales + 6 locales ; batch 64 par défaut sur MIG (128 si GPU plein).
-# Pour un A100 entier : passer --gres=gpu:a100:1 et BATCH_OVERRIDE=128.
+# Durée : ~27 h/seed sur A100 entier (batch 128) ; ~60-65 h/seed sur MIG
+# 3g.20gb (observé ~0,41 s/step à batch 32, >48h -> ne rentre pas).
+# Mémoire : 2 globales + 6 locales ; batch 128 sur A100 40 Go (64 si MIG).
+# Variante MIG : --gres=gpu:a100_3g.20gb:1 --mem=32G + BATCH_OVERRIDE=64
+#                + EPOCHS_OVERRIDE=34 (le MIG ne finit pas 50 époques en 48 h).
 # Soumission : sbatch run_narval.sbatch
 # ═══════════════════════════════════════════════════════════════════════════════
 #SBATCH --job-name=leo_explora_ssl
 #SBATCH --array=0-2
-#SBATCH --gres=gpu:a100_3g.20gb:1
-#SBATCH --mem=32G
+#SBATCH --gres=gpu:a100:1
+#SBATCH --mem=60G
 #SBATCH --cpus-per-task=8
-#SBATCH --time=72:00:00
+#SBATCH --time=48:00:00
 #SBATCH --output=logs/leo_ssl_%A_%a.out
 #SBATCH --error=logs/leo_ssl_%A_%a.err
 #SBATCH --account=def-bouguess_gpu
@@ -43,8 +44,8 @@ SEED=${SEED:-$SLURM_ARRAY_TASK_ID}
 REPO="$HOME/benchmark-memoire/leo-explora-ssl"
 DATA="$SCRATCH/leo_ssl"
 VENV="${VENV:-$HOME/ENV/bin/activate}"
-BATCH="${BATCH_OVERRIDE:-64}"
-EPOCHS="${EPOCHS_OVERRIDE:-50}"          # réduire si --time=48h (MIG ~1,3 h/époque !)
+BATCH="${BATCH_OVERRIDE:-128}"
+EPOCHS="${EPOCHS_OVERRIDE:-50}"          # MIG 3g.20gb : ~1,3 h/époque -> 34 max en 48h
 
 export HF_HOME="$SCRATCH/hf_cache"
 export HF_HUB_OFFLINE=1
