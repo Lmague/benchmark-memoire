@@ -44,6 +44,7 @@ REPO="$HOME/benchmark-memoire/leo-explora-ssl"
 DATA="$SCRATCH/leo_ssl"
 VENV="${VENV:-$HOME/ENV/bin/activate}"
 BATCH="${BATCH_OVERRIDE:-64}"
+EPOCHS="${EPOCHS_OVERRIDE:-50}"          # réduire si --time=48h (MIG ~1,3 h/époque !)
 
 export HF_HOME="$SCRATCH/hf_cache"
 export HF_HUB_OFFLINE=1
@@ -73,12 +74,12 @@ mkdir -p "$DATA/runs" logs
 
 # Résout $SCRATCH dans la config + force batch (la config garde epochs=50)
 sed "s|\$SCRATCH|$SCRATCH|g" configs/leo_vitb16_ssl.json > "$DATA/config_resolved_seed${SEED}.json"
-python - "$DATA/config_resolved_seed${SEED}.json" "$BATCH" "$SEED" <<'PYEOF'
+python - "$DATA/config_resolved_seed${SEED}.json" "$BATCH" "$SEED" "$EPOCHS" <<'PYEOF'
 import json, sys
-p, b, s = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
-c = json.loads(open(p).read()); c["batch"] = b; c["seed"] = s
+p, b, s, e = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
+c = json.loads(open(p).read()); c["batch"] = b; c["seed"] = s; c["epochs"] = e
 json.dump(c, open(p, "w"), indent=2)
-print(f"[config] {p} batch={b} seed={s}")
+print(f"[config] {p} batch={b} seed={s} epochs={e}")
 PYEOF
 
 # Préflight : construit le backbone + applique ExPLoRA (échec rapide < 5 min)
