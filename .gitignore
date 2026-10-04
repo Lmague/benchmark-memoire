@@ -163,6 +163,20 @@ __pycache__/
 !/results/texture/redundance_dinov3_vitb16_lvd.json
 !/results/texture/redundance_simdinov2_vitb16.json
 
+# Dose-réponse d'alignement SSL Léo → Arctic-TVC (2026-10-04) — JSON de sonde, tables
+# et figures seulement (les .npy de sig_embeddings restent exclus, ~20 Go) :
+!/results/leo_explora_ssl/
+/results/leo_explora_ssl/*
+!/results/leo_explora_ssl/probes/
+/results/leo_explora_ssl/probes/*
+!/results/leo_explora_ssl/probes/*.json
+!/results/leo_explora_ssl/alignment_summary.csv
+!/results/leo_explora_ssl/alignment_summary.md
+!/results/leo_explora_ssl/figures/
+/results/leo_explora_ssl/figures/*
+!/results/leo_explora_ssl/figures/*.png
+!/results/leo_explora_ssl/figures/*.pdf
+
 # Self-distillation contexte→tuile (2026-08-29) — voir scripts/context_distill_README.md :
 !/scripts/context_crop.py
 !/scripts/context_distill.py
@@ -185,6 +199,26 @@ __pycache__/
 # Extraction sig_embeddings des runs SimDINOv2-B (rangs 2-3 du tableau maître, absents
 # du palier de significativité faute d'embeddings) — 2026-09-13 :
 !/scripts/slurm_context_extract_sig_simb.sh
+
+# Dose-réponse d'alignement : SSL aérien Léo (ExPLoRA, vrai SSL non supervisé) → Arctic-TVC.
+# Sonde gelée tile / ctx-seul / fusion @512 par checkpoint (2026-10-04) — voir
+# scripts/leo_ssl_alignment_README.md :
+!/scripts/leo_ssl_extract_arctic.py
+!/scripts/slurm_leo_ssl_arctic_extract.sh
+!/scripts/leo_ssl_alignment_probe.py
+!/scripts/leo_ssl_alignment_plot.py
+!/scripts/leo_ssl_alignment_README.md
+
+# SSL aérien Léo × annotations (kNN/logreg/MLP + ensemble de seeds, 2026-10-04) —
+# voir scripts/leo_ssl_annot_README.md :
+!/scripts/leo_ssl_annot_extract.sh
+!/scripts/leo_ssl_annot_bench.py
+!/scripts/leo_ssl_annot_README.md
+# Variante Narval (GPU, sans raster) : index local + extraction depuis les JPEG web + job
+# enchaîné après les 3 seeds SSL (2026-10-04) :
+!/scripts/leo_ssl_annot_prepare_index.py
+!/scripts/leo_ssl_annot_extract_web.py
+!/scripts/slurm_leo_ssl_annot_eval.sh
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/
