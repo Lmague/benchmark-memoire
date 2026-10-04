@@ -162,7 +162,10 @@ def run_one(task: tuple) -> tuple:
     probe_dir = Path(out_dir) / "probes"
     probe_dir.mkdir(parents=True, exist_ok=True)
     out_path = probe_dir / f"{tag}_{variant}.json"
-    if out_path.exists():
+    proba_path = probe_dir / f"{tag}_{variant}_proba.npy"
+    # --ensemble : il faut AUSSI les probabilités. Si un premier passage sans --ensemble a
+    # déjà écrit le JSON, on ne saute pas : on refait pour produire les proba.
+    if out_path.exists() and not (want_proba and not proba_path.exists()):
         return str(out_path), "skip (déjà fait)"
 
     from context_distill import _run_probe_with_balanced_acc

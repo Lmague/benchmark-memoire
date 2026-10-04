@@ -208,6 +208,7 @@ __pycache__/
 !/scripts/leo_ssl_alignment_probe.py
 !/scripts/leo_ssl_alignment_plot.py
 !/scripts/leo_ssl_alignment_README.md
+!/scripts/slurm_leo_ssl_alignment_probe.sh
 
 # SSL aérien Léo × annotations (kNN/logreg/MLP + ensemble de seeds, 2026-10-04) —
 # voir scripts/leo_ssl_annot_README.md :
