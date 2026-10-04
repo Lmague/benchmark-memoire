@@ -80,13 +80,28 @@ mkdir -p logs "$EMB" "$BENCH"
 
 declare -A CKPTS
 CKPTS[base]="$SCRATCH/checkpoints/simdinov2_vitb_inat21plantae.pth"
+# ALL_EPOCHS=1 : tous les ep*.pth (trajectoire) au lieu du seul last.pth.
+# Tags : ssl_seed{S} (défaut) ou ssl_seed{S}_{ep} (ALL_EPOCHS).
+ALL_EPOCHS="${ALL_EPOCHS:-0}"
+TAGS_ORDER=("base")
 for s in 0 1 2; do
-    CKPTS["ssl_seed${s}"]="$SCRATCH/leo_ssl/runs/leo_vitb16_ssl_seed${s}/checkpoints/last.pth"
+    if [[ "$ALL_EPOCHS" == "1" ]]; then
+        for ep in "$SCRATCH/leo_ssl/runs/leo_vitb16_ssl_seed${s}/checkpoints"/ep[0-9][0-9][0-9].pth; do
+            [[ -f "$ep" ]] || continue
+            b=$(basename "$ep" .pth)
+            CKPTS["ssl_seed${s}_${b}"]="$ep"
+            TAGS_ORDER+=("ssl_seed${s}_${b}")
+        done
+    else
+        CKPTS["ssl_seed${s}"]="$SCRATCH/leo_ssl/runs/leo_vitb16_ssl_seed${s}/checkpoints/last.pth"
+        TAGS_ORDER+=("ssl_seed${s}")
+    fi
 done
+echo "[config] ALL_EPOCHS=$ALL_EPOCHS → ${#TAGS_ORDER[@]} tags"
 
 # ── 1. extraction (GPU) ─────────────────────────────────────────────────────────
 FAILED=()
-for tag in base ssl_seed0 ssl_seed1 ssl_seed2; do
+for tag in "${TAGS_ORDER[@]}"; do
     CK="${CKPTS[$tag]}"
     if [[ ! -f "$CK" ]]; then
         echo "[SKIP] $tag : checkpoint absent ($CK)"
@@ -113,15 +128,25 @@ echo "[check] $N_OK tag(s) extraits dans $EMB"
 
 # ── 2. banc d'évaluation (CPU, mono-thread BLAS) ────────────────────────────────
 echo ""
-echo "─── banc d'évaluation (clf=$CLF, variante tile) ───"
-python scripts/leo_ssl_annot_bench.py \
-    --emb-dir "$EMB" --out-dir "$BENCH" \
-    --clf "$CLF" --variants tile --task both \
-    || { echo "[ERROR] bench échoué" >&2; exit 1; }
+if [[ "$ALL_EPOCHS" == "1" ]]; then
+    echo "─── trajectoire (tous les checkpoints) ───"
+    python scripts/leo_ssl_annot_trajectory.py \
+        --emb-dir "$EMB" --out-dir "$BENCH" --clf "$CLF" --task both \
+        || { echo "[ERROR] trajectoire échouée" >&2; exit 1; }
+    REPORT="$BENCH/trajectory.md"
+else
+    echo "─── banc d'évaluation (clf=$CLF, variante tile) ───"
+    python scripts/leo_ssl_annot_bench.py \
+        --emb-dir "$EMB" --out-dir "$BENCH" \
+        --clf "$CLF" --variants tile --task both \
+        || { echo "[ERROR] bench échoué" >&2; exit 1; }
+    REPORT="$BENCH/bench_annot.md"
+fi
 
 echo ""
 echo "═══════════════════════════════════════════════"
 echo "[slurm] terminé."
 ls -la "$BENCH" 2>/dev/null
+echo "  Rapport : $REPORT"
 echo "  Rapatriement : rsync -avP narval:$BENCH/ ~/Documents/Mémoire/results/leo_explora_ssl/annot_bench/"
 echo "[slurm] done."
