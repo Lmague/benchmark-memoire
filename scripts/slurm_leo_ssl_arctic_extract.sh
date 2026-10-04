@@ -71,7 +71,8 @@ echo "════════════════════════�
 [[ -f "$CTX_ZIP" ]] || { echo "[ERROR] $CTX_ZIP absent"; exit 1; }
 [[ -f "$TILES_ZIP" ]] || { echo "[ERROR] $TILES_ZIP absent"; exit 1; }
 
-# --- répertoire des CSV de split -------------------------------------------------- ⚠️ `spatial_datacurve/` a été RETIRÉ du dépôt (commit
+# --- répertoire des CSV de split --------------------------------------------------
+# ⚠️ `spatial_datacurve/` a été RETIRÉ du dépôt (commit
 # 0d0f6a4 : 95 fichiers, 1,4 M de lignes) — il n'existe plus que dans l'arbre de travail
 # LOCAL. Sur Narval, seul `$SCRATCH/splits` est présent : c'est le split canonique v3,
 # dont val.csv/test.csv sont md5-identiques à spatial_datacurve/splits/frac100_seed0/ et
@@ -128,16 +129,29 @@ N_CTX=$(find "$CTX_DIR" -name '*.png' 2>/dev/null | wc -l)
 echo "[check] tuiles Arctic : $N_TILES (attendu ~80240) | contextes : $N_CTX"
 [[ "$N_CTX" -lt 79000 ]] && echo "[WARN] contextes < 79k : la fusion context_${CTX_SIZE}.zip + _valtest.zip est peut-être incomplète" >&2
 
-# --- point époque 0 (SimB iNat) : commun aux 3 seeds ----------------------------
+# --- point époque 0 (SimB iNat) : COMMUN aux 3 seeds ------------------------------
+# ⚠️ Le test `meta.json` (écrit en FIN d'extraction) ne protège pas du RACE : les 3
+# tâches de l'array démarrent simultanément, ne voient pas encore le fichier, et extraient
+# toutes le même checkpoint en écrivant les mêmes .npy en parallèle (3x le travail, et
+# risque de mélange des octets). On sérialise avec un flock NON bloquant : une seule
+# tâche fait la baseline, les autres passent.
 if [[ -f "$INAT_CKPT" && ! -f "$OUT_DIR/leossl_b16_INAT_init/meta.json" ]]; then
-    echo ""
-    echo "─── baseline époque 0 : SimDINOv2-B iNat-Plantae ───"
-    python scripts/leo_ssl_extract_arctic.py \
-        --ckpt "$INAT_CKPT" --tag leossl_b16_INAT_init \
-        --tiles-dir "$SLURM_TMPDIR/tiles" --context-dir "$CTX_DIR" \
-        --csv-dir "$CSV_DIR" --out-dir "$OUT_DIR" --context-size "$CTX_SIZE" \
-        --batch "$BATCH" --num-workers "$WORKERS" $AMP_FLAG \
-        || echo "[WARN] extraction baseline échouée" >&2
+    mkdir -p "$OUT_DIR"
+    exec 9>"$OUT_DIR/.baseline.lock"
+    if flock -n 9; then
+        echo ""
+        echo "─── baseline époque 0 : SimDINOv2-B iNat-Plantae ───"
+        python scripts/leo_ssl_extract_arctic.py \
+            --ckpt "$INAT_CKPT" --tag leossl_b16_INAT_init \
+            --tiles-dir "$SLURM_TMPDIR/tiles" --context-dir "$CTX_DIR" \
+            --csv-dir "$CSV_DIR" --out-dir "$OUT_DIR" --context-size "$CTX_SIZE" \
+            --batch "$BATCH" --num-workers "$WORKERS" $AMP_FLAG \
+            || echo "[WARN] extraction baseline échouée" >&2
+    else
+        echo "[skip] baseline déjà extraite par une autre tâche de l'array"
+    fi
+else
+    echo "[skip] baseline déjà extraite"
 fi
 
 # --- checkpoints du seed --------------------------------------------------------
