@@ -219,6 +219,7 @@ __pycache__/
 !/scripts/leo_ssl_annot_prepare_index.py
 !/scripts/leo_ssl_annot_extract_web.py
 !/scripts/slurm_leo_ssl_annot_eval.sh
+!/scripts/leo_ssl_annot_trajectory.py
 
 # Dossier checkpoints : structure versionnée (.gitkeep), .pth exclus (trop lourds pour git)
 !/checkpoints/

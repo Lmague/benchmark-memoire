@@ -148,6 +148,21 @@ sbatch --dependency=afterok:$SSLID scripts/slurm_leo_ssl_annot_eval.sh
 rsync -avP narval:$SCRATCH/annot_leo/bench/ results/leo_explora_ssl/annot_bench/
 ```
 
+### 3.3 Tous les checkpoints (trajectoire, pas seulement `last`)
+
+`last.pth` n'est **pas** forcément la meilleure époque (cf. `leo-explora-ssl/README.md`).
+Pour tracer les 10 époques × 3 seeds :
+
+```bash
+ssh narval 'cd ~/benchmark-memoire && ALL_EPOCHS=1 sbatch scripts/slurm_leo_ssl_annot_eval.sh'
+```
+
+Le job extrait `ssl_seed{S}_ep{004..049}` (30 tags, ~10 min) puis lance
+`leo_ssl_annot_trajectory.py` au lieu du banc simple. Sortie :
+`trajectory.md` (multiclass + détection par époque, `mean±std` vs ensemble) +
+la **géométrie** (RankMe, anisotropie, α-ReQ, NESum) de chaque checkpoint — c'est
+elle qui teste l'hypothèse « l'adaptation tasse l'espace, d'où le kNN qui décroche ».
+
 ### Étape 3 — outil d'annotation (optionnel)
 
 ```bash
@@ -211,4 +226,5 @@ comme F1 de modèle dans le manuscrit. Le JSON trace les deux champs séparémen
 | [`scripts/slurm_leo_ssl_annot_eval.sh`](slurm_leo_ssl_annot_eval.sh) | **Narval** : un job = 4 tags + banc d'évaluation, `--dependency=afterok` |
 | [`scripts/leo_ssl_annot_extract.sh`](leo_ssl_annot_extract.sh) | local : encode les annotations depuis le raster (contexte 512 inclus) |
 | [`scripts/leo_ssl_annot_bench.py`](leo_ssl_annot_bench.py) | multiclass + détection + ensemble, folds appariés |
+| [`scripts/leo_ssl_annot_trajectory.py`](leo_ssl_annot_trajectory.py) | trajectoire sur **tous** les checkpoints (`ALL_EPOCHS=1`) + géométrie |
 | `annotations_leo/extract_embeddings.py` | **modifié** : `--ckpt`, `--out-dir`, phase `negatives` (défauts inchangés) |
