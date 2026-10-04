@@ -50,7 +50,7 @@ CTX_VT_ZIP="$SCRATCH/context_${CTX_SIZE}_valtest.zip"
 CKPT_ROOT="$SCRATCH/leo_ssl/runs/leo_vitb16_ssl_seed${SEED}/checkpoints"
 INAT_CKPT="$SCRATCH/checkpoints/simdinov2_vitb_inat21plantae.pth"
 OUT_DIR="$SCRATCH/leo_ssl/arctic_probe/sig_embeddings"
-CSV_DIR="$CODE_DIR/spatial_datacurve/splits/frac100_seed0"
+CSV_DIR=""
 BATCH="${BATCH_OVERRIDE:-128}"
 WORKERS="${WORKERS_OVERRIDE:-8}"
 AMP_FLAG="${AMP_FLAG:-}"
@@ -70,7 +70,38 @@ echo "════════════════════════�
 [[ -d "$CKPT_ROOT" ]] || { echo "[ERROR] $CKPT_ROOT absent — entraînement SSL pas rapatrié ?"; exit 1; }
 [[ -f "$CTX_ZIP" ]] || { echo "[ERROR] $CTX_ZIP absent"; exit 1; }
 [[ -f "$TILES_ZIP" ]] || { echo "[ERROR] $TILES_ZIP absent"; exit 1; }
-[[ -f "$CSV_DIR/test.csv" ]] || { echo "[ERROR] split spatial absent: $CSV_DIR/test.csv (git pull ?)"; exit 1; }
+
+# --- répertoire des CSV de split -------------------------------------------------- ⚠️ `spatial_datacurve/` a été RETIRÉ du dépôt (commit
+# 0d0f6a4 : 95 fichiers, 1,4 M de lignes) — il n'existe plus que dans l'arbre de travail
+# LOCAL. Sur Narval, seul `$SCRATCH/splits` est présent : c'est le split canonique v3,
+# dont val.csv/test.csv sont md5-identiques à spatial_datacurve/splits/frac100_seed0/ et
+# dont le train contient le MÊME ensemble de tuiles (ordre différent, sans effet ici :
+# tous les tags lisent le même CSV, et la sonde ne dépend pas de l'ordre).
+#
+# Override manuel :  CSV_DIR_OVERRIDE=/chemin/vers/splits sbatch ...
+CSV_CANDIDATES=(
+    "${CSV_DIR_OVERRIDE:-}"
+    "$CODE_DIR/spatial_datacurve/splits/frac100_seed0"
+    "$CODE_DIR/splits"
+    "$SCRATCH/splits"
+)
+for cand in "${CSV_CANDIDATES[@]}"; do
+    [[ -n "$cand" && -f "$cand/test.csv" && -f "$cand/train.csv" ]] && { CSV_DIR="$cand"; break; }
+done
+if [[ -z "$CSV_DIR" ]]; then
+    echo "[ERROR] aucun split trouvé. Candidats essayés :" >&2
+    for cand in "${CSV_CANDIDATES[@]}"; do echo "        ${cand:-<vide>}" >&2; done
+    echo "        → vérifier $SCRATCH/splits (attendu : train 49433 lignes)" >&2
+    exit 1
+fi
+CANON_TEST_MD5="579abdf7b4a7bf64260d347fa1d998a5"   # splits/test.csv canonique v3
+echo "[split] $CSV_DIR"
+REAL_TEST_MD5=$(md5sum "$CSV_DIR/test.csv" | cut -d' ' -f1)
+if [[ "$REAL_TEST_MD5" != "$CANON_TEST_MD5" ]]; then
+    echo "[WARN] test.csv md5=$REAL_TEST_MD5 ≠ canonique $CANON_TEST_MD5" >&2
+    echo "       → les F1 ne seront PAS directement comparables aux 0.5059 / 0.4931 /" >&2
+    echo "         0.4717 du chapitre contexte (val/test doivent être ceux du split v3)." >&2
+fi
 # Le loader SimDINOv2 (src/models._ensure_sslplant_on_path) clone le fork vendor s'il est
 # absent — or un nœud de calcul Narval n'a pas Internet. Échec rapide et explicite.
 [[ -f "$CODE_DIR/vendors/sslplant/simdinov2/eval/get_model.py" ]] || {
