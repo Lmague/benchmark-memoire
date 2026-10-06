@@ -2,6 +2,12 @@
 # Stratégie liste blanche : tout ignorer par défaut, puis ré-inclure UNIQUEMENT
 # le code transportable. Garantit que seuls src/, les 5 CLIs, configs/ et
 # requirements.txt sont versionnés — aucune donnée / sortie / rapport ne fuit.
+#
+# ⚠️ RÈGLE EXPLICITE (2026-10-04) : GitHub = **CODE + README** uniquement.
+#    Aucun .md hors README de code, aucun PDF, aucun document (AGENTS, journal,
+#    CHANGELOG, known_issues, NEEDS_HUMAN…), aucun manuscrit, aucun CSV de données.
+#    Ces fichiers restent EN LOCAL et ne sont jamais perdus ; ils ne montent
+#    simplement pas sur le dépôt distant.
 
 # 1) Tout ignorer à la racine…
 /*
@@ -42,6 +48,12 @@
 #     Les CSV des splits sont requis sur Narval pour les runs LoRA spatiaux
 #     (pipeline : datacurve_one_run.py lit csv_dir pointé par le script SLURM).
 !/spatial_datacurve/
+
+# 2b-bis) SPLIT CANONIQUE v3 — NON versionné (règle 2026-10-04 : code+README).
+#   `splits/` (11 Mo de CSV) reste local ; sans lui `make_spatial_datacurve.py`
+#   ne peut rien régénérer, et `spatial_datacurve/` non plus. Le job Narval
+#   2026-10-04 a échoué précisément sur ce point : sur Narval on utilise
+#   `$SCRATCH/splits` (split canonique v3, md5 vérifié côté script).
 
 # 2c) ExPLoRA SSL « vrai » (Khanna et al. 2024) — SimDINOv2-B iNat → tuiles Léo.
 #     Rapatrié dans le dépôt Mémoire le 2026-10-02 (aplati, historique git archivé
@@ -171,7 +183,10 @@ __pycache__/
 /results/leo_explora_ssl/probes/*
 !/results/leo_explora_ssl/probes/*.json
 !/results/leo_explora_ssl/alignment_summary.csv
-!/results/leo_explora_ssl/alignment_summary.md
+!/results/leo_explora_ssl/probe_ensembles.json
+!/results/leo_explora_ssl/annot_bench/
+/results/leo_explora_ssl/annot_bench/*
+!/results/leo_explora_ssl/annot_bench/*.json
 !/results/leo_explora_ssl/figures/
 /results/leo_explora_ssl/figures/*
 !/results/leo_explora_ssl/figures/*.png
@@ -209,6 +224,7 @@ __pycache__/
 !/scripts/leo_ssl_alignment_plot.py
 !/scripts/leo_ssl_alignment_README.md
 !/scripts/slurm_leo_ssl_alignment_probe.sh
+!/scripts/leo_ssl_harvest.sh
 
 # SSL aérien Léo × annotations (kNN/logreg/MLP + ensemble de seeds, 2026-10-04) —
 # voir scripts/leo_ssl_annot_README.md :
@@ -272,3 +288,30 @@ __pycache__/
 !/figures/
 # Données et artefacts intermédiaires :
 !/results/README.md
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RÈGLE GITHUB (2026-10-04) — CODE + README uniquement.
+# En .gitignore, la DERNIÈRE règle qui matche gagne : ce bloc, placé à la fin,
+# neutralise toutes les ré-inclusions ci-dessus. Les fichiers concernés restent
+# EN LOCAL (rien n'est perdu), ils ne montent simplement pas sur le dépôt distant.
+#   - `docs/`, `paper_*/` : documents, .tex, .pdf, rapports, manuscrit
+#   - `splits/`, `spatial_datacurve/` : CSV de données (11 Mo et 93 Mo)
+#   - journaux et méta-docs racine (AGENTS, AGENT_MEMORY, CHANGELOG, known_issues,
+#     NEEDS_HUMAN, RECONCILIATION, mail_bouguessa)
+#   - tout *.pdf
+# Les README de code (racine, `scripts/*_README.md`, `leo-explora-ssl/README.md`)
+# restent versionnés : c'est la documentation du code, pas un document de travail.
+# ═══════════════════════════════════════════════════════════════════════════════
+/docs/
+/paper_arctic_fm_benchmark/
+/paper_conference/
+/splits/
+/spatial_datacurve/
+/AGENTS.md
+/AGENT_MEMORY.md
+/CHANGELOG.md
+/known_issues.md
+/NEEDS_HUMAN.md
+/RECONCILIATION.md
+/mail_bouguessa.md
+*.pdf
