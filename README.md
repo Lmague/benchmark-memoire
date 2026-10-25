@@ -73,22 +73,30 @@ on 8 of the 9 sites, and full fine-tuning of the smaller model ends just below i
 
 ## Latent space
 
-![Probe dimension and class separability](figures/fig_readme_latent.png)
+![Spectra, ranking power and probe dimension](figures/fig_readme_latent.png)
 
-The task does not need the full embedding. Keeping 100 principal components reaches
-99.1 percent of the full probe's F1 on DINOv3-B, and the remaining 668 dimensions
-add 0.004. The limit is what the representation contains, not how many directions
-it uses.
+**Spectra.** The broken backbones give themselves away. Scale-MAE and the model
+trained from scratch lose most of their energy in the first few dozen directions,
+while the usable representations keep a long tail. That is the clearest geometry
+signal, and it needs no labels.
 
-Class separability does rank models. Fisher ratio, silhouette, Calinski-Harabasz,
-NC1 and Davies-Bouldin order 64 to 69 percent of model pairs correctly, and keep
-doing so under leave-one-model-out validation. It is a shortlisting tool, not an
-estimator: it beats the mean of the other models by about 0.0004 of MAE, on a tier
-whose whole F1 range is 0.04.
+**What predicts F1.** Inside the competitive tier, class separability is the only
+family that ranks. Fisher ratio, Calinski-Harabasz, NC1 and Davies-Bouldin order 69
+to 72 percent of model pairs like F1, and silhouette 60 percent. The spectral
+family does not: effective rank 41 percent, participation ratio 33 percent,
+intrinsic dimension 42 percent, and RankMe 55 percent, which is chance. Anisotropy
+behaves the same way, informative on the full population and useless inside the
+tier.
 
-Spectral measures do the opposite. Effective rank, RankMe, participation ratio and
-alpha-ReQ order 41 to 42 percent of pairs, so they are slightly anti-predictive
-inside the competitive tier.
+**Where geometry does work.** Within a single backbone, across its 12 layers,
+RankMe tracks F1 with a Spearman rho of 0.89 and anisotropy with -0.92. The
+geometry is a good map of where a model sits along its own depth, and a poor
+instrument for comparing different models at the top.
+
+**Dimension and redundancy.** Keeping 100 principal components reaches 99.1 percent
+of the full probe's F1 on DINOv3-B; the remaining 668 dimensions add 0.004. And the
+five separability measures agree at absolute rho above 0.98, so they carry one
+piece of information, not five.
 
 ## Learning curves and sampling
 
