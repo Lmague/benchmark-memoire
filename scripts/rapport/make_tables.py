@@ -492,9 +492,10 @@ CTX_META = {
     "ctxdistill_dB_tSL_r2a4": ("SimDINOv2-B Contexte (B, fusion 512, r2a4)", "affiné (contexte)"),
     "ctxdistill_dB_tSL_r8a16": ("SimDINOv2-B Contexte (B, fusion 512, r8a16)", "affiné (contexte)"),
 }
-# Les deux modèles SimDINOv2-B Design B entraînés n'ont pas d'embeddings test
-# rapatriés (registry.NO_BOOTSTRAP_EMBEDDINGS) : géométrie et bootstrap indisponibles.
-CTX_NO_GEO = {"ctxdistill_dB_tSL_r2a4", "ctxdistill_dB_tSL_r8a16"}
+# Les deux modèles SimDINOv2-B Design B entraînés n'avaient pas d'embeddings test
+# rapatriés (registry.NO_BOOTSTRAP_EMBEDDINGS) → géométrie et bootstrap indisponibles.
+# 2026-09-13 : sig_embeddings rapatriés → la géométrie est calculable, ensemble vidé.
+CTX_NO_GEO = set()
 
 
 def t_master():
@@ -549,14 +550,20 @@ def t_master():
                           f"({num(worst[1], 4, sign=True)})" if worst else "") +
               ". Ne pas former de $\\Delta$ entre une valeur d'ici et une valeur de "
               "là-bas."]
-    lines += ["\\vspace{2pt}\\par\\footnotesize\\textbf{Données manquantes.} Les "
-              "colonnes de géométrie (Silh., Rang eff., Aniso., kNN) sont \\texttt{---} "
-              "pour les deux SimDINOv2-B Design~B entraînés (fusion 512) : leurs "
-              "embeddings test n'ont pas été rapatriés sur disque "
-              "(\\texttt{registry.NO\\_BOOTSTRAP\\_EMBEDDINGS}), donc ni géométrie ni "
-              "probe interne n'ont pu être calculés. Ces deux modèles restent des "
-              "point-estimates documentés (\\texttt{metrics.json}) et ne figurent pas "
-              "dans le bootstrap apparié. Pour les modèles gelés (1 seed), "
+    # Note « données manquantes » : conditionnelle. Depuis 2026-09-13 les 2 bornes
+    # SimDINOv2-B Design B ont leurs sig_embeddings rapatriés (CTX_NO_GEO vide,
+    # registry.NO_BOOTSTRAP_EMBEDDINGS vide) — le paragraphe codé en dur qui les
+    # annonçait en point-estimates sans géométrie contredisait alors le tableau.
+    if CTX_NO_GEO:
+        lines += ["\\vspace{2pt}\\par\\footnotesize\\textbf{Données manquantes.} "
+                  "Les colonnes de géométrie (Silh., Rang eff., Aniso., kNN) sont "
+                  f"\\texttt{{---}} pour {len(CTX_NO_GEO)}~modèle(s) sans embeddings "
+                  "test rapatriés (\\texttt{registry.NO\\_BOOTSTRAP\\_EMBEDDINGS}) : "
+                  "ni géométrie ni probe interne n'ont pu être calculés ; ces "
+                  "modèles restent des point-estimates documentés "
+                  "(\\texttt{metrics.json}) et ne figurent pas dans le bootstrap "
+                  "apparié."]
+    lines += ["\\vspace{2pt}\\par\\footnotesize Pour les modèles gelés (1 seed), "
               "$\\sigma$ et la géométrie sont moyennées sur un seul seed et dites "
               "\\texttt{---} quand la colonne n'a pas de sens."]
     write("t_master", lines,
@@ -1435,19 +1442,27 @@ def _ctx_run_f1(tag_stem):
 
 
 CTX_RUNS = [
-    ("B", "DINOv3-L (externe)",
+    # (design, étudiant [backbone + LoRA], teacher, stem du run, note)
+    # ⚠ Le BACKBONE ÉTUDIANT est une colonne à part entière : les 5 runs ne diffèrent
+    # pas seulement par design/teacher — deux étudiants distincts (DINOv3-B/16 LVD
+    # @1024px et SimDINOv2-B/16 @512px) et, pour le second, deux rangs LoRA (r2a4 et
+    # r8a16). Les omettre rendait les deux dernières lignes indiscernables.
+    # Les tags R1/R2/R3 (tableau maître, t_ci, figures) sont rappelés dans la colonne
+    # design : ce sont les 3 lignes DINOv3-B du « plan final », PAS des tailles de
+    # contexte (cf. scripts/context_distill_README.md §1).
+    ("B (R2)", "DINOv3-B/16 LVD · r2a4", "DINOv3-L/16 LVD (externe)",
      "dinov3_vitb16_lvd_ctxdistill_dB_tL_ctx1024_r2a4_frac100",
      "tête apprise sur [tuile;contexte] (1536), contexte requis à l'inférence"),
-    ("A", "DINOv3-L (externe)",
+    ("A (R1)", "DINOv3-B/16 LVD · r2a4", "DINOv3-L/16 LVD (externe)",
      "dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100",
      "distillation seule, tuile seule à l'inférence (768)"),
-    ("A", "EMA-self",
+    ("A (R3)", "DINOv3-B/16 LVD · r2a4", "EMA du student",
      "dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100",
      "distillation seule, teacher = copie EMA du student"),
-    ("B", "SimDINOv2-L (externe)",
+    ("B", "SimDINOv2-B/16 · r2a4", "SimDINOv2-L/16 (externe)",
      "simdinov2_vitb16_ctxdistill_dB_tSL_ctx512_r2a4_frac100",
      "Design B entraîné, backbone SimB, contexte 512px (1536)"),
-    ("B", "SimDINOv2-L (externe)",
+    ("B", "SimDINOv2-B/16 · r8a16", "SimDINOv2-L/16 (externe)",
      "simdinov2_vitb16_ctxdistill_dB_tSL_ctx512_r8a16_frac100",
      "idem, LoRA r=8 au lieu de r=2"),
 ]
@@ -1458,25 +1473,33 @@ def t_ctx_distill():
     Remplace le fragment maintenu à la main (chiffres tapés, septembre) par une
     génération depuis results/context_distill/runs/*/metrics.json."""
     rows = []
-    for design, teacher, stem, note in CTX_RUNS:
+    for design, student, teacher, stem, note in CTX_RUNS:
         seeds, m, sd, f8 = _ctx_run_f1(stem)
-        rows.append((design, teacher, seeds, m, sd, f8, note))
+        rows.append((design, student, teacher, seeds, m, sd, f8))
     lines = ["\\begin{table}[htbp]", "\\centering", "\\small",
-             "\\caption{Résultats contexte (3~seeds, test v3 spatial, F1-macro). "
-             "Design~B (tête apprise sur la fusion) contre design~A (distillation "
-             "seule, tuile seule à l'inférence). Les deux runs SimDINOv2-B @512 "
-             "entraînés n'apportent rien sur le gelé-fusionné du même backbone "
-             "(0,5059, tableau~\\ref{tab:ctxsweep}) : quand le pré-entraînement "
-             "est aligné, la fusion est déjà linéairement décodable.}"
+             "\\setlength{\\tabcolsep}{4pt}",
+             "\\caption{Résultats contexte (3~seeds, test v3 spatial, F1-macro), "
+             "\\textbf{backbone étudiant explicite} : deux étudiants différents "
+             "(DINOv3-B/16 LVD @1024 et SimDINOv2-B/16 @512) et, pour le second, "
+             "deux rangs LoRA qui ne diffèrent que par là. Design~B (tête apprise "
+             "sur la fusion) contre design~A (distillation seule, tuile seule à "
+             "l'inférence). \\textbf{Correspondance des tags} : R1 = design~A, "
+             "teacher DINOv3-L/16 ; R2 = design~B, même teacher ; R3 = design~A, "
+             "teacher EMA du student — ce sont les étiquettes du "
+             "tableau~\\ref{tab:master}, du tableau~\\ref{tab:ci} et des figures. "
+             "Les deux runs SimDINOv2-B @512 entraînés n'apportent rien sur le "
+             "gelé-fusionné du même backbone (0,5059, "
+             "tableau~\\ref{tab:ctxsweep}) : quand le pré-entraînement est aligné, "
+             "la fusion est déjà linéairement décodable.}"
              "\\label{tab:ctxf1}",
-             "\\begin{tabular}{@{}llrrrrr@{}}", "\\toprule",
-             "Design & Teacher & seed0 & seed1 & seed2 & F1 moy $\\pm$ std & "
-             "F1 8cls \\\\", "\\midrule"]
-    for design, teacher, seeds, m, sd, f8, _note in rows:
-        lab = "\\textbf{" + design + "}" if design == "B" else design
-        cells = [lab, esc(teacher)] + [num(s) for s in seeds]
+             "\\begin{tabular}{@{}lllrrrrr@{}}", "\\toprule",
+             "Design & Étudiant (backbone $\\cdot$ LoRA) & Teacher & seed0 & seed1 "
+             "& seed2 & F1 moy $\\pm$ std & F1 8cls \\\\", "\\midrule"]
+    for design, student, teacher, seeds, m, sd, f8 in rows:
+        lab = "\\textbf{" + design + "}" if design.startswith("B") else design
+        cells = [lab, esc(student), esc(teacher)] + [num(s) for s in seeds]
         mm = num(m) + " $\\pm$ " + num(sd)
-        if design == "B":
+        if design.startswith("B"):
             mm = "\\textbf{" + mm + "}"
         cells += [mm, num(f8)]
         lines.append(" & ".join(cells) + " \\\\")
@@ -2012,6 +2035,54 @@ def t_sources():
          path("scripts/rapport/layerwise_geometry.py")),
         ("Contrôle de cohérence", path("results/rapport_data/consistency_report.md"),
          path("scripts/rapport/check_consistency.py")),
+        ("Recalcul indépendant de la sonde (30 modèles)",
+         path("results/recalc_2026-09/recalc_vs_canonical.csv"),
+         path("scripts/recalc/compare.py")),
+        ("Sélection de $C$ par seed (diagnostic)",
+         path("results/recalc_2026-09/diagnose_c.json"),
+         path("scripts/recalc/diagnose_c.py")),
+        ("Bootstrap par grappes et hiérarchique (35 groupes)",
+         path("results/recalc_2026-09/tier_bootstrap_clustered.json"),
+         path("scripts/recalc/bootstrap_clustered.py")),
+        ("Re-sonde gelée, grille $C$ étendue (6 représentations)",
+         path("results/recalc_2026-09/reprobe_frozen_sweep.json"),
+         path("scripts/recalc/reprobe_frozen_sweep.py")),
+        ("Grille fine $C$, comparaison à $C$ commun (5 représentations)",
+         path("results/recalc_2026-09/fine_c_sweep.json"),
+         path("scripts/recalc/fine_c_sweep.py")),
+        ("Sélection de $C$ par validation croisée groupée (4 runs)",
+         path("results/recalc_2026-09/nested_c_multiscale.json"),
+         path("scripts/recalc/nested_c_multiscale.py")),
+        ("Opérateurs de fusion tuile$\\oplus$contexte",
+         path("results/recalc_2026-09/fusion_operators.json"),
+         path("scripts/recalc/fusion_operators.py")),
+        ("Pooling des patchs (3 vues) et têtes apprises",
+         path("results/recalc_2026-09/token_pool_probe.json"),
+         path("scripts/recalc/token_pool_probe.py")),
+        ("Têtes de fusion apprises (attention pooling, cross-attention)",
+         path("results/recalc_2026-09/token_fusion_results.json"),
+         path("scripts/recalc/token_fusion_train.py")),
+        ("Opérations fixes tuile$\\leftrightarrow$contexte (patchs alignés)",
+         path("results/recalc_2026-09/token_graph_fixed.json"),
+         path("scripts/recalc/token_graph_fixed.py")),
+        ("Montage multi-vues dans le backbone gelé",
+         path("results/recalc_2026-09/montage_probe.json"),
+         path("scripts/recalc/montage_extract_probe.py")),
+        ("Query-attention CLS$\\rightarrow$contexte (857k param.)",
+         path("results/recalc_2026-09/query_attn.json"),
+         path("scripts/recalc/token_query_attn.py")),
+        ("Concaténation par couche (3 backbones)",
+         path("results/recalc_2026-09/layer_concat_probe.json"),
+         path("scripts/recalc/layer_concat_probe.py")),
+        ("Contrôle gelé-fusionné SimDINOv2-B @512 (bootstrap supplémentaire)",
+         path("results/recalc_2026-09/significance_tier_ctxcontrol.json"),
+         path("scripts/recalc/significance_ctxcontrol.py")),
+        ("Texture artisanale + FM (2 backbones, 8 familles)",
+         path("results/texture/ablation_*.json"),
+         path("scripts/texture_ablation.py")),
+        ("Redondance texture $\\sim$ embedding (2 backbones)",
+         path("results/texture/redundance_*.json"),
+         path("scripts/texture_redundancy.py")),
     ]
     lines = ["\\begin{table}[htbp]", "\\centering", "\\small",
              "\\caption{Annexe D --- source canonique de chaque famille de chiffres "
@@ -2162,6 +2233,599 @@ def t_tier_signs():
 
 
 
+# ══════════ recalcul indépendant (2026-09-22), grappes, texture ══════════
+def t_recalc():
+    """Recalcul indépendant de la sonde (2026-09-22) : 30 modèles comparés.
+
+    Réimplémentation depuis la spécification (StandardScaler sur le train,
+    grille C à 6 points, sélection sur validation, réajustement, prédiction
+    du test ; schéma déduit des labels). 25 modèles reproduisent le canonique
+    à ±0,0005 et les 11 gelés à 0,0003 en moyenne. Cinq dépassent le seuil —
+    dont trois affinés sous-estimés par le canonique."""
+    import csv as _csv
+    fp = p("results", "recalc_2026-09", "recalc_vs_canonical.csv")
+    rows = list(_csv.DictReader(open(fp, encoding="utf-8")))
+    comp = [r for r in rows if r["recalc_mean"] not in ("", None)]
+    beyond = [r for r in comp if abs(float(r["delta"])) > 0.0005]
+    beyond.sort(key=lambda r: -abs(float(r["delta"])))
+    n_ok = len(comp) - len(beyond)
+    lines = ["\\begin{table}[htbp]", "\\centering", "\\small",
+             "\\caption{Recalcul indépendant de la sonde (2026-09-22) : "
+             f"{len(comp)}~modèles du registre comparés, {n_ok} reproduits "
+             "à $\\pm0{,}0005$ près. Les cinq écarts au-delà du seuil sont "
+             "détaillés ; les 11~modèles gelés sont tous dans la tolérance "
+             "(écart moyen 0,0003). Le recalculé de DINOv3-L LoRA (0,4842) "
+             "dépasse le meilleur gelé publié (DINOv3-H+, 0,4805) : la "
+             "sélection de \\texttt{best\\_C} déplace un modèle de rang "
+             "(tableau suivant).}"
+             "\\label{tab:recalc}",
+             "\\begin{tabular}{@{}lrrrr@{}}", "\\toprule",
+             "Modèle & Canonique & Recalcul & $\\Delta$ & Seeds \\\\",
+             "\\midrule"]
+    for r in beyond:
+        lines.append(" & ".join([
+            esc(r["display"]), num(r["canon_f1"]),
+            num(r["recalc_mean"]),
+            num(float(r["delta"]), 4, sign=True),
+            r["n_matched"] or "---",
+        ]) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_recalc", lines,
+          "\\texttt{results/recalc\\_2026-09/recalc\\_vs\\_canonical.csv} "
+          "(\\texttt{scripts/recalc/compare.py}) ; synthèse : "
+          "\\texttt{results/recalc\\_2026-09/RECALC\\_REPORT.md}.")
+
+
+def t_recalc_c():
+    """Diagnostic best_C : le cas DINOv3-L LoRA (3 seeds).
+
+    Panneau A : F1 val/test par C sur le seed 0 (sélection et résultat
+    divergent). Panneau B : correspondance par seed entre valeur publiée
+    et C (seeds 0-1 publiés = C=0,001, seed 2 = C=0,0001)."""
+    diag = json.load(open(p("results", "recalc_2026-09", "diagnose_c.json")))
+    by_seed = {}
+    for d in diag:
+        by_seed[d["key"].rsplit("seed", 1)[1]] = d["by_C"]
+    s0 = by_seed["0"]
+    # Valeurs publiées par seed (FINDING_qui_a_raison.md, §Preuve).
+    published = {"0": 0.47774, "1": 0.47864, "2": 0.48332}
+    order = ["0.0001", "0.001", "0.01", "0.1", "1", "10"]
+    lines = ["\\begin{table}[htbp]", "\\centering", "\\small",
+             "\\caption{Diagnostic de sélection de \\texttt{best\\_C} : "
+             "DINOv3 ViT-L/16 LoRA r=8, schéma 11~classes, test "
+             "17\\,598~tuiles. (A) F1 par valeur de $C$ (seed~0) : à "
+             "validation quasi égale ($+0{,}0001$), le test diffère de "
+             "$+0{,}0078$. (B) Les seeds~0 et~1 publiés correspondent à "
+             "$C=0{,}001$, le seed~2 à $C=0{,}0001$ : le choix de $C$ — "
+             "pas la métrique ni les embeddings — porte tout l'écart.}"
+             "\\label{tab:recalcc}",
+             "\\begin{tabular}{@{}crr@{}}", "\\toprule",
+             "(A) $C$ & F1 validation & F1 test \\\\", "\\midrule"]
+    for c in order:
+        lines.append(f"{c} & {num(s0[c]['val'])} & {num(s0[c]['test'])}" 
+                       " \\\\")
+    lines += ["\\midrule",
+              "(B) seed & publié & $C=0{,}001$ / $C=0{,}0001$ (test) \\\\",
+              "\\midrule"]
+    for s in ("0", "1", "2"):
+        pub = published[s]
+        c1 = by_seed[s]["0.001"]["test"]
+        c4 = by_seed[s]["0.0001"]["test"]
+        tag1 = ("\\textbf{" + num(c1) + "}" if abs(c1 - pub) < 3e-4
+                else num(c1))
+        tag4 = ("\\textbf{" + num(c4) + "}" if abs(c4 - pub) < 3e-4
+                else num(c4))
+        lines.append(f"{s} & {num(pub)} & {tag1} / {tag4} \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_recalc_c", lines,
+          "(A) \\texttt{results/recalc\\_2026-09/diagnose\\_c.json} ; "
+          "(B) valeurs publiées : "
+          "\\texttt{results/recalc\\_2026-09/FINDING\\_qui\\_a\\_raison.md} "
+          "§Preuve (gras = valeur retenue par le canonique).")
+
+
+def t_clustered():
+    """Bootstrap par grappes (9 orthomosaïques) contre bootstrap par tuiles.
+
+    Même procédure à une chose près (l'unité de rééchantillonnage) : les IC95
+    sont ×12,6 plus larges et les rejets BH s'effondrent (182→1 sur 595
+    paires ; 113→0 sur les paires communes). Le hiérarchique confirme."""
+    cl = json.load(open(p("results", "recalc_2026-09",
+                           "tier_bootstrap_clustered.json")))
+    hi = json.load(open(p("results", "recalc_2026-09",
+                           "tier_bootstrap_hierarchical.json")))
+    w_canon = cl["ci95_width_mean_canonical"]
+    w_clus = cl["ci95_width_mean_clustered"]
+    w_hier = hi["ci95_width_mean_hierarchical"]
+    ratio = w_clus / w_canon
+    ratio_t = f"{ratio:.1f}".replace(".", ",")
+    n_common = cl["n_pairs_common"]
+    flips = cl["n_verdict_flips"]
+    lines = ["\\begin{table}[htbp]", "\\centering", "\\small",
+             "\\caption{Contrôle par grappes (2026-09-22) : la même procédure "
+             "de bootstrap apparié ($n=10\\,000$, seed~42, 35~groupes), "
+             "rééchantillonnant les 9~orthomosaïques au lieu des "
+             "17\\,598~tuiles. Largeur moyenne des IC95 multipliée par "
+             f"{ratio_t} ; une seule paire rejetée par BH sur 595 "
+             "(R1 contre ViT-B/16 IN-MHSA, $p=0$), zéro sur les "
+             f"{n_common}~paires communes au périmètre canonique. Le "
+             "hiérarchique (grappes puis tuiles) confirme : la variance "
+             "intra-site est négligeable devant la variance inter-sites.}"
+             "\\label{tab:clustered}",
+             "\\begin{tabular}{@{}lrrr@{}}", "\\toprule",
+             " & Tuiles (canonique) & Grappes & Hiérarchique \\\\",
+             "\\midrule",
+             f"Largeur moyenne de l'IC95 & {num(w_canon)} & {num(w_clus)} "
+             f"(\\,$\\times${ratio_t}) & {num(w_hier)} \\\\",
+             f"Rejets BH sur 595~paires & {cl['bh_rejected_canonical']} & "
+             f"{cl['bh_rejected_clustered']} & "
+             f"{hi['bh_rejected_hierarchical']} \\\\",
+             f"Rejets BH sur {n_common}~paires communes & "
+             f"{cl['bh_rejected_canonical_common']} & "
+             f"{cl['bh_rejected_clustered_common']} & "
+             f"{hi['bh_rejected_hierarchical_common']} \\\\",
+             f"Paires dont le verdict change & --- & {flips} & {flips} "
+             "\\\\",
+             "\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_clustered", lines,
+          "\\texttt{results/recalc\\_2026-09/tier\\_bootstrap\\_clustered.json} "
+          "et \\_hierarchical.json "
+          "(\\texttt{scripts/recalc/bootstrap\\_clustered.py}, "
+          "\\texttt{bootstrap\\_hierarchical.py}).")
+
+
+def t_cluster_orthos():
+    """F1 par orthomosaïque (DINOv3-B LoRA r=8, seed 0) : l'évidence directe.
+
+    Étendue 0,6778 sur 9 sites, écart-type 0,1975 — treize fois la largeur
+    d'IC annoncée par le bootstrap par tuiles. Nombres reproduits du FINDING."""
+    # FINDING_bootstrap_grappes.md §« L'intervalle large pourrait être un
+    # artefact de calcul » (DINOv3-B LoRA r=8, seed 0) — à l'identique.
+    orthos = [
+        ("20230724\\_lichentundra35\\_m3m", 85, 0.9881),
+        ("20230724\\_riparianshrub23\\_m3m", 432, 0.6017),
+        ("20230724\\_alder4\\_m3m", 2915, 0.5600),
+        ("20230724\\_birch54\\_m3m", 1881, 0.5177),
+        ("20230724\\_lichentundra41\\_m3m", 161, 0.4573),
+        ("20230728\\_lichentundra44\\_m3m", 22, 0.4296),
+        ("20230724\\_sedge\\_mosstundra22\\_m3m", 5571, 0.4105),
+        ("20230725\\_birch2\\_m3m", 4036, 0.3907),
+        ("20230728\\_birch42\\_m3m", 2495, 0.3103),
+    ]
+    lines = ["\\begin{table}[htbp]", "\\centering", "\\small",
+             "\\caption{F1 par orthomosaïque du test "
+             "(DINOv3-B LoRA r=8, seed~0, sonde canonique) : étendue 0,6778, "
+             "écart-type 0,1975. Deux orthomosaïques comptent 85 et 22~tuiles : "
+             "le bootstrap par tuiles les traite comme des échantillons "
+             "indépendants, le contrôle par grappes comme deux sites.}"
+             "\\label{tab:clusterorthos}",
+             "\\begin{tabular}{@{}lrr@{}}", "\\toprule",
+             "Orthomosaïque & Tuiles & F1 \\\\", "\\midrule"]
+    for name, n, f1 in orthos:
+        lines.append(f"\\texttt{{{name}}} & {thousands(n)} & {num(f1)} "
+                       "\\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_cluster_orthos", lines,
+          "\\texttt{results/recalc\\_2026\\_09/FINDING\\_bootstrap"\
+          "\\_grappes.md} (valeurs reproduites à l'identique).")
+
+
+# ═════════════════════ contexte gelé : re-sonde & patchs (2026-10) ═══════════
+# Vague de recalculs d'octobre 2026 (results/recalc_2026-09/) : re-sonde du
+# sweep gelé sur la grille C, opérateurs de fusion, pooling des patchs,
+# contrôle gelé-fusionné dans le bootstrap. Sources : annexe D (t_sources).
+
+
+def _recalc_json(fn):
+    return json.load(open(p("results", "recalc_2026-09", fn)))
+
+
+def _c_latex(c):
+    """$10^{-4}$ / $2\\cdot10^{-4}$ / $5\\cdot10^{-5}$ depuis un flottant C."""
+    from math import floor, log10
+    c = float(c)
+    if c <= 0:
+        return "---"
+    e = floor(log10(c) + 1e-9)
+    m = c / (10.0 ** e)
+    if abs(m - round(m)) < 1e-6:
+        m = int(round(m))
+    if abs(m - 1) < 1e-9:
+        return f"$10^{{{e}}}$"
+    return f"${m:g}\\cdot10^{{{e}}}$"
+
+
+def _tex_cell(lab):
+    """Protège un libellé commençant par « [ » : placé en tête de cellule après
+    un « \\\\ », il serait lu comme l'argument optionnel (une dimension) du saut
+    de ligne."""
+    return "{" + lab + "}" if str(lab).startswith("[") else lab
+
+
+def t_ctxcontrol():
+    """Contrôle gelé-fusionné SimDINOv2-B @512 (0,5059) contre le palier compétitif.
+
+    Bootstrap apparié supplémentaire (n=10 000, seed 42, tuiles partagées) : le
+    contrôle est indistinguable des trois modèles de tête et au-dessus de tous
+    les déployables (32/35 paires rejetées par BH). Il reste HORS de la matrice
+    canonique et du registre : ce tableau ne remplace pas t_signif."""
+    d = _recalc_json("significance_tier_ctxcontrol.json")
+    gs = next(iter(d["group_stats"].values()))
+    rows = sorted(d["pairs_vs_tier"].values(), key=lambda r: r["bh_rank"])
+    n_rej = sum(1 for r in rows if r["bh_reject"])
+    lines = [
+        "\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+        "\\setlength{\\tabcolsep}{4pt}",
+        "\\caption{Contrôle gelé-fusionné SimDINOv2-B @512 ($\\ddagger$) contre "
+        f"les {len(rows)}~modèles du palier : bootstrap apparié supplémentaire "
+        "(tuiles partagées), BH à $\\alpha=0,05$. F1 du contrôle "
+        f"{num(gs['observed'])} (IC95 [{num(gs['ci95_low'])} ; "
+        f"{num(gs['ci95_high'])}]) ; {n_rej} des {len(rows)}~paires sont "
+        "rejetées. Les trois non-rejetées (en gras : R2 et les deux fusions "
+        "apprises r8a16 / r2a4 de SimDINOv2-B) sont indiscernables du contrôle "
+        "\\emph{gelé}. Il reste hors matrice canonique et hors géométrie "
+        "(embeddings fusionnés non conservés).}"
+        "\\label{tab:ctxcontrol}",
+        "\\begin{tabular}{@{}lrrr@{}}", "\\toprule",
+        "Modèle du palier battu (contrôle $-$ modèle) & $\\Delta$ & "
+        "$p$ bilatéral & rejeté BH \\\\", "\\midrule"]
+    for r in rows:
+        lab = esc(_long(r["model_b"]))
+        if not r["bh_reject"]:
+            lab = "\\textbf{" + lab + "}"
+        lines.append(" & ".join([
+            lab, num(r["delta_observed_a_minus_b"], 4, sign=True),
+            _fmt_p(r["p_two_sided"]),
+            "\\textbf{oui}" if r["bh_reject"] else "non"]) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_ctxcontrol", lines,
+          "\\texttt{results/recalc\\_2026\\_09/"
+          "significance\\_tier\\_ctxcontrol.json} "
+          "(\\texttt{scripts/recalc/significance\\_ctxcontrol.py}). Famille "
+          f"étendue : {d['bh_630_pairs']['n_rejected']} rejets sur 630~paires "
+          f"(canonique : {d['bh_630_pairs']['canonical_595_n_rejected']} sur "
+          "595). \\textbf{Ne remplace pas} "
+          "\\texttt{results/significance\\_matrix\\_tier.json}.")
+
+
+def t_ctx_reprobe():
+    """Re-sonde du sweep gelé sur toute la grille C (Narval, 2026-10).
+
+    Mêmes features que t_ctx_sweep, C balayé jusqu'à $10^{-5}$. Pour
+    SimDINOv2-L la validation préfère $10^{-3}$ (son pic) et le test
+    $10^{-4}$ : le « SimB $>$ SimL » du sweep est un artefact de la règle de
+    sélection de C, pas de la représentation. Le « C optimal (test) » n'est
+    PAS un résultat valide (sélection sur le test)."""
+    d = _recalc_json("reprobe_frozen_sweep.json")
+    runs = [
+        ("simdinov2_vitb16_ctx512", "SimDINOv2-B @512"),
+        ("simdinov2_vitb16_ctx1024", "SimDINOv2-B @1024"),
+        ("simdinov2_vitb16_multiscale_ctx512_ctx1024",
+         "SimDINOv2-B multi [512\\,;\\,1024]"),
+        ("simdinov2_vitl16_ctx512", "SimDINOv2-L @512"),
+        ("simdinov2_vitl16_ctx1024", "SimDINOv2-L @1024"),
+        ("simdinov2_vitl16_multiscale_ctx512_ctx1024",
+         "SimDINOv2-L multi [512\\,;\\,1024]"),
+    ]
+    bv, bt = [], []
+    for key, _lab in runs:
+        r = d["runs"][key]
+        bt.append(max(((c["C"], c["test_f1_macro_pres"]) for c in r["curve"]),
+                      key=lambda t: t[1]))
+        bv.append((r["best_by_val"]["C"],
+                   r["best_by_val"]["test_f1_macro_pres"]))
+    m_val = max(f for _c, f in bv)
+    m_test = max(f for _c, f in bt)
+    lines = [
+        "\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+        "\\setlength{\\tabcolsep}{4pt}",
+        "\\caption{Re-sonde du sweep gelé sur toute la grille $C$ "
+        "($10^{-5}$ à $10^{-1}$, Narval, mêmes features) : $C$ choisi sur "
+        "validation contre $C$ maximisant le test. Pour SimDINOv2-L les deux "
+        "diffèrent d'une décade (pic validation à $10^{-3}$, pic test à "
+        "$10^{-4}$) : c'est la règle de sélection qui produit l'écart, pas la "
+        "représentation. La colonne « $C^{*}$ (test) » n'est \\emph{pas} un "
+        "résultat valide --- elle quantifie l'instabilité de la sélection.}"
+        "\\label{tab:ctxreprobe}",
+        "\\begin{tabular}{@{}lrrrr@{}}", "\\toprule",
+        "Représentation gelée (dim) & $C$ (val) & F1 test ($C$ val) & "
+        "$C^{*}$ (test) & F1 test ($C^{*}$) \\\\", "\\midrule"]
+    for (key, lab), (cval, fval), (ctest, ftest) in zip(runs, bv, bt):
+        fv = ("\\textbf{" + num(fval) + "}" if abs(fval - m_val) < 1e-12
+              else num(fval))
+        ft = ("\\textbf{" + num(ftest) + "}" if abs(ftest - m_test) < 1e-12
+              else num(ftest))
+        lines.append(" & ".join([
+            f"{lab} ({d['runs'][key]['dim']}d)", _c_latex(cval), fv,
+            _c_latex(ctest), ft]) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_ctx_reprobe", lines,
+          "\\texttt{results/recalc\\_2026\\_09/reprobe\\_frozen\\_sweep.json} "
+          "(\\texttt{scripts/recalc/reprobe\\_frozen\\_sweep.py}).")
+
+
+def t_ctx_commonc():
+    """Grille fine à $C$ commun : même test, même hyperparamètre pour toutes
+    les représentations (2026-10). À $C$ fixé dans la plage basse l'ordre est
+    stable (SimL multi en tête) ; à $10^{-3}$, choix de la validation, il
+    s'aplatit."""
+    d = _recalc_json("fine_c_sweep.json")
+    c_show = [1e-5, 5e-5, 1e-4, 2e-4, 5e-4, 1e-3]
+    runs = [("SimB @512", "SimB @512"),
+            ("SimB multi [512;1024]", "SimB multi"),
+            ("SimL @512", "SimL @512"),
+            ("SimL multi [512;1024]", "SimL multi"),
+            ("D3B @512", "D3B @512")]
+
+    def test_at(run, c):
+        for rec in d["runs"][run]["curve"]:
+            if abs(rec["C"] - c) <= 1e-9 * max(1.0, c):
+                return rec["test_f1"]
+        return None
+
+    lines = [
+        "\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+        "\\setlength{\\tabcolsep}{4pt}",
+        "\\caption{Grille fine (14~valeurs de $10^{-5}$ à "
+        "$2\\cdot10^{-1}$) : F1 macro test à $C$ \\emph{commun} à toutes les "
+        "représentations. Toutes les colonnes voient le \\emph{même} test "
+        "(17\\,598~tuiles) et le \\emph{même} $C$ : à $C$ fixé dans la plage "
+        "basse ($\\leq 2\\cdot10^{-4}$) l'ordre est stable (SimL multi en "
+        "tête, \\textbf{gras} = maximum de la ligne) ; à $10^{-3}$, le choix "
+        "de la validation, l'avantage s'efface.}"
+        "\\label{tab:ctxcommonc}",
+        "\\begin{tabular}{@{}lrrrrr@{}}", "\\toprule",
+        "$C$ commun & " + " & ".join(lab for _r, lab in runs) + " \\\\",
+        "\\midrule"]
+    for c in c_show:
+        vals = [test_at(r, c) for r, _l in runs]
+        mx = max(v for v in vals if v is not None)
+        cells = ["\\textbf{" + num(v) + "}" if (v is not None
+                 and abs(v - mx) < 1e-12) else num(v) for v in vals]
+        lines.append(_c_latex(c) + " & " + " & ".join(cells) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_ctx_commonc", lines,
+          "\\texttt{results/recalc\\_2026\\_09/fine\\_c\\_sweep.json} "
+          "(\\texttt{scripts/recalc/fine\\_c\\_sweep.py}, \\texttt{lbfgs}, "
+          "\\texttt{max\\_iter}=5000 ; convergence 146--537 itérations).")
+
+
+def t_ctx_ops():
+    """Opérateurs de fusion tuile⊕contexte (F1 test, $C=10^{-4}$).
+
+    Si la concaténation cassait la géométrie, une combinaison restant en
+    dimension $d$ (moyenne, différence, produit) ferait mieux. Ce n'est pas le
+    cas : la concaténation gagne sur les quatre représentations."""
+    d = _recalc_json("fusion_operators.json")
+    runs = [("SimB @512", "SimB @512"),
+            ("SimB multi [512;1024]", "SimB multi"),
+            ("SimL @512", "SimL @512"),
+            ("SimL multi [512;1024]", "SimL multi")]
+    ops = [("concat", "concaténation $[t\\,;\\,c]$"),
+           ("mean", "moyenne des vues"),
+           ("tile_minus_meanctx", "$t-\\overline{c}$ (différence)"),
+           ("tile_times_meanctx", "$t\\odot\\overline{c}$ (produit)"),
+           ("concat_tile_meanctx", "$[t\\,;\\,\\overline{c}]$")]
+    colmax = {run: max(d["runs"][run][f"{op}|C=0.0001"]["test_f1"]
+                       for op, _lab in ops) for run, _l in runs}
+    lines = [
+        "\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+        "\\setlength{\\tabcolsep}{4pt}",
+        "\\caption{Opérateurs de fusion tuile$\\oplus$contexte : F1 test à "
+        "$C=10^{-4}$ (sonde canonique). La concaténation gagne sur les quatre "
+        "représentations ; les combinaisons restant en dimension $d$ (moyenne, "
+        "différence, produit) ne récupèrent pas la géométrie. ($t$ = tuile, "
+        "$c$ = contexte, $\\overline{c}$ = contexte moyenné sur les patchs.)}"
+        "\\label{tab:ctxops}",
+        "\\begin{tabular}{@{}lrrrr@{}}", "\\toprule",
+        "Opérateur & " + " & ".join(l for _r, l in runs) + " \\\\", "\\midrule"]
+    for op, lab in ops:
+        cells = []
+        for run, _l in runs:
+            v = d["runs"][run][f"{op}|C=0.0001"]["test_f1"]
+            cells.append("\\textbf{" + num(v) + "}"
+                         if abs(v - colmax[run]) < 1e-12 else num(v))
+        lines.append(lab + " & " + " & ".join(cells) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_ctx_ops", lines,
+          "\\texttt{results/recalc\\_2026\\_09/fusion\\_operators.json} "
+          "(\\texttt{scripts/recalc/fusion\\_operators.py}).")
+
+
+def t_ctx_pool():
+    """Pooling des patchs (SimDINOv2-B gelé, 3 vues) + têtes apprises.
+
+    Extraction des 196~patchs des trois vues (tuile, contexte 512, contexte
+    1024), sonde canonique identique. La moyenne des patchs bat le CLS ; le
+    meilleur gain test (moyenne des trois vues, 0,5164) retombe en validation
+    (gain test-seul). Les têtes apprises au niveau token font moins bien."""
+    d = _recalc_json("token_pool_probe.json")
+    f = _recalc_json("token_fusion_results.json")
+    order = [
+        ("tile|cls", "tuile, CLS"), ("tile|mean", "tuile, moyenne"),
+        ("tile|max", "tuile, max"),
+        ("ctx512|cls", "contexte 512, CLS"),
+        ("ctx512|mean", "contexte 512, moyenne"),
+        ("ctx512|max", "contexte 512, max"),
+        ("ctx1024|cls", "contexte 1024, CLS"),
+        ("ctx1024|mean", "contexte 1024, moyenne"),
+        ("ctx1024|max", "contexte 1024, max"),
+        ("cls[tile+ctx512]", "[CLS] tuile+512"),
+        ("mean[tile+ctx512]", "moyenne tuile+512"),
+        ("cls+mean[tile+ctx512]", "[CLS;moyenne] tuile+512"),
+        ("cls[tile+ctx512+ctx1024]", "[CLS] 3 vues"),
+        ("mean[tile+ctx512+ctx1024]", "moyenne 3 vues"),
+        ("cls+mean[tile+ctx512+ctx1024]", "[CLS;moyenne] 3 vues"),
+    ]
+    rows = [(lab, d["runs"][k]["dim"], d["runs"][k]["val_f1"],
+             d["runs"][k]["test_f1"]) for k, lab in order]
+    learned = [("attention pooling (apprise)", f["attnpool"]["val_f1"],
+                f["attnpool"]["test_f1"]),
+               ("cross-attention dense (apprise)", f["crossattn"]["val_f1"],
+                f["crossattn"]["test_f1"])]
+    m_test = max(t for _l, _d, _v, t in rows)
+    m_val = max(v for _l, _d, v, _t in rows)
+    lines = [
+        "\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+        "\\setlength{\\tabcolsep}{4pt}",
+        "\\caption{Pooling des 196~patchs de SimDINOv2-B gelé (3~vues), sonde "
+        "canonique identique. La moyenne des patchs bat le CLS partout, y "
+        "compris en validation ; \\texttt{[CLS;moyenne]} tuile+512 est le "
+        "meilleur gain \\emph{robuste} (validation et test montent ensemble) ; "
+        "la moyenne des 3~vues fait le meilleur test (\\textbf{gras}) mais "
+        "retombe en validation (gain test-seul). Les têtes \\emph{apprises} au "
+        "niveau token (bas de tableau) font moins bien et sur-apprennent "
+        "(meilleure époque précoce).}"
+        "\\label{tab:ctxpool}",
+        "\\begin{tabular}{@{}lrrr@{}}", "\\toprule",
+        "Représentation & dim & val & test \\\\", "\\midrule"]
+    for lab, dim, v, t in rows:
+        tv = ("\\textbf{" + num(t) + "}" if abs(t - m_test) < 1e-12 else num(t))
+        vv = ("\\textbf{" + num(v) + "}" if abs(v - m_val) < 1e-12 else num(v))
+        lines.append(f"{_tex_cell(lab)} & {dim} & {vv} & {tv} \\\\")
+    lines += ["\\midrule"]
+    for lab, v, t in learned:
+        lines.append(f"{lab} & 768 & {num(v)} & {num(t)} \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_ctx_pool", lines,
+          "\\texttt{results/recalc\\_2026\\_09/token\\_pool\\_probe.json} et "
+          "\\texttt{token\\_fusion\\_results.json} "
+          "(\\texttt{scripts/recalc/token\\_pool\\_probe.py}, "
+          "\\texttt{token\\_fusion\\_train.py}, seed~0).")
+
+
+def t_ctx_graph():
+    """Opérations fixes « type graphe » sur patchs alignés (SimDINOv2-B gelé).
+
+    Lissage spatial (moyenne des 4 voisins) et appariement aligné
+    tuile$\\leftrightarrow$contexte. Aucune opération fixe ne bat la référence
+    poolée ; la correspondance spatiale explicite n'apporte pas de signal
+    (argument GATv2 retiré)."""
+    d = _recalc_json("token_graph_fixed.json")
+    order = [
+        ("reference [cls;mean] tuile+512",
+         "référence [CLS;moyenne] tuile + moyenne ctx"),
+        ("tile_mean", "tuile, moyenne"),
+        ("tile_smooth", "tuile, lissage spatial"),
+        ("[cls;tile_smooth]", "[CLS; lissage]"),
+        ("[cls;mean;smooth]", "[CLS; moyenne; lissage]"),
+        ("pair_cat [tuile;ctx_apparie]", "appariement concat $[t\\,;\\,c]$"),
+        ("pair_prod (tuile*ctx_apparie)",
+         "appariement produit $t\\odot c$"),
+        ("[cls;pair_cat]", "[CLS; appariement concat]"),
+        ("[cls;mean;pair_prod]", "[CLS; moyenne; appariement produit]"),
+    ]
+    rows = [(lab, d["runs"][k]["dim"], d["runs"][k]["val_f1"],
+             d["runs"][k]["test_f1"]) for k, lab in order]
+    m_test = max(t for _l, _d, _v, t in rows)
+    lines = [
+        "\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+        "\\setlength{\\tabcolsep}{4pt}",
+        "\\caption{Opérations fixes « type graphe » sur patchs alignés "
+        "(SimDINOv2-B gelé ; lot indépendant, référence interne "
+        "\\texttt{[CLS;moyenne]} tuile + moyenne contexte). Le lissage spatial "
+        "suivi d'une moyenne égale la moyenne (test vide) ; l'appariement "
+        "aligné seul reste sous la référence du lot ; combiné, il plafonne "
+        "(\\textbf{gras} = meilleur test du lot) encore sous le meilleur "
+        "pooling de la table~\\ref{tab:ctxpool}. La correspondance spatiale "
+        "explicite n'apporte pas de signal.}"
+        "\\label{tab:ctxgraph}",
+        "\\begin{tabular}{@{}lrrr@{}}", "\\toprule",
+        "Variante & dim & val & test \\\\", "\\midrule"]
+    for lab, dim, v, t in rows:
+        tv = ("\\textbf{" + num(t) + "}" if abs(t - m_test) < 1e-12 else num(t))
+        lines.append(f"{_tex_cell(lab)} & {dim} & {num(v)} & {tv} \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_ctx_graph", lines,
+          "\\texttt{results/recalc\\_2026\\_09/token\\_graph\\_fixed.json} "
+          "(\\texttt{scripts/recalc/token\\_graph\\_fixed.py}).")
+
+
+def t_texture():
+    """Ablation texture : 7 familles artisanales + combiné, sur 2 backbones.
+
+    Sonde canonique lbfgs mono-thread, bootstrap apparié (n=1\u2009000).
+    Résultat négatif : aucun ajout n'améliore le F1."""
+    order = [("glcm", "GLCM"), ("glrlm", "GLRLM"),
+             ("glszm", "GLSZM"), ("gldm", "GLDM"),
+             ("ngtdm", "NGTDM"), ("dwt", "DWT"),
+             ("fourier", "Fourier"), ("combined", "Combiné (106)")]
+    backs = [("results/texture/ablation_dinov3_vitb16_lvd.json",
+              "DINOv3-B LVD"),
+             ("results/texture/ablation_simdinov2_vitb16.json",
+              "SimDINOv2-B")]
+    data = {}
+    for fp, _label in backs:
+        data[fp] = json.load(open(p(*fp.split("/"))))["runs"]
+    lines = ["\\begin{table}[htbp]", "\\centering", "\\footnotesize",
+             "\\setlength{\\tabcolsep}{4pt}",
+             "\\caption{Descripteurs de texture artisanaux concaténés aux "
+             "embeddings gelés (106~variables : GLCM, GLRLM, GLSZM, GLDM, "
+             "NGTDM, ondelettes, Fourier) — sonde canonique, schéma "
+             "12~classes, F1 sur classes présentes (RHOL absente du test). "
+             "$\\Delta$ = ajout $-$ embedding seul, bootstrap apparié ; "
+             "\\texttt{best\\_C}$=0{,}001$ partout. "
+             "Aucune famille n'améliore le F1, sur aucun des deux backbones : "
+             "le FM contient déjà l'information (tableau suivant).}"
+             "\\label{tab:texture}",
+             "\\begin{tabular}{@{}llrrrrr@{}}", "\\toprule",
+             "Backbone & Famille ajoutée & +dims & F1 & $\\Delta$ & $p$ & "
+             "best\\_C \\\\", "\\midrule"]
+    for fp, label in backs:
+        runs = data[fp]
+        base = runs["baseline"]
+        lines.append(" & ".join([
+            esc(label), "--- (référence)", "0",
+            num(base["f1_macro_pres"]), "---", "---",
+            num(base["best_C"])]) + " \\\\")
+        for key, lab in order:
+            v = runs[key]
+            d = v.get("delta_11cls", {})
+            plus = v["n_features"] - base["n_features"]
+            lines.append(" & ".join([
+                "", esc(lab), str(plus), num(v["f1_macro_pres"]),
+                num(d.get("delta"), 4, sign=True),
+                num(d.get("p"), 3), num(v.get("best_C")),
+            ]) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_texture", lines,
+          "\\texttt{results/texture/ablation\\_dinov3\\_vitb16\\_lvd.json} "
+          "et \\_simdinov2\\_vitb16.json "
+          "(\\texttt{scripts/texture\\_ablation.py}).")
+
+
+def t_texture_redondance():
+    """Diagnostic de redondance : les 106 variables texture sont prédites à
+    plus de 88 % (R² médian) par l'embedding ; seules elles valent 0,3348."""
+    backs = [("results/texture/redundance_dinov3_vitb16_lvd.json",
+              "DINOv3-B LVD"),
+             ("results/texture/redundance_simdinov2_vitb16.json",
+              "SimDINOv2-B")]
+    lines = ["\\begin{table}[htbp]", "\\centering", "\\small",
+             "\\caption{Diagnostic de redondance : les 106~variables de "
+             "texture seules valent 0,3348 de F1 ; prédites par l'embedding "
+             "(R² médian $\\geq0{,}88$), leur ajout à l'embedding le "
+             "\\emph{dégrade} légèrement. Verdict du diagnostic : "
+             "REDONDANT — le FM contient déjà l'information, le résidu est "
+             "plat.}\\label{tab:texturered}",
+             "\\begin{tabular}{@{}lrrrrr@{}}", "\\toprule",
+             "Backbone & Texture seules & Embedding seul & Concaténé & "
+             "$\\Delta$ ajout & R² médian \\\\", "\\midrule"]
+    for fp, label in backs:
+        d = json.load(open(p(*fp.split("/"))))
+        lines.append(" & ".join([
+            esc(label), num(d["f1_11cls_features_seules"]),
+            num(d["f1_11cls_embedding_seul"]),
+            num(d["f1_11cls_embedding_plus_features"]),
+            num(d["delta_ajout"], 4, sign=True),
+            num(d["r2_median"], 3),
+        ]) + " \\\\")
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}"]
+    write("t_texture_redondance", lines,
+          "\\texttt{results/texture/redundance\\_*.json} "
+          "(\\texttt{scripts/texture\\_redundancy.py}).")
+
+
 def main():
     os.makedirs(TAB, exist_ok=True)
     print("== Tableaux ==")
@@ -2203,6 +2867,18 @@ def main():
     t_head_fused()
     t_dim_probe()
     t_simb_ablation()
+    t_recalc()
+    t_recalc_c()
+    t_clustered()
+    t_cluster_orthos()
+    t_ctxcontrol()
+    t_ctx_reprobe()
+    t_ctx_commonc()
+    t_ctx_ops()
+    t_ctx_pool()
+    t_ctx_graph()
+    t_texture()
+    t_texture_redondance()
     print(f"[OK] {TAB}")
 
 

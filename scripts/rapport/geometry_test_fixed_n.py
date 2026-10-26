@@ -219,8 +219,9 @@ def model_jobs() -> list[tuple]:
     # ── ajout 2026-09 : ablation LoRA/PEFT SimDINOv2-B, Stage A (13 bras) ───
     # Embeddings results/lora_simb_ablation[_qkv]/embeddings/<tag>_seed{s}/ déjà
     # en schéma 11 classes. Les 2 runs SimDINOv2-B entraînés Design B (fusion 512)
-    # n'ont PAS d'embeddings rapatriés (checkpoints sur $SCRATCH uniquement) :
-    # entrées aspirantes → SKIP attendu, levé quand les sig_embeddings arrivent.
+    # avaient un SKIP attendu (checkpoints sur $SCRATCH) ; leurs sig_embeddings ont
+    # été extraits sur Narval (job 2993159) et rapatriés le 2026-09-13 — ils sont
+    # donc désormais calculés ici comme les autres (fin du SKIP attendu).
     for ckey, cbase in {
         "simdinov2_vitb16_lora_r8_b611":   "results/lora_simb_ablation/embeddings/simdinov2_vitb16_lora_r8a8_b67891011_frac100",
         "simdinov2_vitb16_lora_r8_b05":    "results/lora_simb_ablation/embeddings/simdinov2_vitb16_lora_r8a8_b012345_frac100",

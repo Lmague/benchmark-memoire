@@ -13,7 +13,7 @@
 | RHOL absente de val et test | ✅ | val=0 test=0 |
 | total tuiles test == 17 598 | ✅ | obtenu 17598 |
 | aucune valeur dépréciée dans rapport_bouguessa/*.tex | ✅ | — |
-| le bootstrap apparié couvre le palier (35 modèles, sauf 2 sans embeddings) | ✅ | 33 groupes, 528 paires |
+| le bootstrap apparié couvre le palier (35 modèles, sauf 0 sans embeddings) | ✅ | 35 groupes, 595 paires |
 | les 8 groupes communs reproduisent la campagne publiée | ✅ | écart max 0.00027 |
 | aucune occurrence d'ExPLoRA dans les sources LaTeX | ✅ | — |
 | aucun modèle déprécié (seed unique) dans rapport_bouguessa/*.tex | ✅ | — |

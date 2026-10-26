@@ -68,7 +68,7 @@ C_GRID = [1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0]   # configs/frozen_eval.yaml
 N_CLASSES = 11
 CACHE = os.path.join(OUT, "tier_preds_cache.npz")
 
-# ── Les 20 groupes du palier (TIER_K=20 : 0,5080 → 0,4689, décrochage +0,0069) ────
+# ── Les 35 groupes du palier (TIER_K=35 : 0,5080 → 0,4689, décrochage +0,0069) ────
 # kind: "ft" = dossier de run (train/val/test.npy, déjà en schéma 11 classes)
 #       "frozen" = embeddings/{key}_{split}.npy, schéma 12 classes → RHOL (idx 7) retiré
 # best_C connu = celui de la campagne canonique ; None = à sélectionner sur val ici.
@@ -101,6 +101,26 @@ GROUPS = [
      "results/context_distill/sig_embeddings/dinov3_vitb16_lvd_ctxdistill_dA_tL_ctx1024_r2a4_frac100_seed{s}", [0, 1, 2], None),
     ("Contexte R3 (A, EMA)", "ft",
      "results/context_distill/sig_embeddings/dinov3_vitb16_lvd_ctxdistill_dA_tEMA_ctx1024_r2a4_frac100_seed{s}", [0, 1, 2], None),
+    # ── ajout 2026-09-13 : les 2 SimDINOv2-B Design B @512 entraînés (r2a4, r8a16).
+    # Rangs 2 et 3 du tableau maître (0,5057 / 0,5030) — jusque-là hors bootstrap
+    # (registry.NO_BOOTSTRAP_EMBEDDINGS, faute d'embeddings rapatriés). sig_embeddings
+    # extraits par le job Narval 2993159 (scripts/slurm_context_extract_sig_simb.sh),
+    # test = mêmes 17 598 tuiles dans le même ordre que les runs DINOv3-B (labels
+    # bit-identiques, vérifié) → appariement valide. TIER_K=35 inchangé : ils étaient
+    # déjà dans le palier, ils entrent au bootstrap (33 → 35 groupes). ──
+    # ⚠ best_C=0.001 ÉPINGLÉ (pas None) pour r2a4 : sur seed2 la grille de validation
+    # est EX ÆQUO à 4 décimales entre C=1e-4 et C=1e-3 (0,4777 les deux) et le choix
+    # bascule alors sur du bruit flottant — C=1e-4 donne test F1=0,5086, C=1e-3 donne
+    # 0,5019 (Δ=0,0067, §4.8 AGENTS.md : les threads BLAS déplacent la solution lbfgs,
+    # et le probe interne du run tournait multi-thread sur Narval alors que ce script
+    # est mono-thread). Le probe canonique du run (metrics.json) a retenu C=1e-3 pour
+    # LES TROIS seeds → épingler reproduit la campagne canonique et évite un groupe
+    # dont le C varie d'un seed à l'autre par bruit numérique. r8a16 : rien à épingler,
+    # la sélection sur validation reproduit déjà metrics.json (0,5138/0,5022/…).
+    ("SimDINOv2-B Contexte r2a4 (B, fusion 512)", "ft",
+     "results/context_distill/sig_embeddings/simdinov2_vitb16_ctxdistill_dB_tSL_ctx512_r2a4_frac100_seed{s}", [0, 1, 2], 0.001),
+    ("SimDINOv2-B Contexte r8a16 (B, fusion 512)", "ft",
+     "results/context_distill/sig_embeddings/simdinov2_vitb16_ctxdistill_dB_tSL_ctx512_r8a16_frac100_seed{s}", [0, 1, 2], None),
     # ── ajout 2026-08-31 : TIER_K=20 — DINOv3 ViT-S/16 entre au rang 13 (LoRA) / 19 (gelé) ──
     ("DINOv3 ViT-S/16 LoRA r=8", "ft", "runs_vits16/embeddings/seed{s}", [0, 1, 2], None),
     ("DINOv3 ViT-S/16", "frozen", "dinov3_vits16_lvd", [None], None),

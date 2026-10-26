@@ -259,8 +259,12 @@ CANONICAL_F1 = {
     'simdinov2_vitb16_lora_r16_rslora': (0.4737, 0.0035),
     'simdinov2_vitb16_lora_r8_qkv': (0.4788, 0.0015),
     'simdinov2_vitb16_norm_tuning': (0.4783, 0.0004),
-    'ctxdistill_dB_tSL_r2a4': (0.5030, 0.0012),  # metrics.json, pas de bootstrap (NO_BOOTSTRAP)
-    'ctxdistill_dB_tSL_r8a16': (0.5057, 0.0072),  # metrics.json, pas de bootstrap (NO_BOOTSTRAP)
+    # Provenance : metrics.json (probe interne des runs). Depuis 2026-09-13 ces deux
+    # modèles ont des sig_embeddings rapatriés et sont ENTRÉS dans le bootstrap apparié
+    # (35 groupes, 595 paires) ; le reprobe canonique mono-thread reproduit ces valeurs
+    # à ≤0,0001 près (0,5030 ± 0,0013 et 0,5056 ± 0,0071). Plus de NO_BOOTSTRAP.
+    'ctxdistill_dB_tSL_r2a4': (0.5030, 0.0012),
+    'ctxdistill_dB_tSL_r8a16': (0.5057, 0.0072),
 }
 
 # Valeurs jamais réintroduites (AGENTS.md §4.1, AGENT_MEMORY.md)
@@ -312,9 +316,16 @@ FORBIDDEN_VALUES = ["0.5256", "0.4675", "0.4680"]
 # Tous tombent DANS le bloc (min 0,4737 > borne basse 0,4689 ; l'écart
 # SimB-r8a16→SimB-r2a4→R1, 0,0160, est sauté comme décrochage de tête par
 # `tier_break(outlier_gap=0.01)`, même statut que R2). Le décrochage structurel
-# reste 0,4689 → 0,4620 (+0,0069) : TIER_K passe à 35. Les 2 SimDINOv2-B entraînés
-# n'ont pas d'embeddings rapatriés → exclus du bootstrap (NO_BOOTSTRAP_EMBEDDINGS) ;
-# le bootstrap couvre donc 33 groupes.
+# reste 0,4689 → 0,4620 (+0,0069) : TIER_K passe à 35. TIER_K EST INCHANGÉ depuis :
+# les 2 SimDINOv2-B entraînés étaient déjà membres du palier, seule leur entrée au
+# bootstrap a changé (2026-09-13, ci-dessous).
+#
+# 2026-09-13 : les 2 SimDINOv2-B Design B @512 (rangs 2 et 3) entrent enfin dans le
+# bootstrap apparié — leurs sig_embeddings ont été extraits sur Narval (job 2993159)
+# puis rapatriés dans results/context_distill/sig_embeddings/. TIER_K reste 35, mais
+# le bootstrap passe de 33 à 35 groupes (595 paires) : `NO_BOOTSTRAP_EMBEDDINGS` est
+# désormais vide. Le test est apparié sur les mêmes 17 598 tuiles (labels
+# bit-identiques aux runs DINOv3-B, vérifié), donc les Δ vs R2 sont valides.
 TIER_K = 35
 TIER_POP = f"top{TIER_K}"
 
@@ -344,6 +355,9 @@ TIER_GROUP_KEY = {
     "Contexte R2 (B, fusion)": "ctxdistill_dB_tL",
     "Contexte R1 (A, tuile)":  "ctxdistill_dA_tL",
     "Contexte R3 (A, EMA)":    "ctxdistill_dA_tEMA",
+    # ── ajout 2026-09-13 : SimDINOv2-B Design B @512 (embeddings rapatriés) ──
+    "SimDINOv2-B Contexte r2a4 (B, fusion 512)":  "ctxdistill_dB_tSL_r2a4",
+    "SimDINOv2-B Contexte r8a16 (B, fusion 512)": "ctxdistill_dB_tSL_r8a16",
     "DINOv3 ViT-S/16 LoRA r=8": "dinov3_vits16_lvd_lora_r8",
     "DINOv3 ViT-S/16":          "dinov3_vits16_lvd",
     # ── ajout 2026-09 : ablation LoRA/PEFT SimDINOv2-B, Stage A (13 bras) ──
@@ -380,6 +394,10 @@ TIER_GROUP_DISPLAY = {
                                 "D3-B ctx R1 (aff.)"),
     "Contexte R3 (A, EMA)":    ("DINOv3-B Contexte R3 — affiné, EMA self-distill.",
                                 "D3-B ctx R3 (aff.)"),
+    "SimDINOv2-B Contexte r2a4 (B, fusion 512)":  ("SimDINOv2-B Contexte — affiné, fusion 512, LoRA r=2",
+                                "SimB ctx r2a4 (aff.)"),
+    "SimDINOv2-B Contexte r8a16 (B, fusion 512)": ("SimDINOv2-B Contexte — affiné, fusion 512, LoRA r=8",
+                                "SimB ctx r8a16 (aff.)"),
     # -- famille DINOv3 --
     "DINOv3 ViT-H+16":         ("DINOv3 ViT-H+/16 LVD — gelé",
                                 "D3-H+ (gelé)"),
@@ -447,13 +465,16 @@ TIER_GROUP_DISPLAY = {
 
 # ── Modèles du palier sans embeddings rapatriés : point-estimates documentés ─
 # Leurs F1 (metrics.json) figurent dans CANONICAL_F1 et le tableau maître, mais ils
-# ne peuvent pas entrer dans le bootstrap apparié (pas d'embeddings test locaux —
-# checkpoints sur $SCRATCH uniquement). check_consistency.py les exclut du contrôle
-# de couverture ; toute comparaison les impliquant reste un point-estimate (§4.4).
-NO_BOOTSTRAP_EMBEDDINGS = {
-    "ctxdistill_dB_tSL_r2a4",    # SimDINOv2-B entraîné Design B, fusion 512
-    "ctxdistill_dB_tSL_r8a16",   # idem r8a16
-}
+# ne peuvent pas entrer dans le bootstrap apparié (pas d'embeddings test locaux).
+# check_consistency.py les exclut du contrôle de couverture ; toute comparaison les
+# impliquant reste un point-estimate (§4.4).
+#
+# 2026-09-13 : VIDE. Les 2 derniers membres (« ctxdistill_dB_tSL_r2a4 » et
+# « ctxdistill_dB_tSL_r8a16 ») ont reçu leurs sig_embeddings (job Narval 2993159,
+# scripts/slurm_context_extract_sig_simb.sh) et sont entrés dans le bootstrap — le
+# palier de 35 modèles est désormais couvert à 100 %. Laisser cet ensemble vide
+# plutôt que le supprimer : c'est le point d'accroche de check_consistency.py.
+NO_BOOTSTRAP_EMBEDDINGS = set()
 
 
 def tier_break(min_gap: float = 0.004, outlier_gap: float = 0.01) -> int:
