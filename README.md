@@ -45,6 +45,14 @@ Every number below is traceable to a file in this repo.
 | 19 | Per-class analysis | Per-class F1 for all models, per regime and per tier; confusion matrices | ARCA, DRYI, RUBC near zero for every model everywhere | `scripts/rapport/make_perclass_tier.py`, `scripts/rapport/knn_and_confusion.py`, `scripts/analyze_latent_classes.py` | `results/rapport_data/per_class_*.csv`, `confusion_tier.npz`, `confusion_matrices.npz` |
 | 20 | Artifact consistency | 15 machine checks: registry vs published F1, tile counts, deprecated values, table balance, figure references | 15/15 pass; run-vs-canonical probe deviation max 0.0043 | `scripts/rapport/check_consistency.py` | `results/rapport_data/consistency_report.md` |
 
+![Ranking of the 42 configurations (rows 1, 4, 5, 6, 15, 16)](figures/fig_readme_ranking.png)
+
+![Spatial context and its controls (rows 2, 3)](figures/fig_readme_context.png)
+
+![Latent space: spectra, ranking power, probe dimension (rows 8, 9, 10)](figures/fig_readme_latent.png)
+
+![Learning curves and blocked vs random sampling (rows 13, 14)](figures/fig_readme_datacurve.png)
+
 Ongoing, not citable yet: `leo-explora-ssl/` (27 files) holds the self-supervised
 pretraining exploration on Arctic imagery with SLURM pipelines; its outputs
 (`results/leo_explora_ssl/`, 15 GB) are not published here.
