@@ -6,6 +6,9 @@ Outputs, all written to figures/:
     fig_readme_context.png   frozen, distillation and fusion, side by side
     fig_readme_latent.png    spectra, ranking power per metric, probe dimension
     fig_readme_datacurve.png random draw vs spatially blocked draw
+    fig_readme_peft.png      LoRA rank ladder and adaptation regimes, SimDINOv2-B
+    fig_readme_perclass.png  per class F1 of the eight best models of the tier
+    fig_readme_cost.png      macro F1 against inference GFLOPs per tile
 
 Canonical sources only:
     results/all_models_canonical_merged.json
@@ -13,6 +16,8 @@ Canonical sources only:
     results/rapport_data/spectra_cache.npz
     results/datacurve_lora/{results_agg,frozen_probe_results_agg}.csv
     lora_spatial_v2/results_spatial_summary.csv
+    results/rapport_data/tile_heads/*.json
+    results/rapport_data/per_class_tier.csv
 
 Run from anywhere: python3 scripts/make_readme_figures.py
 """
@@ -394,8 +399,208 @@ def datacurve() -> None:
     V.savefig(fig, FIG / "fig_readme_datacurve.png")
 
 
+# --------------------------------------------------------------------------
+# 5. PEFT variants on SimDINOv2-B (tile heads reprobe)
+# --------------------------------------------------------------------------
+TILE_HEADS = ROOT / "results/rapport_data/tile_heads"
+
+
+def tile_head_f1(name: str) -> float:
+    """Canonical linear probe F1 (lin_lbfgs) of one tile_heads json file."""
+    data = json.loads((TILE_HEADS / f"{name}.json").read_text())
+    return float(data["lin_lbfgs"]["f1_mean"])
+
+
+def fig_peft_variants() -> None:
+    ladder_files = [(2, "simdinov2_b_lora_r2"), (4, "simdinov2_b_lora_r4"),
+                    (8, "simdinov2_b_lora_r_8"), (16, "simdinov2_b_lora_r16"),
+                    (32, "simdinov2_b_lora_r32")]
+    ladder = [(r, tile_head_f1(n)) for r, n in ladder_files]
+    frozen = tile_head_f1("simdinov2_vit_b16")
+
+    variants = [
+        ("Frozen backbone", "simdinov2_vit_b16"),
+        ("LoRA r=8", "simdinov2_b_lora_r_8"),
+        ("LoRA r=8, Q+K+V", "simdinov2_b_lora_r8_q_k_v"),
+        ("LoRA r=8, blocks 0-5", "simdinov2_b_lora_r8_blocs_0_5"),
+        ("LoRA r=8, blocks 6-11", "simdinov2_b_lora_r8_blocs_6_11"),
+        ("LoRA r=8, blocks 9-11", "simdinov2_b_lora_r8_blocs_9_11"),
+        ("LoRA r=8, scaling 2", "simdinov2_b_lora_r8_scaling_2"),
+        ("LoRA r=8, rsLoRA", "simdinov2_b_lora_r8_rslora"),
+        ("Norm and head only", "simdinov2_b_normtuning"),
+        ("Attention only", "simdinov2_b_mhsa"),
+        ("Full fine-tuning", "simdinov2_b_full"),
+    ]
+    values = [(label, tile_head_f1(name)) for label, name in variants]
+    # keep the r16 run only if its value is distinct from the other variants
+    r16 = ("LoRA r=16", tile_head_f1("simdinov2_b_lora_r16"))
+    if all(abs(r16[1] - v) > 5e-7 for _, v in values):
+        values.append(r16)
+    spread = max(v for _, v in values) - min(v for _, v in values)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.8, 4.0),
+                                   gridspec_kw={"width_ratios": [1, 1.42]})
+
+    xs = [r for r, _ in ladder]
+    ys = [v for _, v in ladder]
+    ax1.plot(xs, ys, "o-", color=V.SERIES[0], lw=1.8, ms=6, zorder=3)
+    for r, v in ladder:
+        ax1.text(r, v + 0.00045, f"{v:.4f}", ha="center", fontsize=7.2,
+                 color=V.INK_SOFT)
+    ax1.axhline(frozen, color=V.RULE, ls="--", lw=1.1, zorder=1)
+    ax1.text(2.0, frozen + 0.00035, "frozen backbone", fontsize=7.2,
+             color=V.RULE, va="bottom")
+    ax1.set_xticks(xs)
+    ax1.set_xlabel("LoRA rank (r)")
+    ax1.set_ylabel("macro F1")
+    ax1.set_ylim(0.4705, 0.4810)
+    ax1.set_title("LoRA rank ladder on SimDINOv2-B", loc="left",
+                  fontweight="bold", fontsize=9.5)
+    V.clean(ax1, y_only=False)
+
+    values_sorted = sorted(values, key=lambda t: t[1])
+    labels = [t[0] for t in values_sorted]
+    vals = np.array([t[1] for t in values_sorted])
+    xmin = 0.4675
+    colours = [V.RULE if lab == "Frozen backbone" else V.SERIES[0]
+               for lab in labels]
+    ypos = np.arange(len(labels))
+    ax2.barh(ypos, vals - xmin, left=xmin, color=colours, height=0.62, zorder=3)
+    for y, v in zip(ypos, vals):
+        ax2.text(v + 0.0004, y, f"{v:.4f}", va="center", fontsize=7.2,
+                 color=V.INK_SOFT, zorder=4)
+    ax2.set_yticks(ypos)
+    ax2.set_yticklabels(labels, fontsize=7.8)
+    ax2.set_xlim(xmin, 0.4862)
+    ax2.set_xlabel("macro F1")
+    ax2.set_title(f"Adaptation regimes on SimDINOv2-B, total spread {spread:.4f}",
+                  loc="left", fontweight="bold", fontsize=9.5)
+    V.clean(ax2, y_only=False)
+    ax2.grid(axis="y", visible=False)
+    handles = [plt.Rectangle((0, 0), 1, 1, color=V.SERIES[0]),
+               plt.Rectangle((0, 0), 1, 1, color=V.RULE)]
+    ax2.legend(handles, ["adapted variant", "frozen backbone"], fontsize=7,
+               frameon=False, loc="lower right")
+
+    fig.tight_layout()
+    V.savefig(fig, FIG / "fig_readme_peft.png")
+    print(f"  PEFT total spread over {len(values)} variants: {spread:.4f}")
+
+
+# --------------------------------------------------------------------------
+# 6. Per class F1 of the tier top models
+# --------------------------------------------------------------------------
+PERCLASS_LABEL = {
+    "ctxdistill_dB_tL": "Context fusion R2",
+    "ctxdistill_dA_tL": "Context distill R1",
+    "ctxdistill_dA_tEMA": "Context distill R3 (EMA)",
+    "simdinov2_vitl16_lora": "SimDINOv2-L LoRA r=8",
+    "dinov3_vitb16_lvd_lora_r8": "DINOv3-B LoRA r=8",
+    "dinov3_vitl16_lvd_lora": "DINOv3-L LoRA r=8",
+    "simdinov2_vitb16_lora_r8_qkv": "SimDINOv2-B LoRA r=8 Q+K+V",
+    "dinov3_vith16plus_lvd": "DINOv3-H+ frozen",
+}
+PERCLASS_CLASSES = ["ALDE", "ARCA", "BIRC", "DRYI", "LICH", "MOSS", "PETF",
+                    "RUBC", "SEDG", "TUSS", "WILL"]
+DEAD_CLASSES = ["ARCA", "DRYI", "RUBC"]
+
+
+def fig_perclass() -> None:
+    with (ROOT / "results/rapport_data/per_class_tier.csv").open() as fh:
+        rows = list(csv.DictReader(fh))
+    top = rows[:8]
+    matrix = np.array([[float(r[c]) for c in PERCLASS_CLASSES] for r in top])
+    labels = [PERCLASS_LABEL.get(r["id"], r["id"]) for r in top]
+    macros = [float(r["f1_macro_pres"]) for r in top]
+
+    fig, ax = plt.subplots(figsize=(11.4, 4.4))
+    im = ax.imshow(matrix, cmap=V.SEQ_BLUE, vmin=0, vmax=1, aspect="auto")
+    ax.set_xticks(np.arange(len(PERCLASS_CLASSES)))
+    ax.set_xticklabels(PERCLASS_CLASSES, fontsize=8)
+    ax.set_yticks(np.arange(len(top)))
+    ax.set_yticklabels([f"{lab} ({m:.4f})" for lab, m in zip(labels, macros)],
+                       fontsize=8)
+    for i in range(matrix.shape[0]):
+        for j in range(matrix.shape[1]):
+            v = matrix[i, j]
+            ax.text(j, i, f"{v:.4f}", ha="center", va="center", fontsize=6.0,
+                    color="white" if v > 0.70 else V.INK)
+
+    # dead classes: verify from the displayed rows, then shade and annotate
+    dead_idx = [PERCLASS_CLASSES.index(c) for c in DEAD_CLASSES]
+    dead_max = max(matrix[:, j].max() for j in dead_idx)
+    if dead_max < 0.03:
+        for j in dead_idx:
+            ax.add_patch(plt.Rectangle((j - 0.5, -0.5), 1, matrix.shape[0],
+                                       facecolor="#8a8985", alpha=0.22,
+                                       lw=0, zorder=2.5))
+        ax.annotate("shaded columns: ARCA, DRYI and RUBC are near zero "
+                    "for every model",
+                    xy=(0.02, -0.16), xycoords="axes fraction", ha="left",
+                    fontsize=7.2, color=V.INK_SOFT)
+
+    ax.set_title("Per class F1 of the eight best models of the tier",
+                 loc="left", fontweight="bold", fontsize=10.5)
+    cb = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.02)
+    cb.set_label("per class F1", fontsize=8)
+    cb.ax.tick_params(labelsize=7)
+    fig.tight_layout(rect=(0, 0.05, 1, 1))
+    V.savefig(fig, FIG / "fig_readme_perclass.png")
+    print(f"  dead classes, max over the displayed rows: {dead_max:.4f}")
+
+
+# --------------------------------------------------------------------------
+# 7. Deployment cost: macro F1 against inference FLOPs
+# --------------------------------------------------------------------------
+# GFLOPs per tile (Macaque, fp32, 224 px) are engineering constants measured
+# once per backbone family; they are not experiment outputs.
+COST = [
+    ("dinov3_vitb16_lvd", "DINOv3-B frozen", 17.6, V.SERIES[5], "o"),
+    ("dinov3_vitb16_lvd_full", "DINOv3-B, full fine-tuning", 17.6, V.SERIES[6], "s"),
+    ("dinov3_vitb16_lvd_mhsa", "DINOv3-B, attention only", 17.6, V.SERIES[7], "^"),
+    ("dinov3_vitb16_lvd_lora_r8", "DINOv3-B, LoRA r=8", 17.6, V.SERIES[0], "D"),
+    ("dinov3_vith16plus_lvd", "DINOv3 ViT-H+/16 frozen", 230.4, V.INK_SOFT, "P"),
+    ("ctxdistill_dA_tL", "Context distill R1 (tile only)", 17.4, V.SERIES[4], "o"),
+    ("ctxdistill_dA_tEMA", "Context distill R3 (EMA teacher)", 17.4, V.SERIES[4], "s"),
+    ("ctxdistill_dB_tL", "Context fusion R2 (both views)", 675.8, V.SERIES[4], "^"),
+]
+# Frozen control, same value quoted in scripts/make_readme_figures.py::ranking().
+CTRL = ("frozen_simdinov2_ctx512", "SimDINOv2-B + context 512, frozen", 34.8, 0.5059, "#7d3c98", "d")
+
+
+def fig_cost() -> None:
+    import matplotlib.ticker as mticker
+    f1 = {r["model"]: r["f1"] for r in load_registry()}
+    fig, ax = plt.subplots(figsize=(7.6, 4.8))
+    for key, label, gflops, colour, marker in COST:
+        ax.plot(gflops, f1[key], marker=marker, ms=9, color=colour, ls="none",
+                zorder=4, markeredgecolor="white", markeredgewidth=0.8, label=label)
+    _, label, gflops, value, colour, marker = CTRL
+    ax.plot(gflops, value, marker=marker, ms=9, color=colour, ls="none", zorder=4,
+            markeredgecolor="white", markeredgewidth=0.8, label=label + " (control)")
+    ax.set_xscale("log")
+    ax.xaxis.set_major_locator(mticker.FixedLocator([20, 50, 100, 200, 500]))
+    ax.xaxis.set_major_formatter(mticker.FixedFormatter(["20", "50", "100", "200", "500"]))
+    ax.xaxis.set_minor_formatter(mticker.NullFormatter())
+    ax.set_xlim(13, 800)
+    ax.set_ylim(0.4685, 0.5145)
+    ax.set_xlabel("inference cost, GFLOPs per tile (log scale)")
+    ax.set_ylabel("macro F1, canonical probe")
+    ratio = next(g for k, _, g, _, _ in COST if k == "ctxdistill_dB_tL") / \
+        next(g for k, _, g, _, _ in COST if k == "ctxdistill_dA_tL")
+    ax.set_title(f"Best F1 costs {ratio:.0f}x the FLOPs of the best single tile model",
+                 loc="left", fontweight="bold", fontsize=10.5)
+    ax.legend(loc="center left", bbox_to_anchor=(1.02, 0.5), frameon=False, fontsize=8.2)
+    V.clean(ax, y_only=False)
+    fig.tight_layout()
+    V.savefig(fig, FIG / "fig_readme_cost.png")
+
+
 if __name__ == "__main__":
     ranking()
     context()
     latent()
     datacurve()
+    fig_peft_variants()
+    fig_perclass()
+    fig_cost()
