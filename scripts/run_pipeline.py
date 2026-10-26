@@ -39,6 +39,13 @@ import sys
 import time
 from pathlib import Path
 
+# Chiffres canoniques : forcer et propager le mono-thread BLAS aux sous-processus
+# (AGENTS.md §4.8). Les tâches A-F recalculent des valeurs canoniques ; les threads
+# changent la solution de lbfgs (±0,0015 mesuré, soit l'ordre de grandeur des effets).
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+           "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ[_v] = "1"
+
 PROJ = Path(__file__).resolve().parents[1]
 
 

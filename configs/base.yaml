@@ -77,7 +77,7 @@ train:
   save_every: 10
 
 probe:
-  C_grid: [0.01, 0.1, 1.0, 10.0]
+  C_grid: [1.0e-4, 1.0e-3, 0.01, 0.1, 1.0, 10.0]  # grille CANONIQUE (6 valeurs, AGENTS.md §4.3) — ne pas réduire à [0.01..10] (valeurs 0.4675/0.4680 dépréciées, AGENTS.md §4.1)
   max_iter: 2000
   knn_k: [5, 10, 20]
   include_finetuned: false   # exclure resnet50_arctic / vitb16_arctic de l'analyse latente

@@ -12,6 +12,12 @@ import argparse
 import json
 import os
 
+# Chiffres canoniques : BLAS mono-thread AVANT tout import de numpy/sklearn
+# (importé indirectement par ``src``). Voir AGENTS.md §4.8.
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+           "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ[_v] = "1"
+
 from src import utils
 from src.config import load_config
 from src.features import load_features
