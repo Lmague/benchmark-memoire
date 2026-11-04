@@ -91,6 +91,8 @@ Contents: [Ranking](#ranking-of-42-configurations) · [Adaptation](#adaptation-m
 - Full fine-tuning has the largest seed spread: 0.4696 to 0.4827 over 3 seeds.
 - Attention-only tuning reads 0.4692, 0.0027 below frozen, but not separably (CI [-0.020, +0.008], q = 0.78).
 
+The same figure shows the neighbourhood and smoothing arms on the same backbone, for scale. Against 0.4719 frozen and 0.4812 for the best adaptation, the 512 px context reads 0.5058, the 3x3 mean 0.5205, and smoothing on top of it 0.5359. GATv2 on the full graph reads 0.4933, below the 3x3 mean. The two levers differ by a factor of about seven: +0.009 for adaptation, +0.064 for context and smoothing.
+
 ## Neighbouring tiles and smoothing
 
 ![Context ladder](figures/readme/03_context_ladder.png)

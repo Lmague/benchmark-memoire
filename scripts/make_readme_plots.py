@@ -282,25 +282,58 @@ def fig_adaptation():
     keys = [k for k in LABELS if k.startswith("simdinov2_vitb16_") and k != "simdinov2_vitb16"]
     rows = sorted(keys, key=lambda k: sc.loc[k, "mean"])
     frozen = sc.loc["simdinov2_vitb16", "mean"]
-    means = [sc.loc[k, "mean"] for k in rows]
 
-    fig, ax = plt.subplots(figsize=(8.2, 5.6))
+    # Same backbone, neighbourhood and smoothing arms (their own runs, same split).
+    arms = jload(TC / "canonical_probe_arms.json")["records"]
+    abl = jload(TC / "recipe_ablation.json")
+    gnn = jload(TC / "gnn_canonical.json")["records"]
+    extra = [
+        ("GATv2, 3 layers, full graph", gnn["GNN3"]["f1"], COL["scratch"]),
+        ("Tile + 512 px context", arms["R2"]["metrics"]["f1_macro_pres"], COL["nbr"]),
+        ("Attention over the 3x3 window", arms["L1"]["metrics"]["f1_macro_pres"], COL["nbr"]),
+        ("3x3 mean of 9 tiles", arms["R3"]["metrics"]["f1_macro_pres"], COL["nbr"]),
+        ("Single tile + mean field", abl["R0"]["mf"]["test"], COL["nbr"]),
+        ("3x3 mean + ICM", abl["R3"]["icm"]["test"], COL["nbr"]),
+        ("3x3 mean + mean field", abl["R3"]["mf"]["test"], COL["nbr"]),
+    ]
+
+    n = len(rows) + len(extra) + 2  # kept for the old offset expressions
+    fig, ax = plt.subplots(figsize=(8.8, 7.0))
     ax.axvline(frozen, color=COL["frozen"], ls="--", lw=1.2, zorder=1)
-    ax.text(frozen, len(rows) - 0.35, f" frozen {frozen:.4f}", color=COL["frozen"], fontsize=8.5,
-            ha="left", va="bottom")
+    ax.text(frozen - 0.0008, -0.45, f"frozen {frozen:.4f}", color=COL["frozen"], fontsize=8.5,
+            ha="right", va="center")
+    best_adapt = sc.loc[rows[-1], "mean"]
+    ax.axvline(best_adapt, color=COL["lora"], ls=":", lw=1, zorder=1)
+    ax.text(best_adapt + 0.0008, -0.45, f"best adaptation {best_adapt:.4f}", color=COL["lora"],
+            fontsize=8.5, ha="left", va="center")
+
+    labels = []
     for i, k in enumerate(rows):
         c = COL["attn"] if ("mhsa" in k or "norm" in k) else COL["full"] if k.endswith("_full") else COL["lora"]
         seeds = sc.loc[k, "seeds"]
         ax.scatter(seeds, [i] * len(seeds), s=16, color=c, alpha=0.45, zorder=2)
         ax.scatter([sc.loc[k, "mean"]], [i], s=60, color=c, edgecolor="white", linewidth=0.7, zorder=3)
-    ax.set_yticks(range(len(rows)))
-    ax.set_yticklabels([LABELS[k].replace("SimDINOv2-B, ", "") for k in rows], fontsize=9)
-    ax.set_ylim(-0.7, len(rows) + 0.2)
-    ax.set_xlabel("macro F1, 11 classes, test split (small dots: seeds, large dot: mean)")
+        labels.append(LABELS[k].replace("SimDINOv2-B, ", ""))
+    y0 = len(rows) + 1.4
+    ax.text(0.463, y0, "Neighbourhood and smoothing, same backbone", fontsize=9,
+            fontweight="bold", color=COL["ink"], va="center")
+    extra_y = []
+    for j, (lab, val, c) in enumerate(extra):
+        y = y0 + 0.9 + j
+        extra_y.append(y)
+        ax.scatter([val], [y], s=62, color=c, marker="D", edgecolor="white", linewidth=0.7, zorder=3)
+        labels.append(lab)
+    ax.set_yticks(list(range(len(rows))) + extra_y)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.set_ylim(-0.9, y0 + len(extra) + 0.8)
+    ax.set_xlim(0.462, 0.545)
+    ax.set_xlabel("macro F1, 11 classes, test split (dots: seeds, large dot: mean)")
     ax.grid(axis="y", visible=False)
-    ax.set_title(f"SimDINOv2-B/16: {len(rows)} adaptation regimes span {max(means) - min(means):.3f} F1")
+    ax.set_title(f"Adaptation: best {best_adapt - frozen:+.3f}; context and smoothing: {extra[-1][1] - frozen:+.3f}")
+    fig.subplots_adjust(left=0.30)
+    fig.text(0.30, 0.01, "Diamonds: neighbourhood and smoothing arms from their own runs (same split, same backbone). "
+             "Vertical dotted line: best single-tile adaptation.", fontsize=8, color=COL["grey"], va="bottom")
     save(fig, "02_adaptation_regimes.png")
-
 
 # --------------------------------------------------------------------------- 3. context ladder
 def fig_context():
