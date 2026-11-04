@@ -29,6 +29,7 @@ MFB="0.1,0.25,0.5,1,2,3,5,8,12,16"
 MFI="1,2,3,5,8,12"
 
 run_one() {
+  set -e
   name=${1%%|*}; emb=${1#*|}
   o=$OUT/$name; mkdir -p "$o"
   echo "[$name] features from $emb"

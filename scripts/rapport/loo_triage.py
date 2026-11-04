@@ -194,7 +194,7 @@ def main() -> None:
     md = ["# Validation leave-one-model-out du triage par géométrie", "",
           f"Palier `registry.TIER_K` = {len(rows)} modèles ; {recs[0]['pairs_total_loo']} "
           "paires prédictives. Signe et régression (sur rangs) ajustés sur n−1 modèles, "
-          "évalués sur le modèle exclu. p = Wilcoxon par modèle (n=35), BH par famille.", "",
+          f"évalués sur le modèle exclu. p = Wilcoxon par modèle (n={len(rows)}), BH par famille.", "",
           "| Métrique | Famille | In-sample | LOO | MAE rangs | MAE moyenne | ρ(pred,F1) | p_BH(fam) |",
           "|---|---|---|---|---|---|---|---|"]
     for r in sorted(recs, key=lambda r: -r["pair_acc_loo"]):
@@ -202,15 +202,24 @@ def main() -> None:
                   f"{100 * r['pair_acc_loo']:.1f} % | {r['mae_loo']:.4f} | "
                   f"{r['mae_mean']:.4f} | {r['rho_pred_true']:+.3f} | "
                   f"{r.get('p_bh_family', float('nan')):.2e} |")
+    sep = [r for r in recs if r["family"] == "séparabilité"]
+    spec = [r for r in recs if r["family"] == "spectrale"]
+    tra = [r for r in recs if r["family"] == "transférabilité"]
+    lo = min(r["pair_acc_loo"] for r in sep)
+    hi = max(r["pair_acc_loo"] for r in sep)
+    pbh = max(r.get("p_bh_family", 1.0) for r in sep)
+    gain_pos = sum(1 for r in sep if r["mae_gain"] > 0)
+    best_gain = max(r["mae_gain"] for r in recs)
+    below = [r for r in spec + tra if r["pair_acc_loo"] < 0.5]
+    below_txt = ", ".join(f"{r['label']} {100 * r['pair_acc_loo']:.1f} %" for r in below) or "aucune"
+    spec_txt = ", ".join(f"{r['label']} {100 * r['pair_acc_loo']:.1f} %" for r in sorted(spec, key=lambda r: -r["pair_acc_loo"]))
     md += ["", "## Lecture", "",
-           "- **Séparabilité (Fisher, DBI, CHI, NC1, silhouette) : la validation LOO passe.** "
-           "64–69 % d'ordonnancement hors échantillon, signe stable, p_BH ≤ 1,3×10⁻⁴ ; "
-           "la régression sur rangs bat la moyenne pour 4/5 métriques.",
-           "- **Elle classe, elle ne prédit pas finement le F1** : gain de MAE ≤ 0,0004 sur "
+           f"- **Séparabilité (Fisher, DBI, CHI, NC1, silhouette) : la validation LOO passe.** "
+           f"{100 * lo:.0f} à {100 * hi:.0f} % d'ordonnancement hors échantillon, p_BH ≤ {pbh:.1e} ; "
+           f"la régression sur rangs bat la moyenne pour {gain_pos}/{len(sep)} métriques.",
+           f"- **Elle classe, elle ne prédit pas finement le F1** : gain de MAE ≤ {best_gain:.4f} sur "
            "un palier dont l'étendue de F1 vaut ≈ 0,04.",
-           "- **Spectre : inexploitable dans le sens naturel** (58–59 % seulement avec le "
-           "signe appris, ≤ 42 % dans le sens pré-enregistré) ; RankMe et LogME train ont "
-           "un signe instable (pires que le hasard).", "",
+           f"- **Spectre et transférabilité** : {spec_txt}. Sous le hasard : {below_txt}.", "",
            "Généré par `scripts/rapport/loo_triage.py`."]
     with open(os.path.join(out_dir, "loo_triage.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(md) + "\n")

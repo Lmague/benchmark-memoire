@@ -8,6 +8,7 @@ reproduit 0.4717 (SimDINOv2-B tuile seule, split canonique). Si oui, l'écart du
 BLAS mono-thread forcé avant tout import numpy (AGENTS.md §4.8).
 """
 import os
+from pathlib import Path
 
 for v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
           "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):

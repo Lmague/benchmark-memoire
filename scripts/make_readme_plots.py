@@ -631,6 +631,65 @@ def fig_classes8():
     save(fig, "08_classes_8.png")
 
 
+
+# --------------------------------------------------------------------------- 9. multi-backbone
+MB_LABELS = {
+    "simdinov2_vitb16": "SimDINOv2-B, frozen",
+    "dinov3_vitb16_lvd": "DINOv3-B, frozen",
+    "dinov3_vitl16_lvd": "DINOv3-L, frozen",
+    "dinov3_vith16plus_lvd": "DINOv3-H+, frozen",
+    "simdinov2_vitl16": "SimDINOv2-L, frozen",
+    "dinov3_vitl16_lvd_lora_s0": "DINOv3-L + LoRA r=8",
+    "simdinov2_vitb16_lora_r8a16_s0": "SimDINOv2-B + LoRA r8a16",
+}
+
+
+def fig_multibackbone():
+    f = TC / "multibackbone_smoothing.csv"
+    if not f.exists():
+        return
+    d = pd.read_csv(f)
+    d["label"] = d["backbone"].map(MB_LABELS).fillna(d["backbone"])
+    d = d.sort_values("R3_MF")
+    ref = pd.read_csv(BASE / "per_seed.csv").groupby("key")["f1_macro_pres"].mean().max()
+
+    fig, (a, b) = plt.subplots(1, 2, figsize=(12.2, 4.9), sharey=True,
+                               gridspec_kw={"width_ratios": [1.35, 1], "wspace": 0.06})
+    y = np.arange(len(d))
+    a.axvline(ref, color=COL["grey"], ls="--", lw=1)
+    a.text(ref, len(d) - 0.35, f" best single-tile {ref:.4f}", fontsize=8.5, color=COL["grey"],
+           va="bottom", ha="left")
+    series = [("R0", "single tile", "o", COL["frozen"], 34),
+              ("R0_MF", "single tile + mean field", "o", "#7FA7D6", 34),
+              ("R3", "3x3 mean", "D", COL["lora"], 38),
+              ("R3_MF", "3x3 mean + mean field", "D", COL["nbr"], 44)]
+    for col, lab, mk, c, sz in series:
+        a.scatter(d[col], y, marker=mk, s=sz, color=c, edgecolor="white", linewidth=0.6,
+                  label=lab, zorder=3)
+    a.set_yticks(y)
+    a.set_yticklabels(d["label"], fontsize=9)
+    a.set_xlabel("macro F1, 11 classes, test split")
+    a.grid(axis="y", visible=False)
+    a.legend(fontsize=8, loc="lower right")
+    a.set_title("Context and smoothing on 7 backbones")
+
+    b.axvline(0, color=COL["grey"], ls="--", lw=1)
+    b.errorbar(d["d_mf_R0"], y - 0.13, xerr=[d["d_mf_R0"] - d["lo_mf_R0"], d["hi_mf_R0"] - d["d_mf_R0"]],
+               fmt="o", ms=5, color="#7FA7D6", ecolor="#7FA7D6", elinewidth=1.3, capsize=2,
+               label="mean field on a single tile", zorder=3)
+    if "d_mf_R3" in d:
+        b.errorbar(d["d_mf_R3"], y + 0.13, xerr=[d["d_mf_R3"] - d["lo_mf_R3"], d["hi_mf_R3"] - d["d_mf_R3"]],
+                   fmt="D", ms=5, color=COL["nbr"], ecolor=COL["nbr"], elinewidth=1.3, capsize=2,
+                   label="mean field on the 3x3 mean", zorder=3)
+    b.set_ylim(-0.6, len(d) - 0.4)
+    b.grid(axis="y", visible=False)
+    b.set_xlabel("paired delta vs the same features without smoothing")
+    b.legend(fontsize=8, loc="lower right")
+    b.set_title("Smoothing gain, 95% CI per map set")
+    fig.text(0.125, 0.01, "Extended grids: beta 0.1 to 16, 1 to 12 iterations, chosen on validation. "
+             "Fine-tuned rows use seed 0 only.", fontsize=8, color=COL["grey"], va="bottom")
+    save(fig, "09_multibackbone.png")
+
 if __name__ == "__main__":
     fig_leaderboard()
     fig_adaptation()
@@ -640,3 +699,4 @@ if __name__ == "__main__":
     fig_latent()
     fig_datacurve()
     fig_classes8()
+    fig_multibackbone()
