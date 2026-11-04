@@ -1,0 +1,24 @@
+{
+ "campaign": "tile context, graph aggregation and decision smoothing",
+ "experiment_dir": "research/gnn_grid_2026-10-31",
+ "split": "canonical, 80,088 tiles (49,281 train / 13,209 val / 17,598 test), 11 classes",
+ "backbone": "SimDINOv2 ViT-B/16 iNat Plantae, frozen, 768-d",
+ "pilot_jobs": {
+  "pilot": "7557582",
+  "early_stopping_diagnostic": "7558211",
+  "canonical_arms": "7588183",
+  "canonical_extract": "7587145"
+ },
+ "files": {
+  "recipe_ablation.json": "out/decoding/ablation.json",
+  "recipe_comparisons.json": "out/decoding/cmp_*.json",
+  "neighbourhood_scale.json": "out/decoding/scales.json",
+  "strata.json": "out/decoding/strata.json",
+  "weighted_crf.json": "out/decoding/weighted.json",
+  "color_fusion.json": "out/color/fusion.json",
+  "pseudo_labels.json": "out/pseudo/pseudo.json",
+  "canonical_probe_arms.json": "out/canon/summary_canonical.json",
+  "gnn_canonical.json": "out/canon/summary_canonical.json + out/gnn/*/metrics.json + out/gnn/cmp_*.json"
+ },
+ "note": "R3 reads 0.5205 in the GNN run and 0.5207 in the decoding run: 0.0002 numerical-path difference. Comparisons are paired within each run."
+}

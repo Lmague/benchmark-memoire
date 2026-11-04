@@ -289,6 +289,22 @@ __pycache__/
 # Données et artefacts intermédiaires :
 !/results/README.md
 
+# --- Tile context, GNN and smoothing (2026-11-01) : code, scalar results, figures ---
+# Le rapport complet et les .npy restent locaux. Les JSON scalaires suffisent à
+# vérifier chaque chiffre du README ; les figures sont versionnées dans figures/.
+!/research/
+/research/*
+!/research/gnn_grid_2026-10-31/
+/research/gnn_grid_2026-10-31/*
+!/research/gnn_grid_2026-10-31/code/
+!/research/gnn_grid_2026-10-31/code/*.py
+!/research/gnn_grid_2026-10-31/scripts/
+!/research/gnn_grid_2026-10-31/scripts/*.sh
+!/results/tile_context_2026-11-01/
+/results/tile_context_2026-11-01/*
+!/results/tile_context_2026-11-01/*.json
+!/scripts/make_readme_context_figures.py
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # RÈGLE GITHUB (2026-10-04) — CODE + README uniquement.
 # En .gitignore, la DERNIÈRE règle qui matche gagne : ce bloc, placé à la fin,

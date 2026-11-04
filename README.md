@@ -1,13 +1,111 @@
 # Arctic-TVC vegetation benchmark
 
-MSc project, UQAM. 42 vision foundation model configurations, 11-class tundra
+MSc project, UQAM. 42 vision foundation model configurations for 11-class tundra
 vegetation mapping from drone orthomosaics, one shared linear probe, one test split.
-Headline: the best macro F1 (0.5080) comes from spatial context at inference, not
-from training; fine-tuning a strong frozen backbone gains 0.012 or less on a single tile.
 
-## Results at a glance
+Headline: 0.5359 macro F1 on the canonical test split with a frozen SimDINOv2-B/16,
+a 3x3 average of neighbouring tile embeddings and mean-field smoothing of the predicted
+map. That is +0.064 over the same backbone on a single tile, with no training and no new
+parameters. A learned GATv2 on the same tile graph does not beat the plain average.
+
+## Tile averaging and decoding
+
+![From one tile to the 3x3 mean and mean-field smoothing](figures/fig_readme_recipe.png)
+
+| Recipe | Macro F1 | Paired delta | 95% CI | p |
+|---|---:|---:|---|---:|
+| Single tile (R0) | 0.4719 | | | |
+| 512 px context only (R1) | 0.4932 | | | |
+| Tile + 512 px fusion (R2) | 0.5058 | | | |
+| 3x3 mean of 9 tiles (R3) | 0.5207 | +0.0136 vs R2 | [-0.0320, +0.0360] | 0.20 |
+| 3x3 mean + ICM | 0.5332 | +0.0124 vs R3 | [+0.0043, +0.0583] | 0.011 |
+| Single tile + mean field | 0.5297 | +0.0578 vs R0 | [+0.0429, +0.1217] | 0.0012 |
+| 3x3 mean + mean field | 0.5359 | +0.0152 vs R3 | [+0.0058, +0.0622] | 0.010 |
+
+All rows use the same frozen SimDINOv2-B/16 features and the canonical probe. Deltas are
+paired hierarchical bootstrap over the 9 test orthomosaics, 10,000 replicates.
+
+Reading:
+
+- R3 is the best feature arm. It is not separable from R2 at 9 test maps: the paired
+  delta is +0.0136 and its CI crosses zero. The pooled gap is +0.0149.
+- On top of the feature ladder, smoothing is the only addition whose CI excludes zero.
+  It gives +0.058 on a single tile and +0.015 on the 3x3 mean.
+- After smoothing, the single tile reaches the 3x3 mean (0.5297 against 0.5359, +0.0062,
+  p = 0.28). The neighbourhood mostly votes on spatially correlated errors:
+  centre-neighbour cosine is 0.831 +/- 0.093.
+- Cost is one embedding pass per tile, neighbours read from cache, then 5 sparse
+  iterations. No parameters, no training.
+
+## Learned aggregation does not help
+
+![Learned aggregation against plain averaging](figures/fig_readme_gnn.png)
+
+| Arm | Parameters | Macro F1 |
+|---|---:|---:|
+| Single tile | 0 | 0.4718 |
+| Tile + 512 px fusion | 0 | 0.5058 |
+| 3x3 mean, annotated tiles only | 0 | 0.5205 |
+| Attention, 1 hop | 235k | 0.5085 |
+| Attention, shuffled positions | 235k | 0.5115 |
+| CNN, same parameter budget | 230k | 0.4824 |
+| GATv2, 2 layers | 168k | 0.4891 |
+| GATv2, 3 layers | 203k | 0.4933 |
+| Uniform mean, full graph | 0 | 0.4924 |
+| GATv2, edges shuffled | 168k | 0.4648 |
+
+- GATv2 equals the uniform mean on the same graph: -0.0033 (p = 0.64) for 2 layers,
+  +0.0009 (p = 0.82) for 3 layers.
+- GATv2 is below the 3x3 mean on annotated tiles: -0.0314 (p = 0.0004).
+- Shuffling neighbour positions does not hurt the attention model (0.5115 against
+  0.5085). The spatial arrangement is not used.
+- Adding the 40,030 unannotated windows to the graph costs 0.0281 (p < 0.001).
+  These windows do not carry the same class mix, so more context is not better context.
+- A pre-registered pilot on 17 orthomosaics reached the same verdict: learned attention
+  0.3822 against 0.3782 for fixed context, +0.0041, CI [-0.019, +0.024], under the
+  +0.010 threshold. The extension to 32 orthomosaics was stopped.
+
+The pilot F1 values come from a reduced, unbalanced split and must not be compared with
+0.5059. R3 reads 0.5205 in the GNN run and 0.5207 in the decoding run, a 0.0002
+numerical-path difference. Comparisons are paired within each run.
+
+## Where smoothing acts
+
+![Smoothing, neighbourhood scale and strata](figures/fig_readme_smoothing.png)
+
+Same probabilities, only the tile graph changes. All rows are a single tile plus
+mean-field smoothing at the stated radius.
+
+| Neighbourhood | Mean neighbours | Macro F1 |
+|---|---:|---:|
+| +/-112 px (50% overlap) | 6.69 | 0.5294 |
+| +/-224 px | 5.67 | 0.5102 |
+| +/-336 px | 4.90 | 0.4957 |
+| +/-112 and +/-224 | 12.36 | 0.5228 |
+| all three rings | 17.26 | 0.5195 |
+
+| Stratum, same-label neighbours out of 8 | Share of test | Net tiles corrected |
+|---|---:|---:|
+| interior, 8/8 | 29.1% | +40 |
+| 6 to 7 | 17.4% | +63 |
+| mixed, 3 to 5 | 48.0% | +301 |
+| boundary, 0 to 2 | 5.5% | -55 |
+
+- 301 of the 349 net corrections come from mixed neighbourhoods, not annotation
+  interiors. The gain is not a polygon-geometry artifact.
+- True boundaries lose 0.057 accuracy. A contrast-weighted CRF does not fix this:
+  the best weighted setting reads 0.5335 against 0.5352 for the uniform graph, and
+  the result degrades monotonically with contrast.
+- 58 colour and texture descriptors reach 0.1412 alone and lower every ViT arm by
+  0.004 to 0.005 when concatenated.
+- Pseudo-labelling the 40,030 unannotated windows peaks at 0.4943, below 0.5207.
+
+## Model ranking
 
 ![All 42 configurations, same probe, same test split](figures/fig_readme_ranking.png)
+
+The table ranks backbone configurations with the single-tile probe. The readout recipes
+above are post-processing and are not part of the 42-model registry.
 
 | Rank | Model | Type | Macro F1 | Seed SD | Embedding |
 |---:|---|---|---:|---:|---:|
@@ -34,28 +132,15 @@ below 0.005 are not final.
 
 ## Effect sizes against the noise floor
 
-![Evaluation artifacts vs reported effects](figures/fig_artifact_budget.png)
+![Evaluation artifacts vs reported effects](figures/fig_readme_artifact_budget.png)
 
 Most PEFT differences sit at or below the inter-seed SD of 0.0080.
-The two effects that clearly exceed it: spatial context fusion (+0.034) and random vs
-blocked data at 1 % (0.327, mostly class coverage).
+The effects that clearly exceed it: mean-field smoothing (+0.0578 on a single tile,
++0.0152 on the 3x3 mean) and random vs blocked data at 1% (0.327, mostly class
+coverage). The 3x3 mean over the earlier fusion is not separable at 9 test maps:
++0.0149 pooled, +0.0136 paired, CI [-0.032, +0.036].
 
-## Spatial context (rows 1-4)
-
-![Context, with and without the neighbourhood](figures/fig_readme_context.png)
-
-| Control | Macro F1 | Reading |
-|---|---:|---|
-| Tile alone | 0.4778 | baseline |
-| Context alone | 0.4781 | the neighbourhood alone adds nothing |
-| Shuffled context | 0.4745 | wrong alignment is worse than nothing |
-| Tile + aligned context | 0.4781 to 0.5080 by model | only the aligned pair helps |
-
-Gains are +0.025 to +0.034, positive on 8 of 9 test maps. On five frozen backbones,
-512 px beats 1024 px beats 2048 px. The frozen fused readout (0.5059) needs no
-gradient step at all.
-
-## Fine-tuning and PEFT (rows 5-7)
+## Fine-tuning and PEFT
 
 ![LoRA rank ladder and 12 adaptation regimes](figures/fig_readme_peft.png)
 
@@ -67,8 +152,8 @@ gradient step at all.
 | Norm and head only, 47k params | within 0.001 of LoRA r=8 |
 | LoRA rank 2 to 32, scaling, blocks, Q+K+V | all inside 0.0067 |
 
-Adaptation is a flat landscape: more rank, more parameters, and later blocks do not
-buy measurable accuracy. Size does: frozen ViT-L beats frozen ViT-B by 0.004 on 8 of
+Adaptation is a flat landscape: more rank, more parameters and later blocks do not buy
+measurable accuracy. Size does: frozen ViT-L beats frozen ViT-B by 0.004 on 8 of
 9 sites.
 
 ## Per class (why the absolute F1 is low)
@@ -83,8 +168,9 @@ models, not the absolute level.
 
 ![Macro F1 against inference GFLOPs](figures/fig_readme_cost.png)
 
-The 0.5080 fusion model costs 39x the FLOPs of the 0.4870 tile-only distillation.
-Within the cheap single-tile range (17 GFLOPs), LoRA and distillation are the frontier.
+The 0.5359 recipe embeds each tile once, reuses the eight neighbours from a cache and
+runs five sparse mean-field iterations. It costs the same 17.6 GFLOPs per tile as a
+single-tile model. Tile + 512 px fusion costs 675.8 GFLOPs, 38x more, for 0.030 less F1.
 
 ## Latent space: what predicts F1
 
@@ -92,18 +178,22 @@ Within the cheap single-tile range (17 GFLOPs), LoRA and distillation are the fr
 
 | Question | Answer | Number |
 |---|---|---|
-| Which measures rank models by F1 out of sample? | class separability only | 63.5 to 69.4 % of pairs, p(BH) <= 1.3e-4 |
-| Spectral measures? | no | RankMe 37.2 %, LogME-train 33.6 %, unstable sign |
+| Which measures rank models by F1 out of sample? | class separability only | 63.5 to 69.4% of pairs, p(BH) <= 1.3e-4 |
+| Spectral measures? | no | RankMe 37.2%, LogME-train 33.6%, unstable sign |
 | Does geometry work across models at all? | within one backbone only | layerwise RankMe rho = 0.89 vs F1 |
-| How much of the embedding is used? | about 100 dims | 100 PCs give 99.1 % of full probe F1, the rest adds 0.004 |
+| How much of the embedding is used? | about 100 dims | 100 PCs give 99.1% of full probe F1, the rest adds 0.004 |
 | Spot broken backbones without labels? | yes | Scale-MAE and from-scratch collapse in the first few dozen eigen-directions |
+
+The figure panel reports in-sample pair ordering on the 34 models that have both
+geometry and F1. The table reports the leave-one-model-out validation of the same
+metrics on the 35-model tier.
 
 ## Data size and sampling
 
 ![Learning curves and blocked vs random draws](figures/fig_readme_datacurve.png)
 
 LoRA needs about 4,592 tiles just to match its own frozen baseline, then ends +0.012.
-Weaker ImageNet regimes overtake at about 2,060 tiles (+0.025 to +0.028). At 1 % of
+Weaker ImageNet regimes overtake at about 2,060 tiles (+0.025 to +0.028). At 1% of
 the data, a random draw reads 0.426 while a spatially blocked draw reads 0.099 (0.229
 when scored only on the 3 to 6 classes present): small-data numbers from random draws
 are inflated by coverage, then by spatial leakage.
@@ -113,8 +203,9 @@ are inflated by coverage, then by spatial leakage.
 | Item | Value |
 |---|---|
 | Data | Arctic-TVC, 38 orthomosaics at about 2.2 mm/px, Trail Valley Creek, NWT; 35 annotated; [doi:10.20383/103.01418](https://doi.org/10.20383/103.01418) |
-| Split | whole orthomosaic per side, no tile leakage; 9 test maps; 49,281 train / 17,598 test tiles (11 classes) |
+| Split | whole orthomosaic per side, no tile leakage; 32 orthomosaics (15 train / 8 val / 9 test); 49,281 / 13,209 / 17,598 tiles, 11 classes |
 | Readout | multinomial lbfgs, shared grid C in {1e-4, 1e-3, 0.01, 0.1, 1, 10}, best C on val |
+| Smoothing | Potts mean field or ICM on the tile graph, beta and iterations chosen on val, no ground truth labels in the graph |
 | Determinism | seed=42; single-threaded BLAS enforced (thread count is worth about 0.0015 F1) |
 | Guards | `tests/test_repo_guards.py`: C grid, threads, deprecated values 0.4675 / 0.4680 / 0.5256 |
 
@@ -138,6 +229,10 @@ are inflated by coverage, then by spatial leakage.
 | 18. Class-schema diagnostics (RHOL) | `scripts/generate_splits_11cls.py` | `results/with_rhol/`, `results/without_rhol/` |
 | 19. Per-class F1 and confusion | `scripts/rapport/make_perclass_tier.py`, `knn_and_confusion.py` | `results/rapport_data/per_class_*.csv`, `confusion_*.npz` |
 | 20. Consistency, 15/15 machine checks | `scripts/rapport/check_consistency.py` | `results/rapport_data/consistency_report.md` |
+| 21. 3x3 tile averaging, mean field and ICM | `research/gnn_grid_2026-10-31/code/label_smoothing.py`, `decoding_ablation.py` | `results/tile_context_2026-11-01/recipe_*.json` |
+| 22. Neighbourhood scale | `research/gnn_grid_2026-10-31/code/decoding_scales.py` | `results/tile_context_2026-11-01/neighbourhood_scale.json` |
+| 23. Attention and GATv2 on the tile graph, pilot and canonical | `research/gnn_grid_2026-10-31/code/run_arms.py`, `run_gnn.py` | `results/tile_context_2026-11-01/gnn_canonical.json` |
+| 24. Strata, colour, pseudo-labels, weighted CRF | `code/strata_diagnostic.py`, `extract_color.py`, `pseudo_label.py`, `weighted_smoothing.py` | `results/tile_context_2026-11-01/{strata,color_fusion,pseudo_labels,weighted_crf}.json` |
 
 Ongoing, not citable: `leo-explora-ssl/` (SSL pretraining exploration, SLURM),
 outputs unpublished.
@@ -149,6 +244,10 @@ outputs unpublished.
   ("no difference survives correction") was a test artifact, not a finding: the top
   tier simply cannot be ranked at this n.
 - Per-seed C selection moves some models by about 0.005.
+- Smoothing and GATv2 were measured on one frozen backbone (SimDINOv2-B/16). The
+  smoothing gain on fine-tuned or other frozen backbones is not measured.
+- The GNN pilot used 17 orthomosaics and 16,699 training tiles. Its absolute F1
+  values are not comparable to the canonical 49,281-tile split.
 - Deprecated single-seed fine-tunes and the invalid ExPLoRA runs are excluded
   everywhere; the guard test forbids 0.4675 / 0.4680 / 0.5256.
 
@@ -166,8 +265,13 @@ python analyze.py --config configs/frozen_eval.yaml
 
 make paper        # pipeline A-F, deterministic
 make probe | latent | sig | transfer | figures | tables
-python scripts/make_readme_figures.py   # all README figures
+python scripts/make_readme_figures.py          # ranking, PEFT, latent, cost
+python scripts/make_readme_context_figures.py  # recipes, GNN, smoothing
 ```
+
+The tile-context pipeline is in `research/gnn_grid_2026-10-31/`. The pre-registration
+and the two negative reports stay local; the scalar outputs are copied under
+`results/tile_context_2026-11-01/` with their provenance.
 
 Embeddings and splits are not in the repo (size). Arctic-TVC is public on FRDR.
 Code MIT, figures and results CC-BY-4.0.

@@ -305,11 +305,11 @@ def latent() -> None:
     ax2.set_yticklabels(names, fontsize=7.6)
     ax2.invert_yaxis()
     ax2.set_xlim(0, 100)
-    ax2.set_xlabel("model pairs ordered like F1 (%)")
+    ax2.set_xlabel("model pairs ordered like F1 (%), in sample")
     for yi, value in zip(y, shares):
         ax2.text(value + 1.5, yi, f"{value:.0f}", va="center", fontsize=7.2,
                  color=V.INK_SOFT)
-    ax2.set_title("Separability ranks, spectra do not", loc="left", fontweight="bold", fontsize=9.5)
+    ax2.set_title("Separability orders pairs in sample", loc="left", fontweight="bold", fontsize=9.5)
     handles = [plt.Rectangle((0, 0), 1, 1, color=V.SERIES[0]),
                plt.Rectangle((0, 0), 1, 1, color=V.SERIES[1])]
     ax2.legend(handles, ["Class separability", "Spectral"], fontsize=7,
@@ -578,18 +578,24 @@ def fig_cost() -> None:
     _, label, gflops, value, colour, marker = CTRL
     ax.plot(gflops, value, marker=marker, ms=9, color=colour, ls="none", zorder=4,
             markeredgecolor="white", markeredgewidth=0.8, label=label + " (control)")
+    # Canonical recipe: embed each tile once, reuse the 8 neighbours from the cache,
+    # then 5 sparse mean-field iterations. Same backbone cost as one tile pass.
+    ax.plot(17.6, 0.5359, marker="*", ms=17, color=V.SERIES[1], ls="none", zorder=6,
+            markeredgecolor="white", markeredgewidth=0.7,
+            label="3x3 mean + mean field (0.5359)")
     ax.set_xscale("log")
     ax.xaxis.set_major_locator(mticker.FixedLocator([20, 50, 100, 200, 500]))
     ax.xaxis.set_major_formatter(mticker.FixedFormatter(["20", "50", "100", "200", "500"]))
     ax.xaxis.set_minor_formatter(mticker.NullFormatter())
     ax.set_xlim(13, 800)
-    ax.set_ylim(0.4685, 0.5145)
+    ax.set_ylim(0.4685, 0.5420)
     ax.set_xlabel("inference cost, GFLOPs per tile (log scale)")
     ax.set_ylabel("macro F1, canonical probe")
-    ratio = next(g for k, _, g, _, _ in COST if k == "ctxdistill_dB_tL") / \
-        next(g for k, _, g, _, _ in COST if k == "ctxdistill_dA_tL")
-    ax.set_title(f"Best F1 costs {ratio:.0f}x the FLOPs of the best single tile model",
+    ax.set_title("The best recipe costs the same as a single tile pass",
                  loc="left", fontweight="bold", fontsize=10.5)
+    ax.annotate("38x fewer FLOPs\nthan tile + 512 px fusion", xy=(17.6, 0.5359),
+                xytext=(28, 0.5285), fontsize=7.4, color=V.INK_SOFT,
+                arrowprops={"arrowstyle": "->", "lw": 0.8, "color": V.INK_SOFT})
     ax.legend(loc="center left", bbox_to_anchor=(1.02, 0.5), frameon=False, fontsize=8.2)
     V.clean(ax, y_only=False)
     fig.tight_layout()
