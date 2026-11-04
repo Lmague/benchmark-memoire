@@ -150,7 +150,7 @@ Left: for the 35 models in `results/rapport_data/loo_triage.csv`, how often a sc
 
 - Cluster scores do best: Calinski-Harabasz 69.1%, NC1 68.7%, Fisher ratio 68.6%, Davies-Bouldin 67.1% (grouped with the neighbourhood measures in the figure), silhouette 61.8%. Chance is 50%.
 - Spectral scores are weaker (stable rank 64.0%, participation ratio 63.5%, RankMe 56.6%, effective rank 56.3%; RankMe is an effective-rank score of the embedding matrix). The two transferability scores sit below chance under leave-one-model-out: LogME 44.4% on train (p_BH 0.16, not significant) and 42.7% on test (p_BH 0.046), where the sign fitted on the other models does not transfer (rho_pred -0.39 and -0.31).
-- These scores rank, they do not predict: the error gain over predicting the mean F1 is about 0.0001 at best, on a tier whose F1 range is about 0.03.
+- These scores rank, they do not predict: the error gain over predicting the mean F1 is about 0.0001 at best, on a tier whose F1 range is about 0.04.
 - Pairs share models, so they are not independent. The p-values come from a per-model Wilcoxon test with Benjamini-Hochberg correction inside each family, not from the pair count.
 
 Right: keeping 100 principal components recovers 97.4% to 100.3% of the full-embedding F1 for 5 backbones.
