@@ -243,12 +243,14 @@ These arms are plotted as red diamonds in the figure above. Single tile reads 0.
 
 ## Ongoing work
 
-I am extending this toward transferability and alignment of Earth-observation foundation models under spatial and sensor shift.
+The work in progress, in order of current effort, is about whether the conclusions above travel outside Arctic-TVC.
 
-- A first pilot found that a distribution discrepancy score (MMD, optimal transport) is associated with transfer, and the association replicated in a second experiment. I could not show that it adds value over RankMe, so I do not claim it.
-- Training with an alignment loss is on hold until a discrepancy score shows value beyond RankMe.
-- First frozen scores for three additional foundation models are below DINOv3 (0.4805): SigLIP 2 ViT-B/16 0.4475, SatlasPretrain Aerial SwinB 0.4373, C-RADIO v4-H 0.3764. Not all three are Earth-observation models. These are single-seed and not in the ranking above, and preprocessing differs (Satlas normalisation assumed to be ImageNet, C-RADIO run at 224 px instead of its native 512), so this is not a like-for-like comparison.
-- `leo-explora-ssl/` holds exploratory self-supervised pretraining on aerial tiles (ExPLoRA style). No result from it is reported here.
+- **A second dataset, Léo.** Four aerial sites, about 355k nadir tiles at 224 px. It is an external validation set, not another training corpus for the benchmark above. No number from it is reported in this README yet.
+- **SSL pretraining on Léo.** `leo-explora-ssl/` adapts a SimDINOv2-B/16 checkpoint to Léo tiles with an ExPLoRA recipe (LoRA on the first blocks, DINO + iBOT + KoLeo, EMA teacher, three seeds), then probes the adapted features back on Arctic-TVC. The runs exist; no result from them is claimed here yet.
+- **Domain shift.** A first pilot found that a distribution discrepancy score (MMD, optimal transport) is associated with transfer, and the association replicated in a second experiment. I could not show that it adds value over RankMe, so I do not claim it. Training with an alignment loss is on hold until a discrepancy score shows value beyond RankMe.
+- **Wider screening.** First frozen scores for three additional foundation models are below DINOv3 (0.4805): SigLIP 2 ViT-B/16 0.4475, SatlasPretrain Aerial SwinB 0.4373, C-RADIO v4-H 0.3764. Not all three are Earth-observation models. They are single-seed and not in the ranking, and preprocessing differs (Satlas normalisation assumed to be ImageNet, C-RADIO run at 224 px instead of its native 512), so this is not a like-for-like comparison.
+
+The domain-shift reports (P0 pilot and P1 replication) are local only. The scalar results behind the sections above are in the repository.
 
 ## Limits
 
