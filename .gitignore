@@ -391,3 +391,4 @@ __pycache__/
 /scripts/rapport/*
 !/scripts/rapport/*.py
 !/results/tile_context_2026-11-01/multibackbone_smoothing.csv
+!/results/tile_context_2026-11-01/peft_pairs.csv

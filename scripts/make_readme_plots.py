@@ -641,6 +641,7 @@ MB_LABELS = {
     "simdinov2_vitl16": "SimDINOv2-L, frozen",
     "dinov3_vitl16_lvd_lora_s0": "DINOv3-L + LoRA r=8",
     "simdinov2_vitb16_lora_r8a16_s0": "SimDINOv2-B + LoRA r8a16",
+    "simdinov2_vitl16_lora_s0": "SimDINOv2-L + LoRA r=8",
 }
 
 
@@ -676,7 +677,7 @@ def fig_multibackbone():
     h, l = a.get_legend_handles_labels()
     h.append(plt.Line2D([], [], color=COL["grey"], ls="--", lw=1))
     l.append(f"best single-tile model ({ref:.4f})")
-    a.set_title("Context and smoothing on 7 backbones")
+    a.set_title("Context and smoothing on 8 backbones")
 
     b.axvline(0, color=COL["grey"], ls="--", lw=1)
     b.errorbar(d["d_mf_R0"], y - 0.13, xerr=[d["d_mf_R0"] - d["lo_mf_R0"], d["hi_mf_R0"] - d["d_mf_R0"]],
@@ -698,7 +699,7 @@ def fig_multibackbone():
                bbox_to_anchor=(0.5, 0.07))
     fig.subplots_adjust(bottom=0.3)
     fig.text(0.5, 0.015, "Extended grids: beta 0.1 to 16, 1 to 12 iterations, chosen on validation. "
-             "The two fine-tuned rows use seed 0 only.", fontsize=8, color=COL["grey"],
+             "The three fine-tuned rows use seed 0 only.", fontsize=8, color=COL["grey"],
              va="bottom", ha="center")
     save(fig, "09_multibackbone.png")
 

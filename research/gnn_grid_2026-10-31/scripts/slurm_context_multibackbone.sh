@@ -54,6 +54,7 @@ JOBS=(
   "simdinov2_vitl16|$SCRATCH/embeddings"
   "dinov3_vitl16_lvd_lora_s0|$SCRATCH/sota_screening/lora_3models/embeddings/dinov3_vitl16_lvd_lora_frac100_seed0"
   "simdinov2_vitb16_lora_r8a16_s0|$SCRATCH/sota_screening/lora_simb_ablation/embeddings/simdinov2_vitb16_lora_r8a16_frac100_seed0"
+  "simdinov2_vitl16_lora_s0|$SCRATCH/sota_screening/lora_3models/embeddings/simdinov2_vitl16_lora_frac100_seed0"
 )
 
 export -f run_one

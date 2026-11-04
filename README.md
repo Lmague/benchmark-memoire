@@ -113,7 +113,7 @@ All rows use the same frozen SimDINOv2-B/16 embeddings and the canonical probe. 
 
 ![Context and smoothing on seven backbones](figures/readme/09_multibackbone.png)
 
-Same canonical split, same probe, same tile graph, seven backbones: five frozen (SimDINOv2-B, SimDINOv2-L, DINOv3-B, DINOv3-L, DINOv3-H+) and two LoRA fine-tunes (DINOv3-L r=8 and SimDINOv2-B r8a16, seed 0). The smoothing grids are wider than in the original run (beta 0.1 to 16, 1 to 12 iterations), still chosen on validation. The SimDINOv2-B row matches the decoding run to 0.0001 / 0.0000 / 0.0003: 0.4720 / 0.5207 / 0.5362 against 0.4719 / 0.5207 / 0.5359. The probe-arms run reads 0.4718 / 0.5205.
+Same canonical split, same probe, same tile graph, eight backbones: five frozen (SimDINOv2-B, SimDINOv2-L, DINOv3-B, DINOv3-L, DINOv3-H+) and three LoRA fine-tunes (DINOv3-L r=8, SimDINOv2-B r8a16, SimDINOv2-L r=8, all seed 0). The smoothing grids are wider than in the original run (beta 0.1 to 16, 1 to 12 iterations), still chosen on validation. The SimDINOv2-B row matches the decoding run to 0.0001 / 0.0000 / 0.0003: 0.4720 / 0.5207 / 0.5362 against 0.4719 / 0.5207 / 0.5359. The probe-arms run reads 0.4718 / 0.5205.
 
 | Backbone | Single tile | + mean field | 3x3 mean | 3x3 + mean field | Mean field on 3x3, 95% CI |
 |---|---:|---:|---:|---:|---|
@@ -124,13 +124,29 @@ Same canonical split, same probe, same tile graph, seven backbones: five frozen 
 | SimDINOv2-L, frozen | 0.4756 | 0.5344 | 0.5259 | 0.5357 | +0.0098 [-0.002, 0.054] |
 | DINOv3-L + LoRA r=8, seed 0 | 0.4856 | 0.5200 | 0.5218 | 0.5353 | +0.0135 [-0.001, 0.062] |
 | SimDINOv2-B + LoRA r8a16, seed 0 | 0.4748 | 0.5184 | 0.5217 | 0.5306 | +0.0089 [-0.005, 0.025] |
+| SimDINOv2-L + LoRA r=8, seed 0 | 0.4808 | 0.5191 | 0.5254 | 0.5349 | +0.0094 [0.003, 0.055] |
 
-- Smoothing a single tile helps on all seven backbones: +0.034 to +0.059 F1, and every interval excludes zero.
-- On top of the 3x3 mean the gain is smaller, +0.009 to +0.015, and excludes zero on four of the seven.
-- After context and smoothing the seven backbones sit between 0.5306 and 0.5394, a 0.009 spread, against 0.4713 to 0.4856 on a single tile (0.014). The spread is smaller after post-processing; no test links the two.
+- Smoothing a single tile helps on all eight backbones: +0.034 to +0.059 F1, and every interval excludes zero.
+- On top of the 3x3 mean the gain is smaller, +0.009 to +0.015, and excludes zero on five of the eight.
+- After context and smoothing the eight backbones sit between 0.5306 and 0.5394, a 0.009 spread, against 0.4713 to 0.4856 on a single tile (0.014). The spread is smaller after post-processing; no test links the two.
 - Highest point estimate: DINOv3-L frozen, 0.5394. DINOv3-H+ is 0.0014 behind and no paired test between backbones was computed, so this is an ordering of point estimates. The SimDINOv2-B reference reads 0.5362 here and 0.5359 in its own run.
-- On the 3x3 arm, four of the seven rows sit off the boundary; DINOv3-H+ and DINOv3-L still select the maximum number of iterations (12), and the SimDINOv2-B LoRA row selects the maximum beta (16). On the single-tile arm, five of seven rows sit at a boundary. The smoothing gain may therefore still be under-estimated.
-- The two fine-tuned rows use seed 0 only; the frozen models have one run anyway, so none of these rows carries an inter-seed interval.
+- On the 3x3 arm, five of the eight rows sit off the boundary; DINOv3-H+ and DINOv3-L still select the maximum number of iterations (12), and the SimDINOv2-B LoRA row selects the maximum beta (16). On the single-tile arm, several rows also sit at a boundary. The smoothing gain may therefore still be under-estimated.
+- The three fine-tuned rows use seed 0 only; the frozen models have one run anyway, so none of these rows carries an inter-seed interval.
+
+
+### Does PEFT help under context and smoothing?
+
+Each fine-tuned row above has a frozen counterpart on the same backbone. Paired over the same 9 maps:
+
+| Pair | Single tile, PEFT minus frozen | 3x3 + mean field, PEFT minus frozen | Difference in smoothing gain |
+|---|---|---|---|
+| DINOv3-L | +0.0064 [-0.041, +0.020] | -0.0042 [-0.108, +0.010] | +0.0002 [-0.058, +0.012] |
+| SimDINOv2-B | +0.0028 [-0.011, +0.018] | -0.0056 [-0.051, +0.010] | -0.0065 [-0.052, +0.0003] |
+| SimDINOv2-L | +0.0053 [-0.009, +0.013] | -0.0009 [-0.012, +0.016] | -0.0004 [-0.008, +0.041] |
+
+- On a single tile, PEFT is nominally ahead in all three pairs (+0.003 to +0.006), as the 42-model ranking also shows.
+- After context and smoothing, that advantage is gone and slightly reversed (-0.006 to 0.000). None of the three differences is separable from zero at 9 maps.
+- The smoothing gain itself is not larger for PEFT (from -0.007 to +0.000). So there is no evidence that adaptation adds anything once the neighbourhood is used; the direction is consistent across the three pairs but the design cannot certify it.
 
 ## Learned aggregation
 
@@ -280,7 +296,8 @@ Two things to know:
 | Per-class table | tile counts, per-class F1 | `splits/*_11cls.csv`, `per_class_f1.csv` |
 | Non-linear readouts | 0 of 33, 2 of 24 | `results/rapport_data/head_sweep_summary.csv` |
 | Context and aggregation arms, 8 classes | 12 arms, two schemas | `results/tile_context_2026-11-01/arms_8cls.csv` |
-| Context and smoothing on 7 backbones | F1, paired deltas | `results/tile_context_2026-11-01/multibackbone_smoothing.csv` |
+| Context and smoothing on 8 backbones | F1, paired deltas | `results/tile_context_2026-11-01/multibackbone_smoothing.csv` |
+| PEFT against its frozen backbone | paired differences | `results/tile_context_2026-11-01/peft_pairs.csv` |
 | Deployable or upper bound | flag per configuration | `results/baseline_clean_2026-10-08/summary.csv` |
 
 Two 8-class conventions exist in the committed files. `arms_8cls.csv` and `per_class_f1.csv` keep the 321 dropped-class test tiles, which is the convention of the `f1_macro_8cls_test` field written by each run. The `f1_8cls` fields in `recipe_comparisons.json` and `gnn_canonical.json` remove those tiles before scoring, which is about 0.006 higher. The README table and figure use the first.
