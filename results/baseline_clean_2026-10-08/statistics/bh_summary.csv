@@ -1,0 +1,3 @@
+family,n_models,n_pairs,n_bh_reject_hier,alpha
+canonical_tier_primary,39,741,179,0.05
+all_models_exploratory,154,11781,,0.05

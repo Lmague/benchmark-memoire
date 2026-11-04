@@ -332,3 +332,48 @@ __pycache__/
 /RECONCILIATION.md
 /mail_bouguessa.md
 *.pdf
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# REPRODUCTIBILITÉ (2026-11-04) — entrées minimales et tables de provenance.
+# Chaque chiffre du README doit être vérifiable depuis un fichier présent ici.
+# Les données brutes, les embeddings et les poids ne sont pas versionnés.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Splits canoniques (11 classes) et l'affectation des orthomosaïques.
+!/splits/
+/splits/*
+!/splits/*_11cls.csv
+!/splits/split_v3_assignment.json
+!/splits/split_assignment.json
+!/splits/README.md
+
+# Clean baseline : scores par seed, F1 par classe, statistiques appariées.
+!/results/baseline_clean_2026-10-08/
+/results/baseline_clean_2026-10-08/*
+!/results/baseline_clean_2026-10-08/per_seed.csv
+!/results/baseline_clean_2026-10-08/per_class_f1.csv
+!/results/baseline_clean_2026-10-08/statistics/
+/results/baseline_clean_2026-10-08/statistics/*
+!/results/baseline_clean_2026-10-08/statistics/bh_summary.csv
+!/results/baseline_clean_2026-10-08/statistics/bootstrap_summary.csv
+!/results/baseline_clean_2026-10-08/statistics/pairwise_effects.csv
+
+# Courbes de données et résumé spatial (CSV agrégés uniquement).
+!/results/datacurve_lora/
+/results/datacurve_lora/*
+!/results/datacurve_lora/results_agg.csv
+!/results/datacurve_lora/frozen_probe_results_agg.csv
+
+!/lora_spatial_v2/
+/lora_spatial_v2/*
+!/lora_spatial_v2/results_spatial_summary.csv
+
+!/spatial_datacurve/
+/spatial_datacurve/*
+!/spatial_datacurve/class_composition.csv
+!/.mailmap
+!/requirements-lock.txt
+!/results/tile_context_2026-11-01/arms_8cls.csv
+!/splits/train.csv
+!/splits/val.csv
+!/splits/test.csv

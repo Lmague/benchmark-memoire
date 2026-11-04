@@ -560,44 +560,14 @@ def readme_scores_8cls() -> pd.DataFrame:
 def arms_scores() -> pd.DataFrame:
     """11-class and 8-class macro F1 of the context, decoding and aggregation arms.
 
-    Read from the saved predictions, with the same 8-class convention as readme_scores_8cls:
-    macro F1 over the 8 kept classes on the full test split. 2-D arrays hold one row per seed.
+    Read from the committed table results/tile_context_2026-11-01/arms_8cls.csv, built from
+    the saved predictions with the same 8-class convention as readme_scores_8cls().
     """
-    from sklearn.metrics import f1_score
-    out = ROOT / "research" / "gnn_grid_2026-10-31" / "out"
-    tiles = jload(out / "canonical_split.json")["tiles"]
-    y = np.array([t["label"] for t in tiles if t["split"] == "test"])
-    keep = [0, 2, 4, 5, 6, 8, 9, 10]
-    present = sorted(set(y.tolist()))
-    specs = [
-        ("Single tile", "decoding/preds/R0_base.npy"),
-        ("3x3 mean", "decoding/preds/R3_base.npy"),
-        ("Single tile + mean field", "decoding/preds/R0_MF.npy"),
-        ("3x3 mean + ICM", "decoding/preds/R3_ICM.npy"),
-        ("3x3 mean + mean field", "decoding/preds/R3_MF.npy"),
-        ("Attention over the 3x3 window", "canon/preds/L1.npy"),
-        ("Attention, positions shuffled", "canon/preds/L1p.npy"),
-        ("CNN on the 3x3 window", "canon/preds/L2.npy"),
-        ("Uniform mean over the graph", "gnn/MEAN9/preds/MEAN9.npy"),
-        ("GATv2, 2 layers", "gnn/GNN2/preds/GNN2.npy"),
-        ("GATv2, 3 layers", "gnn/GNN3/preds/GNN3.npy"),
-        ("GATv2, edges shuffled", "gnn/GNN2rw/preds/GNN2rw.npy"),
-    ]
+    f = TC / "arms_8cls.csv"
+    if not f.exists():
+        return pd.DataFrame(columns=["label", "f11", "f8"])
+    return pd.read_csv(f)
 
-    def score(pred, labels):
-        if pred.ndim == 2:
-            return float(np.mean([f1_score(y, row, average="macro", labels=labels, zero_division=0)
-                                  for row in pred]))
-        return float(f1_score(y, pred, average="macro", labels=labels, zero_division=0))
-
-    rows = []
-    for name, rel in specs:
-        f = out / rel
-        if not f.exists():
-            continue
-        pred = np.load(f)
-        rows.append((name, score(pred, present), score(pred, keep)))
-    return pd.DataFrame(rows, columns=["label", "f11", "f8"])
 
 def fig_classes8():
     sc = readme_scores_8cls()

@@ -1,0 +1,13 @@
+label,f11,f8
+Single tile,0.471937,0.648913
+3x3 mean,0.520721,0.715992
+Single tile + mean field,0.529730,0.728379
+3x3 mean + ICM,0.533152,0.733083
+3x3 mean + mean field,0.535908,0.736874
+Attention over the 3x3 window,0.508513,0.695734
+"Attention, positions shuffled",0.511546,0.699904
+CNN on the 3x3 window,0.482359,0.657543
+Uniform mean over the graph,0.492381,0.677024
+"GATv2, 2 layers",0.489066,0.672466
+"GATv2, 3 layers",0.493307,0.678297
+"GATv2, edges shuffled",0.464833,0.639145

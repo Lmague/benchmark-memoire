@@ -1,0 +1,5 @@
+# Unify author identities in `git log` and `git shortlog` (no history rewrite).
+Lazare Magué <lazare.mague@email.com>      Lazare Magué <lazare.mague@.com>
+Lazare Magué <lazare.mague@email.com>      Lazare Mague <lazare.mague@gmail.com>
+Lazare Magué <lazare.mague@email.com>      Lazare MAGUE <lazare.mague@gmail.com>
+Lazare Magué <lazare.mague@email.com>      eo-researcher <agent@local>

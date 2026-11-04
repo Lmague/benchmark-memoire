@@ -1,0 +1,25 @@
+# Versions that produced the committed numbers.
+#
+# Two environments are involved and they are not identical:
+#   - the probe environment (CPU, single thread) produced every F1 value and the
+#     statistics; its versions are recorded inside each probe JSON;
+#   - the Narval GPU environment produced the fine-tuned embeddings.
+# Where the two differ, the probe value wins for anything numeric in this repo.
+#
+# Probe environment (recorded in results/baseline_clean_2026-10-08/per_seed.csv runs):
+scikit-learn==1.9.0
+numpy==2.4.6
+scipy==1.18.0
+pandas==3.0.3
+matplotlib==3.11.0
+PyYAML==6.0.3
+pillow==12.3.0
+#
+# Narval GPU environment (fine-tuning and extraction):
+#   torch==2.12.1, torchvision==0.27.1, numpy==2.4.2, scikit-learn==1.8.0
+# Fine-tuned F1 values were re-probed locally with the probe environment above,
+# so the sklearn/numpy pair that matters for the reported numbers is 1.9.0 / 2.4.6.
+#
+# Not pinned here because they are installed from source or are gated:
+#   timm, transformers, huggingface_hub, umap-learn, PyWavelets, deepsig
+#   SimDINOv2: pip install git+https://github.com/ilyassmoummad/sslplant

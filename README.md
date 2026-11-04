@@ -216,19 +216,46 @@ I am extending this toward transferability and alignment of Earth-observation fo
 
 ## Reproduce
 
+A clone contains the code, the configs, the 11-class splits and the scalar tables behind every number below. It does not contain the raw orthomosaics (public, FRDR), the 224 px tiles, the extracted embeddings, or the model weights (some are gated).
+
+From a clone, the figures and every published number are recomputed from the committed tables:
+
 ```bash
 pip install -r requirements.txt
-# DINOv3 weights are gated (facebook/dinov3-*-lvd1689m); SimDINOv2 needs
-# pip install git+https://github.com/ilyassmoummad/sslplant
+python scripts/make_readme_plots.py      # rebuilds the eight figures from results/
+```
 
-python scripts/generate_splits_11cls.py
+The full pipeline starts from raw rasters. It needs the Arctic-TVC download, a tiling step, and a GPU for fine-tuning:
+
+```bash
+# tiles, then the split CSVs (12 classes), then the 11-class remap
+python scripts/tile_split.py
+python scripts/generate_dataset_splits.py
+python scripts/generate_splits_11cls.py --splits-dir out/dataset_splits --out-dir splits --force
+
+# embeddings and the canonical probe
 python extract.py --config configs/frozen_dinov3_lvd.yaml
 python probe.py   --config configs/frozen_eval.yaml
 python analyze.py --config configs/frozen_eval.yaml
-
-python scripts/make_readme_plots.py   # rebuilds every figure above from results/
 ```
 
-Code map: `src/` package, `extract.py` / `probe.py` / `train.py` / `analyze.py` entry points, `configs/` YAML, `scripts/` analysis and SLURM jobs, `research/gnn_grid_2026-10-31/code/` tile context, smoothing and GNN experiments, `results/` scalar outputs (context experiments: `results/tile_context_2026-11-01/`).
+Two things to know:
 
-Embeddings and splits are not in the repo because of size. Arctic-TVC is public on FRDR. Code is MIT, figures and results are CC-BY-4.0.
+- The committed splits are canonical. They come from `splits/split_v3_assignment.json` (15 / 8 / 9 orthomosaics, verified against the CSVs). Both the 12-class and the 11-class CSVs are included, and the command above regenerates the 11-class files byte-identically from the 12-class ones. Rebuilding the 12-class files from raw tiles is not scripted end to end: `scripts/generate_dataset_splits.py` still reads the older `splits/split_assignment.json`.
+- Fine-tuning needs GPUs and the gated weights. The fine-tuned scores are committed seed by seed in `results/baseline_clean_2026-10-08/per_seed.csv`, so no GPU is needed to check them.
+
+## Where the numbers come from
+
+| Section | Values | File |
+|---|---|---|
+| Ranking, adaptation, per class, 8-class view | per-seed and per-class F1 | `results/baseline_clean_2026-10-08/per_seed.csv`, `per_class_f1.csv` |
+| Significance of the ranking | paired differences, CIs, q-values | `results/baseline_clean_2026-10-08/statistics/pairwise_effects.csv` |
+| Context, smoothing, learned aggregation | F1, deltas, CIs | `results/tile_context_2026-11-01/*.json` |
+| Embedding geometry | pair ordering, leave-one-model-out | `results/rapport_data/loo_triage.csv`, `dim_probe_summary.csv` |
+| Data size | learning curves, blocked subsets | `results/datacurve_lora/*_agg.csv`, `lora_spatial_v2/results_spatial_summary.csv`, `spatial_datacurve/class_composition.csv` |
+| Per-class table | tile counts, per-class F1 | `splits/*_11cls.csv`, `per_class_f1.csv` |
+| Non-linear readouts | 0 of 33, 2 of 24 | `results/rapport_data/head_sweep_summary.md` |
+
+Code map: `src/` package, the `extract.py` / `probe.py` / `train.py` / `analyze.py` entry points, `configs/` YAML, `scripts/` analysis and SLURM jobs, `research/gnn_grid_2026-10-31/code/` tile context, smoothing and GNN experiments, `results/` scalar outputs.
+
+Arctic-TVC is public on FRDR. Code is MIT, figures and results are CC-BY-4.0.

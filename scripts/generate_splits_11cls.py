@@ -17,8 +17,13 @@ from __future__ import annotations
 import argparse
 import csv
 import os
+import sys
 
 import numpy as np
+
+# Permet ``python3 scripts/generate_splits_11cls.py`` depuis n'importe quel dossier :
+# Python ajoute scripts/ (pas la racine du dépôt) à sys.path.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src import utils
 

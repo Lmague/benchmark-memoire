@@ -1,0 +1,78 @@
+{
+  "seed": 42,
+  "best_cost": 0.3223163822253484,
+  "metrics_before": {
+    "n_tiles": {
+      "0": 53536,
+      "1": 12464,
+      "2": 14240
+    },
+    "pct": {
+      "0": 0.6672,
+      "1": 0.1553,
+      "2": 0.1775
+    },
+    "tv_01": 0.2686,
+    "tv_02": 0.3164,
+    "tv_12": 0.5122,
+    "tv_sum": 1.0972
+  },
+  "metrics_after": {
+    "n_tiles": {
+      "0": 49433,
+      "1": 13209,
+      "2": 17598
+    },
+    "pct": {
+      "0": 0.6161,
+      "1": 0.1646,
+      "2": 0.2193
+    },
+    "tv_01": 0.1214,
+    "tv_02": 0.0816,
+    "tv_12": 0.102,
+    "tv_sum": 0.3049
+  },
+  "assignment": {
+    "20230724_alder25_m3m": "val",
+    "20230724_alder39_m3m": "train",
+    "20230724_alder43_m3m": "train",
+    "20230724_alder4_m3m": "test",
+    "20230724_birch24_m3m": "train",
+    "20230724_birch26_m3m": "val",
+    "20230724_birch30_m3m": "val",
+    "20230724_birch33_m3m": "train",
+    "20230724_birch54_m3m": "test",
+    "20230724_lichentundra21_m3m": "train",
+    "20230724_lichentundra35_m3m": "test",
+    "20230724_lichentundra41_m3m": "test",
+    "20230724_lichentundra45_m3m": "train",
+    "20230724_polygon29_m3m": "train",
+    "20230724_riparianshrub20_m3m": "train",
+    "20230724_riparianshrub23_m3m": "test",
+    "20230724_riparianshrub32_m3m": "train",
+    "20230724_riparianshrub36_m3m": "val",
+    "20230724_sedge_mosstundra16_m3m": "train",
+    "20230724_sedge_mosstundra22_m3m": "test",
+    "20230724_sedge_mosstundra34_m3m": "val",
+    "20230725_alder3_m3m": "train",
+    "20230725_birch2_m3m": "test",
+    "20230725_sedge_mosstundra19_m3m": "val",
+    "20230725_tussockfield_m3m": "val",
+    "20230725_tussockfieldsub_m3m": "train",
+    "20230726_polygon5_m3m": "train",
+    "20230728_birch42_m3m": "test",
+    "20230728_lichentundra44_m3m": "test",
+    "20230728_tussockfield46_m3m": "train",
+    "20230728_tussockfield51_m3m": "val",
+    "20230728_tussockfield53_m3m": "train"
+  },
+  "missing_classes": {
+    "val": [
+      "RHOL"
+    ],
+    "test": [
+      "RHOL"
+    ]
+  }
+}
