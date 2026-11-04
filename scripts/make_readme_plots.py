@@ -175,8 +175,8 @@ def fig_leaderboard():
     tier_a_keys = list(vs.index) + [ref]
     ranked = sorted(tier_a_keys, key=lambda k: -sc.loc[k, "mean"])
     top = ranked[:18]
-    refs = ["dinov3_vitl16_sat", "vitb16_imagenet", "scalemae_vitl16", "satmae_vitl16",
-            "resnet50_imagenet", "vitb16_scratch_old"]
+    refs = ["dinov3_vitb16_lvd", "dinov3_vitl16_sat", "vitb16_imagenet", "scalemae_vitl16",
+            "satmae_vitl16", "resnet50_imagenet", "vitb16_scratch_old"]
     same_backbone = "simdinov2_vitb16"
     if same_backbone not in top:
         refs = [same_backbone] + refs

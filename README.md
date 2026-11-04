@@ -21,7 +21,7 @@ Contents: [Ranking](#ranking-of-42-configurations) · [Adaptation](#adaptation-m
 
 ![Named ranking and significance](figures/readme/01_leaderboard.png)
 
-42 configurations: 11 frozen and 31 fine-tuned (3 seeds each). 39 are deployable; the other 3 (rows 1 to 3, marked "upper bound" in the table) need the tile plus context at inference. This is the canonical tier of the clean baseline plus those 3 upper bounds; the other 112 registered runs (supporting and exploratory) are not ranked here. Two supporting runs score above the best canonical model and are excluded: a DINOv3-B rank ablation (0.4845) and a single-seed spatial LoRA (0.4885). All are read with the same linear probe. The figure has three levels of input: single tile (top 18 models plus 7 reference points), neighbour tiles as input, and smoothing of the predicted map. The full list is below.
+42 configurations: 11 frozen and 31 fine-tuned (3 seeds each). 39 are deployable; the other 3 (rows 1 to 3, marked "upper bound" in the table) need the tile plus context at inference. This is the canonical tier of the clean baseline plus those 3 upper bounds; the other 112 registered runs (supporting and exploratory) are not ranked here. Two supporting runs score above the best canonical model and are excluded: a DINOv3-B rank ablation (0.4845) and a single-seed spatial LoRA (0.4885). All are read with the same linear probe. The figure has three levels of input: single tile (top 18 models plus 8 reference points, including the frozen DINOv3-B), neighbour tiles as input, and smoothing of the predicted map. The full list is below.
 
 - Best frozen model: DINOv3 ViT-H+/16, 0.4805. Best plain LoRA in this ranking: DINOv3-L, 0.4842. That is +0.0037, CI [-0.034, +0.017], q = 0.76: not separable.
 - Only 3 of 38 single-tile models separate from the best frozen model after Benjamini-Hochberg correction: SatMAE (-0.071), frozen ResNet-50 ImageNet (-0.073) and ViT-B/16 from scratch (-0.126). Everything else fails the correction (q > 0.10). Three of those still have paired intervals excluding zero: ViT-B/16 ImageNet, Scale-MAE and fine-tuned ResNet-50.
@@ -84,7 +84,7 @@ Contents: [Ranking](#ranking-of-42-configurations) · [Adaptation](#adaptation-m
 
 ![Adaptation regimes](figures/readme/02_adaptation_regimes.png)
 
-16 ways to adapt SimDINOv2-B/16 end between 0.4692 and 0.4812. Frozen is 0.4719. None of the 16 separates from it (best: LoRA r=8 on Q+K+V, +0.0094, CI [-0.006, +0.020], q = 0.24).
+16 ways to adapt SimDINOv2-B/16 end between 0.4692 and 0.4812. Frozen is 0.4719. SimDINOv2-B is the workhorse here because it is the only backbone with a full 16-regime ladder in the clean baseline; its frozen score is within 0.0004 of DINOv3-B (0.4715), and the eight-backbone run below finds the same context and smoothing gains on DINOv3-B (+0.055 and 0.5366, against +0.057 and 0.5362 for SimDINOv2-B). None of the 16 separates from it (best: LoRA r=8 on Q+K+V, +0.0094, CI [-0.006, +0.020], q = 0.24).
 
 - LoRA rank 2 to 32 goes from 0.4793 down to 0.4751, but no pair separates (rank 2 against rank 32: +0.0042, CI [-0.003, +0.009], q = 0.31), so the trend is not established.
 - Training only the norm layers and the head (0.4783) is not separable from LoRA r=8 (CI [-0.009, +0.009]); against full fine-tuning the interval still allows a +0.021 gap.
