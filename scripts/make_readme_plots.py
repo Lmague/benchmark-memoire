@@ -3,7 +3,7 @@
 Every number is read from a result file at run time, nothing is typed in by hand.
 
 Sources (relative to the repository root):
-    results/all_models_canonical_merged.json
+    results/baseline_clean_2026-10-08/{per_seed.csv,statistics/pairwise_effects.csv}
     results/tile_context_2026-11-01/{canonical_probe_arms,recipe_ablation,recipe_comparisons,
         r3_vs_r2_bootstrap,gnn_canonical,strata,neighbourhood_scale}.json
     results/rapport_data/{loo_triage,dim_probe_summary}.csv
@@ -31,8 +31,6 @@ RES = ROOT / "results"
 TC = RES / "tile_context_2026-11-01"
 OUT = ROOT / "figures" / "readme"
 OUT.mkdir(parents=True, exist_ok=True)
-
-EXCLUDED_EXPLORA = {"dinov3_vitb16_lvd_explora", "vitb16_explora_old"}
 
 COL = {
     "frozen": "#4C72B0",
@@ -78,119 +76,216 @@ def save(fig, name: str):
     print("wrote", OUT / name)
 
 
-def registry():
-    models = jload(RES / "all_models_canonical_merged.json")["models"]
-    return [m for m in models if m["model"] not in EXCLUDED_EXPLORA]
+# --------------------------------------------------------------------------- clean baseline helpers
+BASE = RES / "baseline_clean_2026-10-08"
+
+LABELS = {
+    "dinov3_vith16plus_lvd": "DINOv3 ViT-H+/16, frozen",
+    "dinov3_vitl16_lvd": "DINOv3 ViT-L/16, frozen",
+    "dinov3_vitl16_sat": "DINOv3 ViT-L/16 satellite, frozen",
+    "dinov3_vitb16_lvd": "DINOv3 ViT-B/16, frozen",
+    "dinov3_vits16_lvd": "DINOv3 ViT-S/16, frozen",
+    "simdinov2_vitl16": "SimDINOv2 ViT-L/16, frozen",
+    "simdinov2_vitb16": "SimDINOv2 ViT-B/16, frozen",
+    "vitb16_imagenet": "ViT-B/16 ImageNet, frozen",
+    "scalemae_vitl16": "Scale-MAE ViT-L/16, frozen",
+    "satmae_vitl16": "SatMAE ViT-L/16, frozen",
+    "resnet50_imagenet": "ResNet-50 ImageNet, frozen",
+    "dinov3_vitl16_lvd_lora": "DINOv3-L, LoRA r=8",
+    "dinov3_vitb16_lvd_lora_r8": "DINOv3-B, LoRA r=8",
+    "dinov3_vits16_lvd_lora_r8": "DINOv3-S, LoRA r=8",
+    "simdinov2_vitl16_lora": "SimDINOv2-L, LoRA r=8",
+    "dinov3_vitb16_lvd_mhsa": "DINOv3-B, attention only",
+    "dinov3_vitb16_lvd_full": "DINOv3-B, full fine-tuning",
+    "vitb16_full_old": "ViT-B/16 ImageNet, full fine-tuning",
+    "vitb16_mhsa_old": "ViT-B/16 ImageNet, attention only",
+    "resnet50_fulft_sota": "ResNet-50 ImageNet, full fine-tuning",
+    "vitb16_scratch_old": "ViT-B/16 from scratch",
+    "ctxdistill_dA_tL": "Context distillation, tile only at inference",
+    "ctxdistill_dA_tEMA": "Context distillation, EMA teacher, tile only",
+    "ctxdistill_dB_tL": "Context fusion, fine-tuned",
+    "ctxdistill_dB_tSL_r8a16": "Context fusion, SimDINOv2-B LoRA r8a16",
+    "ctxdistill_dB_tSL_r2a4": "Context fusion, SimDINOv2-B LoRA r2a4",
+    "simdinov2_vitb16_lora_r8_b911": "SimDINOv2-B, LoRA r=8, blocks 9-11",
+    "simdinov2_vitb16_lora_r8_b611": "SimDINOv2-B, LoRA r=8, blocks 6-11",
+    "simdinov2_vitb16_lora_r2": "SimDINOv2-B, LoRA r=2",
+    "simdinov2_vitb16_lora_r8_qkv": "SimDINOv2-B, LoRA r=8, Q+K+V",
+    "simdinov2_vitb16_lora_r4": "SimDINOv2-B, LoRA r=4",
+    "simdinov2_vitb16_norm_tuning": "SimDINOv2-B, norm layers + head only",
+    "simdinov2_vitb16_full": "SimDINOv2-B, full fine-tuning",
+    "simdinov2_vitb16_lora": "SimDINOv2-B, LoRA r=8",
+    "simdinov2_vitb16_lora_r8_b05": "SimDINOv2-B, LoRA r=8, blocks 0-5",
+    "simdinov2_vitb16_lora_r16": "SimDINOv2-B, LoRA r=16",
+    "simdinov2_vitb16_lora_r8_s2": "SimDINOv2-B, LoRA r=8, scaling 2",
+    "simdinov2_vitb16_lora_r8_rslora": "SimDINOv2-B, LoRA r=8, rsLoRA",
+    "simdinov2_vitb16_lora_r32": "SimDINOv2-B, LoRA r=32",
+    "simdinov2_vitb16_lora_r16_s2": "SimDINOv2-B, LoRA r=16, scaling 2",
+    "simdinov2_vitb16_lora_r16_rslora": "SimDINOv2-B, LoRA r=16, rsLoRA",
+    "simdinov2_vitb16_mhsa": "SimDINOv2-B, attention only (MHSA)",
+}
+FROZEN_KEYS = {k for k, v in LABELS.items() if v.endswith("frozen")}
 
 
-def family_of(m: dict) -> str:
-    name, typ = m["model"], m["type"]
-    if typ == "frozen":
+def baseline_scores() -> pd.DataFrame:
+    ps = pd.read_csv(BASE / "per_seed.csv")
+    g = ps.groupby("key")["f1_macro_pres"]
+    out = pd.DataFrame({"mean": g.mean(), "sd": g.std(ddof=1), "n": g.count(),
+                        "seeds": g.apply(list)})
+    return out
+
+
+def baseline_vs(ref: str) -> pd.DataFrame:
+    """Paired hierarchical (orthomosaic, then tile) differences of every model against `ref`."""
+    p = pd.read_csv(BASE / "statistics" / "pairwise_effects.csv")
+    rows = []
+    for _, r in p.iterrows():
+        if r.model_a == ref:
+            s, other = -1, r.model_b
+        elif r.model_b == ref:
+            s, other = 1, r.model_a
+        else:
+            continue
+        lo, hi = ((r.ci95_diff_low, r.ci95_diff_high) if s == 1
+                  else (-r.ci95_diff_high, -r.ci95_diff_low))
+        rows.append((other, s * r.effect_delta_f1, lo, hi, r.bh_q_hier, bool(r.bh_reject_hier)))
+    return pd.DataFrame(rows, columns=["key", "delta", "lo", "hi", "q", "reject"]).set_index("key")
+
+
+def kind_of(key: str) -> str:
+    if key in FROZEN_KEYS:
         return "frozen"
-    if name == "vitb16_scratch_old":
+    if key == "vitb16_scratch_old":
         return "scratch"
-    if name.startswith("ctxdistill_dB"):
-        return "nbr"
-    if name.startswith("ctxdistill_dA"):
-        return "ctxd"
-    if "lora" in name:
-        return "lora"
-    if "mhsa" in name or "norm_tuning" in name:
-        return "attn"
-    if "full" in name or "fulft" in name:
-        return "full"
-    raise ValueError(f"unclassified model {name}")
+    return "ft"
 
 
-# --------------------------------------------------------------------------- 1. benchmark
-def fig_benchmark():
-    models = registry()
-    assert len(models) == 42, len(models)
-    order = ["frozen", "lora", "attn", "full", "ctxd", "nbr"]
-    labels = {
-        "frozen": "Frozen",
-        "lora": "LoRA",
-        "attn": "Attention or\nnorm only",
-        "full": "Full\nfine-tuning",
-        "ctxd": "Context\ndistillation,\ntile only",
-        "nbr": "Neighbourhood\nread at\ninference",
-    }
-    by = {k: [m for m in models if family_of(m) == k] for k in order + ["scratch"]}
-    best_frozen = max(m["f1_linear_probe"] for m in by["frozen"])
-    sd_max = max(m["f1_std"] for m in models
-                 if m.get("f1_std") is not None and family_of(m) != "scratch")
+KIND_COL = {"frozen": COL["frozen"], "ft": COL["lora"], "scratch": COL["scratch"]}
 
-    rng = np.random.default_rng(0)
-    fig, ax = plt.subplots(figsize=(9.2, 5.2))
-    ax.axhspan(best_frozen - sd_max, best_frozen + sd_max, color=COL["light"], alpha=0.55, lw=0, zorder=0)
-    ax.axhline(best_frozen, color=COL["grey"], ls="--", lw=1, zorder=1)
-    xpos = {}
-    for i, k in enumerate(order):
-        ms = by[k]
-        x = i + rng.uniform(-0.2, 0.2, len(ms))
-        y = np.array([m["f1_linear_probe"] for m in ms])
-        sd = np.array([m["f1_std"] if m.get("f1_std") is not None else 0.0 for m in ms])
-        xpos[k] = x[int(np.argmax(y))]
-        ax.errorbar(x, y, yerr=sd, fmt="none", ecolor=COL[k], elinewidth=1, alpha=0.6, zorder=2)
-        ax.scatter(x, y, s=34, color=COL[k], edgecolor="white", linewidth=0.6, zorder=3)
-    ax.set_xticks(range(len(order)))
-    ax.set_xticklabels([f"{labels[k]}\n(n={len(by[k])})" for k in order], fontsize=9)
-    ax.set_xlim(-0.6, len(order) - 0.4)
-    ax.set_ylim(0.40, 0.525)
-    ax.set_ylabel("macro F1, 11 classes, test split")
-    ax.grid(axis="x", visible=False)
-    ax.text(-0.5, 0.519, f"dashed line: best frozen model, {best_frozen:.4f}. "
-            f"Grey band: ±{sd_max:.3f}, the largest seed SD of any config except from-scratch.",
-            ha="left", va="center", fontsize=8.5, color=COL["grey"])
 
-    for k in ("frozen", "lora", "ctxd", "nbr"):
-        m = max(by[k], key=lambda m: m["f1_linear_probe"])
-        sd = m.get("f1_std") or 0.0
-        ax.annotate(f"{m['f1_linear_probe']:.4f}", (xpos[k], m["f1_linear_probe"] + sd),
-                    xytext=(0, 7), textcoords="offset points", ha="center", fontsize=8.5,
-                    color=COL[k], fontweight="bold")
-    sc = by["scratch"][0]
-    ax.text(0.995, 0.01, f"ViT-B/16 from scratch: {sc['f1_linear_probe']:.3f} (off scale)",
-            transform=ax.transAxes, fontsize=8.5, color=COL["scratch"], ha="right", va="bottom")
-    ax.set_title("42 configurations, one probe, one test split")
-    save(fig, "01_benchmark.png")
+# --------------------------------------------------------------------------- 1. leaderboard
+def fig_leaderboard():
+    ref = "dinov3_vith16plus_lvd"
+    sc = baseline_scores()
+    vs = baseline_vs(ref)
+    arms = jload(TC / "canonical_probe_arms.json")["records"]
+    abl = jload(TC / "recipe_ablation.json")
+    f = lambda a: arms[a]["metrics"]["f1_macro_pres"]
+
+    tier_a_keys = list(vs.index) + [ref]
+    ranked = sorted(tier_a_keys, key=lambda k: -sc.loc[k, "mean"])
+    top = ranked[:18]
+    refs = ["dinov3_vitl16_sat", "vitb16_imagenet", "scalemae_vitl16", "satmae_vitl16",
+            "resnet50_imagenet", "vitb16_scratch_old"]
+    same_backbone = "simdinov2_vitb16"
+    if same_backbone not in top:
+        refs = [same_backbone] + refs
+    tier_a = top + sorted([k for k in refs if k not in top], key=lambda k: -sc.loc[k, "mean"])
+
+    recipe = lambda name, v: dict(label=name, mean=v, sd=None, kind="recipe", key=None)
+    ctx_ft = lambda k: dict(label=LABELS[k], mean=sc.loc[k, "mean"], sd=sc.loc[k, "sd"], kind="ft", key=None)
+    tier_c = [recipe("3x3 mean + mean field", abl["R3"]["mf"]["test"]),
+              recipe("3x3 mean + ICM", abl["R3"]["icm"]["test"]),
+              recipe("Single tile + mean field", abl["R0"]["mf"]["test"])]
+    tier_b = sorted([recipe("3x3 mean of 9 tiles", f("R3")),
+                     recipe("Tile + 512 px context", f("R2")),
+                     ctx_ft("ctxdistill_dB_tL"), ctx_ft("ctxdistill_dB_tSL_r8a16"),
+                     ctx_ft("ctxdistill_dB_tSL_r2a4")], key=lambda r: -r["mean"])
+    tier_a_rows = [dict(label=LABELS[k], mean=sc.loc[k, "mean"],
+                        sd=sc.loc[k, "sd"] if sc.loc[k, "n"] > 1 else None,
+                        kind=kind_of(k), key=k) for k in tier_a]
+
+    tiers = [("Smoothing of the predicted map, on frozen SimDINOv2-B/16 (no training)", tier_c),
+             ("Neighbour tiles as input", tier_b),
+             ("Single tile only", tier_a_rows)]
+    ys, y = [], 0.0
+    layout = []
+    for title, rows in tiers:
+        layout.append(("hdr", title, y))
+        y -= 1.0
+        for r in rows:
+            layout.append(("row", r, y))
+            y -= 1.0
+        y -= 0.5
+
+    fig, (a, b) = plt.subplots(1, 2, figsize=(12.6, 9.2), sharey=True,
+                               gridspec_kw={"width_ratios": [1.5, 1], "wspace": 0.04})
+    best_frozen = sc.loc[ref, "mean"]
+    a.axvline(best_frozen, color=COL["grey"], ls="--", lw=1)
+    b.axvline(0, color=COL["grey"], ls="--", lw=1)
+    yticks, ylabels = [], []
+    for kind, item, y in layout:
+        if kind == "hdr":
+            a.text(0.402, y, item, fontsize=9, fontweight="bold", color=COL["ink"], va="center", zorder=5,
+                   bbox=dict(facecolor="white", edgecolor="none", pad=1.5))
+            continue
+        r = item
+        c = COL["frozen"] if r["kind"] in ("frozen", "recipe") else KIND_COL[r["kind"]]
+        mk = "D" if r["kind"] == "recipe" else "o"
+        yticks.append(y)
+        ylabels.append(r["label"])
+        x = r["mean"]
+        if r["sd"]:
+            a.errorbar([x], [y], xerr=[r["sd"]], fmt="none", ecolor=c, elinewidth=1.2, alpha=0.7, zorder=2)
+        if x < 0.40:
+            a.text(0.4015, y, f"{x:.4f} (off scale)", fontsize=8, va="center", color=c)
+        else:
+            a.scatter([x], [y], s=46, color=c, marker=mk, edgecolor="white", linewidth=0.7, zorder=3)
+            a.text(x + (r["sd"] or 0) + 0.0015, y, f"{x:.4f}", fontsize=8, va="center", color=COL["ink"])
+        if r["key"] is not None:
+            if r["key"] == ref:
+                b.scatter([0], [y], s=40, color=COL["ink"], marker="|", zorder=3)
+                b.text(0.004, y, "reference", fontsize=8, va="center", color=COL["grey"])
+            else:
+                d = vs.loc[r["key"]]
+                cc = c if d["reject"] else "white"
+                b.hlines(y, d["lo"], d["hi"], color=c, lw=1.4, alpha=0.8, zorder=2)
+                b.scatter([d["delta"]], [y], s=42, facecolor=cc, edgecolor=c, linewidth=1.3, zorder=3)
+    from matplotlib.lines import Line2D
+    handles = [Line2D([], [], marker="o", ls="", color=COL["frozen"], label="frozen"),
+               Line2D([], [], marker="o", ls="", color=COL["lora"], label="fine-tuned"),
+               Line2D([], [], marker="o", ls="", color=COL["scratch"], label="from scratch"),
+               Line2D([], [], marker="D", ls="", color=COL["frozen"], label="frozen SimDINOv2-B + recipe")]
+    a.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.065), ncol=4, fontsize=8.5, frameon=False)
+    a.set_yticks(yticks)
+    a.set_yticklabels(ylabels, fontsize=8.5)
+    a.set_xlim(0.40, 0.55)
+    a.set_ylim(min(y for _, _, y in layout) - 0.8, 0.9)
+    a.grid(axis="y", visible=False)
+    b.grid(axis="y", visible=False)
+    b.tick_params(axis="y", length=0)
+    b.set_xlim(-0.17, 0.065)
+    a.set_xlabel("macro F1, 11 classes, test split")
+    b.set_xlabel("difference vs DINOv3 ViT-H+/16 (95% CI over 9 test maps)")
+    a.set_title("Named ranking, three levels of input", fontsize=11.5)
+    b.set_title("Which models separate from the best frozen one?", fontsize=11.5)
+    n_rej = int(vs["reject"].sum())
+    fig.text(0.125, 0.012,
+             f"Left: clean baseline, mean of 3 seeds with ±SD bars (frozen models: one run). Diamonds: frozen SimDINOv2-B/16 "
+             f"from the tile-context run, one seed.\nRight: paired bootstrap over maps then tiles, filled = survives "
+             f"Benjamini-Hochberg at 5%. {n_rej} of {len(vs)} single-tile models do. Context models are outside this test family.",
+             fontsize=8, color=COL["grey"], va="top")
+    save(fig, "01_leaderboard.png")
 
 
 # --------------------------------------------------------------------------- 2. adaptation regimes
 def fig_adaptation():
-    names = {
-        "simdinov2_vitb16_lora_r8_b911": "LoRA r=8, blocks 9-11",
-        "simdinov2_vitb16_lora_r8_b611": "LoRA r=8, blocks 6-11",
-        "simdinov2_vitb16_lora_r2": "LoRA r=2",
-        "simdinov2_vitb16_lora_r8_qkv": "LoRA r=8, Q+K+V",
-        "simdinov2_vitb16_lora_r4": "LoRA r=4",
-        "simdinov2_vitb16_norm_tuning": "Norm layers + head only",
-        "simdinov2_vitb16_full": "Full fine-tuning",
-        "simdinov2_vitb16_lora": "LoRA r=8",
-        "simdinov2_vitb16_lora_r8_b05": "LoRA r=8, blocks 0-5",
-        "simdinov2_vitb16_lora_r16": "LoRA r=16",
-        "simdinov2_vitb16_lora_r8_s2": "LoRA r=8, scaling 2",
-        "simdinov2_vitb16_lora_r8_rslora": "LoRA r=8, rsLoRA",
-        "simdinov2_vitb16_lora_r32": "LoRA r=32",
-        "simdinov2_vitb16_lora_r16_s2": "LoRA r=16, scaling 2",
-        "simdinov2_vitb16_lora_r16_rslora": "LoRA r=16, rsLoRA",
-        "simdinov2_vitb16_mhsa": "Attention only (MHSA)",
-    }
-    models = {m["model"]: m for m in registry()}
-    rows = sorted((models[k] for k in names), key=lambda m: m["f1_linear_probe"])
-    frozen = models["simdinov2_vitb16"]["f1_linear_probe"]
-    means = [m["f1_linear_probe"] for m in rows]
+    sc = baseline_scores()
+    keys = [k for k in LABELS if k.startswith("simdinov2_vitb16_") and k != "simdinov2_vitb16"]
+    rows = sorted(keys, key=lambda k: sc.loc[k, "mean"])
+    frozen = sc.loc["simdinov2_vitb16", "mean"]
+    means = [sc.loc[k, "mean"] for k in rows]
 
     fig, ax = plt.subplots(figsize=(8.2, 5.6))
     ax.axvline(frozen, color=COL["frozen"], ls="--", lw=1.2, zorder=1)
     ax.text(frozen, len(rows) - 0.35, f" frozen {frozen:.4f}", color=COL["frozen"], fontsize=8.5,
             ha="left", va="bottom")
-    for i, m in enumerate(rows):
-        k = family_of(m)
-        ax.scatter(m["f1_seeds"], [i] * len(m["f1_seeds"]), s=16, color=COL[k], alpha=0.45, zorder=2)
-        ax.scatter([m["f1_linear_probe"]], [i], s=60, color=COL[k], edgecolor="white", linewidth=0.7, zorder=3)
+    for i, k in enumerate(rows):
+        c = COL["attn"] if ("mhsa" in k or "norm" in k) else COL["full"] if k.endswith("_full") else COL["lora"]
+        seeds = sc.loc[k, "seeds"]
+        ax.scatter(seeds, [i] * len(seeds), s=16, color=c, alpha=0.45, zorder=2)
+        ax.scatter([sc.loc[k, "mean"]], [i], s=60, color=c, edgecolor="white", linewidth=0.7, zorder=3)
     ax.set_yticks(range(len(rows)))
-    ax.set_yticklabels([names[m["model"]] for m in rows], fontsize=9)
+    ax.set_yticklabels([LABELS[k].replace("SimDINOv2-B, ", "") for k in rows], fontsize=9)
     ax.set_ylim(-0.7, len(rows) + 0.2)
     ax.set_xlabel("macro F1, 11 classes, test split (small dots: seeds, large dot: mean)")
     ax.grid(axis="y", visible=False)
@@ -428,7 +523,7 @@ def fig_datacurve():
 
 
 if __name__ == "__main__":
-    fig_benchmark()
+    fig_leaderboard()
     fig_adaptation()
     fig_context()
     fig_smoothing()
