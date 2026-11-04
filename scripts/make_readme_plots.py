@@ -207,12 +207,17 @@ def fig_leaderboard():
             y -= 1.0
         y -= 0.5
 
-    fig, (a, b) = plt.subplots(1, 2, figsize=(12.6, 9.2), sharey=True,
-                               gridspec_kw={"width_ratios": [1.5, 1], "wspace": 0.04})
+    fig, (a, b) = plt.subplots(1, 2, figsize=(12.8, 10.2), sharey=True,
+                               gridspec_kw={"width_ratios": [1.45, 1], "wspace": 0.12})
     best_frozen = sc.loc[ref, "mean"]
     a.axvline(best_frozen, color=COL["grey"], ls="--", lw=1)
     b.axvline(0, color=COL["grey"], ls="--", lw=1)
     yticks, ylabels = [], []
+    rows_y = [y for kind, _, y in layout if kind == "row"]
+    for k, yy in enumerate(rows_y):
+        if k % 2 == 0:
+            a.axhspan(yy - 0.5, yy + 0.5, color="#F5F5F5", lw=0, zorder=0)
+            b.axhspan(yy - 0.5, yy + 0.5, color="#F5F5F5", lw=0, zorder=0)
     for kind, item, y in layout:
         if kind == "hdr":
             a.text(0.402, y, item, fontsize=9, fontweight="bold", color=COL["ink"], va="center", zorder=5,
@@ -230,7 +235,8 @@ def fig_leaderboard():
             a.text(0.4015, y, f"{x:.4f} (off scale)", fontsize=8, va="center", color=c)
         else:
             a.scatter([x], [y], s=46, color=c, marker=mk, edgecolor="white", linewidth=0.7, zorder=3)
-            a.text(x + (r["sd"] or 0) + 0.0015, y, f"{x:.4f}", fontsize=8, va="center", color=COL["ink"])
+            a.text(1.015, y, f"{x:.4f}", transform=a.get_yaxis_transform(), fontsize=8.5,
+                   va="center", ha="left", color=COL["ink"], family="DejaVu Sans Mono")
         if r["key"] is not None:
             if r["key"] == ref:
                 b.scatter([0], [y], s=40, color=COL["ink"], marker="|", zorder=3)
@@ -412,6 +418,7 @@ def fig_gnn():
     fig, axes = plt.subplots(2, 1, figsize=(8.6, 5.8), sharex=True, gridspec_kw={"hspace": 0.38})
     for ax, (title, ref, rows) in zip(axes, groups):
         ax.axvline(ref, color=COL["grey"], ls="--", lw=1)
+        rows = sorted(rows, key=lambda r: r[1])
         n = len(rows)
         for i, (lab, v, spread, p, is_ref) in enumerate(rows):
             y = n - 1 - i
@@ -549,6 +556,49 @@ def readme_scores_8cls() -> pd.DataFrame:
     return out.set_index("key")
 
 
+
+def arms_scores() -> pd.DataFrame:
+    """11-class and 8-class macro F1 of the context, decoding and aggregation arms.
+
+    Read from the saved predictions, with the same 8-class convention as readme_scores_8cls:
+    macro F1 over the 8 kept classes on the full test split. 2-D arrays hold one row per seed.
+    """
+    from sklearn.metrics import f1_score
+    out = ROOT / "research" / "gnn_grid_2026-10-31" / "out"
+    tiles = jload(out / "canonical_split.json")["tiles"]
+    y = np.array([t["label"] for t in tiles if t["split"] == "test"])
+    keep = [0, 2, 4, 5, 6, 8, 9, 10]
+    present = sorted(set(y.tolist()))
+    specs = [
+        ("Single tile", "decoding/preds/R0_base.npy"),
+        ("3x3 mean", "decoding/preds/R3_base.npy"),
+        ("Single tile + mean field", "decoding/preds/R0_MF.npy"),
+        ("3x3 mean + ICM", "decoding/preds/R3_ICM.npy"),
+        ("3x3 mean + mean field", "decoding/preds/R3_MF.npy"),
+        ("Attention over the 3x3 window", "canon/preds/L1.npy"),
+        ("Attention, positions shuffled", "canon/preds/L1p.npy"),
+        ("CNN on the 3x3 window", "canon/preds/L2.npy"),
+        ("Uniform mean over the graph", "gnn/MEAN9/preds/MEAN9.npy"),
+        ("GATv2, 2 layers", "gnn/GNN2/preds/GNN2.npy"),
+        ("GATv2, 3 layers", "gnn/GNN3/preds/GNN3.npy"),
+        ("GATv2, edges shuffled", "gnn/GNN2rw/preds/GNN2rw.npy"),
+    ]
+
+    def score(pred, labels):
+        if pred.ndim == 2:
+            return float(np.mean([f1_score(y, row, average="macro", labels=labels, zero_division=0)
+                                  for row in pred]))
+        return float(f1_score(y, pred, average="macro", labels=labels, zero_division=0))
+
+    rows = []
+    for name, rel in specs:
+        f = out / rel
+        if not f.exists():
+            continue
+        pred = np.load(f)
+        rows.append((name, score(pred, present), score(pred, keep)))
+    return pd.DataFrame(rows, columns=["label", "f11", "f8"])
+
 def fig_classes8():
     sc = readme_scores_8cls()
     from scipy.stats import spearmanr, kendalltau
@@ -566,19 +616,26 @@ def fig_classes8():
     a.scatter([sc.loc["dinov3_vith16plus_lvd", "f11"]], [sc.loc["dinov3_vith16plus_lvd", "f8"]],
               s=120, facecolor="none", edgecolor=COL["ink"], linewidth=1.1, zorder=4,
               label="best frozen (DINOv3-H+)")
-    labels = {"ctxdistill_dB_tL": (-7, 7), "dinov3_vitl16_lvd_lora": (7, 5),
-              "dinov3_vitb16_lvd_full": (9, -9), "vitb16_scratch_old": (6, 0)}
-    for k, off in labels.items():
-        a.annotate(LABELS[k], (sc.loc[k, "f11"], sc.loc[k, "f8"]), xytext=off, textcoords="offset points",
-                   fontsize=8, color=COL["ink"], ha="left" if off[0] > 0 else "right")
-    a.set_xlim(0.345, 0.532)
+    labels = {"ctxdistill_dB_tL": (-7, 8, False), "dinov3_vitb16_lvd_full": (34, -30, True),
+              "vitb16_scratch_old": (6, 0, False)}
+    for k, (dx, dy, arrow) in labels.items():
+        a.annotate(LABELS[k], (sc.loc[k, "f11"], sc.loc[k, "f8"]), xytext=(dx, dy),
+                   textcoords="offset points", fontsize=8, color=COL["ink"],
+                   ha="left" if dx > 0 else "right",
+                   arrowprops=dict(arrowstyle="-", lw=0.8, color=COL["grey"]) if arrow else None)
+    arms = arms_scores()
+    if len(arms):
+        a.scatter(arms.f11, arms.f8, s=58, marker="D", color=COL["nbr"], edgecolor="white",
+                  linewidth=0.7, zorder=3, label="context and aggregation arms")
+
+    a.set_xlim(0.345, 0.548)
     a.set_xlabel("macro F1, 11 classes")
     a.set_ylabel("macro F1, 8 classes")
-    a.legend(loc="upper left", bbox_to_anchor=(0.0, 0.84), fontsize=8.5)
+    a.legend(loc="upper left", bbox_to_anchor=(0.0, 0.80), fontsize=8.5)
     a.text(0.98, 0.03, f"Spearman {rho.statistic:.3f}, Kendall {kendalltau(sc.f11, sc.f8).statistic:.3f}.\n"
            f"Median gain {(sc.f8 - sc.f11).median():+.3f}.", transform=a.transAxes,
            fontsize=8.5, va="bottom", ha="right", color=COL["grey"])
-    a.set_title("The same 42 configurations, 8 classes instead of 11")
+    a.set_title("8 classes instead of 11")
 
     buckets = [0, 1, 2]
     counts = [int((move.abs() == k).sum()) for k in buckets] + [int((move.abs() >= 3).sum())]

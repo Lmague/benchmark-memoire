@@ -158,6 +158,8 @@ Three classes score exactly zero for these two models (all 3 seeds for the fine-
 
 ![8-class view](figures/readme/08_classes_8.png)
 
+The figure shows the 42 configurations and, as red diamonds, the context, decoding and aggregation arms (each from its own run). The rank-change panel on the right covers the 42 configurations only.
+
 ARCA, DRYI and RUBC score near zero for every model, so they lower the macro average without separating models. The 8-class view drops them (321 of 17,598 test tiles) and reports the macro F1 over the remaining 8, with the same 11-class classifier: their tiles stay in the test split, so a kept class they are predicted as counts as a false positive, and a kept tile predicted as one of the three counts as a false negative. The three classes are simply not scored. This is the convention of the `f1_macro_8cls_test` field that each training run writes. It is not a refit on 8 classes. Refits on the 8 classes exist from an earlier campaign (24 entries), but they follow a different protocol and are not used here.
 
 - The level rises by about 0.18 (median +0.179): the 42 configurations span 0.3547 to 0.5079 in 11 classes and 0.4805 to 0.6984 in 8 classes.
@@ -165,22 +167,24 @@ ARCA, DRYI and RUBC score near zero for every model, so they lower the macro ave
 - The two movers are DINOv3-B with full fine-tuning (9 places down) and DINOv3-B with attention only (3 places down). The difference between the two rankings comes entirely from the three dropped classes, which weigh 3/11 of the 11-class average. DINOv3-B full has the highest ARCA score of the 42 (0.039), worth about +0.0035 on its own. Nine models have a non-zero ARCA score, none above 0.040.
 - The best recipe (3x3 mean + mean field) reads 0.5359 in 11 classes and 0.7369 in 8 classes.
 
-| Arm | 11 classes | 8 classes |
-|---|---:|---:|
-| Single tile | 0.4719 | 0.6489 |
-| 3x3 mean | 0.5207 | 0.7160 |
-| Single tile + mean field | 0.5297 | 0.7284 |
-| 3x3 mean + ICM | 0.5332 | 0.7331 |
-| 3x3 mean + mean field | 0.5359 | 0.7369 |
-| Attention over the 3x3 window | 0.5085 | 0.6957 |
-| Attention, positions shuffled | 0.5115 | 0.6999 |
-| CNN on the 3x3 window | 0.4824 | 0.6575 |
-| Uniform mean over the graph | 0.4924 | 0.6770 |
-| GATv2, 2 layers | 0.4891 | 0.6725 |
-| GATv2, 3 layers | 0.4933 | 0.6783 |
-| GATv2, edges shuffled | 0.4648 | 0.6391 |
+Rows are sorted by 8-class F1, ascending; the last column gives the run each value comes from.
 
-The order is the same in both schemas within each run. The first five rows come from the decoding run, the next three from the probe-arms run, the last four from the aggregation run.
+| Arm | 11 classes | 8 classes | Run |
+|---|---:|---:|---|
+| GATv2, edges shuffled | 0.4648 | 0.6391 | aggregation |
+| Single tile | 0.4719 | 0.6489 | decoding |
+| CNN on the 3x3 window | 0.4824 | 0.6575 | probe-arms |
+| GATv2, 2 layers | 0.4891 | 0.6725 | aggregation |
+| Uniform mean over the graph | 0.4924 | 0.6770 | aggregation |
+| GATv2, 3 layers | 0.4933 | 0.6783 | aggregation |
+| Attention over the 3x3 window | 0.5085 | 0.6957 | probe-arms |
+| Attention, positions shuffled | 0.5115 | 0.6999 | probe-arms |
+| 3x3 mean | 0.5207 | 0.7160 | decoding |
+| Single tile + mean field | 0.5297 | 0.7284 | decoding |
+| 3x3 mean + ICM | 0.5332 | 0.7331 | decoding |
+| 3x3 mean + mean field | 0.5359 | 0.7369 | decoding |
+
+These arms are plotted as red diamonds in the figure above.
 
 ## Protocol
 
