@@ -160,6 +160,7 @@ def kind_of(key: str) -> str:
 
 
 KIND_COL = {"frozen": COL["frozen"], "ft": COL["lora"], "scratch": COL["scratch"]}
+UPPER_BOUND = {"ctxdistill_dB_tL", "ctxdistill_dB_tSL_r8a16", "ctxdistill_dB_tSL_r2a4"}
 
 
 # --------------------------------------------------------------------------- 1. leaderboard
@@ -182,12 +183,13 @@ def fig_leaderboard():
     tier_a = top + sorted([k for k in refs if k not in top], key=lambda k: -sc.loc[k, "mean"])
 
     recipe = lambda name, v: dict(label=name, mean=v, sd=None, kind="recipe", key=None)
-    ctx_ft = lambda k: dict(label=LABELS[k], mean=sc.loc[k, "mean"], sd=sc.loc[k, "sd"], kind="ft", key=None)
+    ctx_ft = lambda k: dict(label=LABELS[k] + (" †" if k in UPPER_BOUND else ""),
+                            mean=sc.loc[k, "mean"], sd=sc.loc[k, "sd"], kind="ft", key=None)
     tier_c = [recipe("3x3 mean + mean field", abl["R3"]["mf"]["test"]),
               recipe("3x3 mean + ICM", abl["R3"]["icm"]["test"]),
               recipe("Single tile + mean field", abl["R0"]["mf"]["test"])]
     tier_b = sorted([recipe("3x3 mean of 9 tiles", f("R3")),
-                     recipe("Tile + 512 px context", f("R2")),
+                     recipe("Tile + 512 px context †", f("R2")),
                      ctx_ft("ctxdistill_dB_tL"), ctx_ft("ctxdistill_dB_tSL_r8a16"),
                      ctx_ft("ctxdistill_dB_tSL_r2a4")], key=lambda r: -r["mean"])
     tier_a_rows = [dict(label=LABELS[k], mean=sc.loc[k, "mean"],
@@ -268,7 +270,8 @@ def fig_leaderboard():
     fig.text(0.125, 0.012,
              f"Left: clean baseline, mean of 3 seeds with ±SD bars (frozen models: one run). Diamonds: frozen SimDINOv2-B/16 "
              f"from the tile-context run, one seed.\nRight: paired bootstrap over maps then tiles, filled = survives "
-             f"Benjamini-Hochberg at 5%. {n_rej} of {len(vs)} single-tile models do. Context models are outside this test family.",
+             f"Benjamini-Hochberg at 5%. {n_rej} of {len(vs)} single-tile models do. Context models are outside this test family.\n"
+             f"† non-deployable upper bound: the model reads the tile and a 512 px context at inference.",
              fontsize=8, color=COL["grey"], va="top")
     save(fig, "01_leaderboard.png")
 
@@ -539,22 +542,24 @@ KEEP8 = [c for c in ["ALDE", "ARCA", "BIRC", "DRYI", "LICH", "MOSS", "PETF", "RU
 def readme_scores_8cls() -> pd.DataFrame:
     """Macro F1 over the 8 kept classes, same 11-class classifier, full test split.
 
-    Equivalent to f1_score(y, pred, average="macro", labels=<8 labels>) in the run metrics:
-    predictions on the 321 ARCA/DRYI/RUBC test tiles count as errors.
+    Read from the committed per-class table, so a clone can rebuild it. The convention
+    matches f1_macro_8cls_test in the run metrics: predictions on the 321 ARCA/DRYI/RUBC
+    test tiles count as errors, and the three classes are not averaged.
     """
-    rows = {}
-    for f in (BASE / "probes").glob("*.json"):
-        d = jload(f)
-        if d["key"] not in LABELS:
-            continue
-        p8 = float(np.mean([d["per_class_f1_test"][c] for c in KEEP8]))
-        rows.setdefault(d["key"], []).append((p8, d["test"]["f1_macro_pres"]))
-    out = pd.DataFrame([(k, np.mean([x[1] for x in v]), np.mean([x[0] for x in v]),
-                         np.std([x[0] for x in v], ddof=1) if len(v) > 1 else np.nan, len(v))
-                        for k, v in rows.items()], columns=["key", "f11", "f8", "sd8", "n"])
+    pc = pd.read_csv(BASE / "per_class_f1.csv")
+    pc = pc[pc["class"].isin(KEEP8)]
+    per_probe = (pc.groupby(["key", "probe_id"])["f1_test"].mean()
+                   .reset_index().rename(columns={"f1_test": "f8"}))
+    seeds = pd.read_csv(BASE / "per_seed.csv")[["id", "f1_macro_pres"]]
+    per_probe = per_probe.merge(seeds, left_on="probe_id", right_on="id", how="left")
+    assert per_probe["f1_macro_pres"].notna().all(), "unmatched probe id"
+    out = per_probe.groupby("key").agg(
+        f11=("f1_macro_pres", "mean"), f8=("f8", "mean"),
+        sd8=("f8", lambda v: v.std(ddof=1) if len(v) > 1 else np.nan),
+        n=("f8", "size")).reset_index()
+    out = out[out["key"].isin(LABELS)]
     assert len(out) == 42, len(out)
     return out.set_index("key")
-
 
 
 def arms_scores() -> pd.DataFrame:
@@ -596,7 +601,7 @@ def fig_classes8():
     arms = arms_scores()
     if len(arms):
         a.scatter(arms.f11, arms.f8, s=58, marker="D", color=COL["nbr"], edgecolor="white",
-                  linewidth=0.7, zorder=3, label="context and aggregation arms")
+                  linewidth=0.7, zorder=3, label="probe-arms, decoding, aggregation")
 
     a.set_xlim(0.345, 0.548)
     a.set_xlabel("macro F1, 11 classes")
