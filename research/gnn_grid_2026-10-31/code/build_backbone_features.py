@@ -44,7 +44,7 @@ def main() -> None:
     y_ref = np.array([t["label"] for t in tiles], np.int64)
     s_ref = np.array([t["split"] for t in tiles])
 
-    mats, labels, schema = [], [], None
+    mats, schema = {}, None
     for split in ("train", "val", "test"):
         fx, fy = files_for(a.emb_dir, a.name, split)
         if not (os.path.exists(fx) and os.path.exists(fy)):
@@ -63,11 +63,17 @@ def main() -> None:
             raise SystemExit(
                 f"[features] {a.name}/{split}: labels do not match the canonical split "
                 f"({len(y)} rows vs {int(m.sum())} expected). Order or schema differs; refusing.")
-        mats.append(X)
-        labels.append(y)
+        mats[split] = X
         print(f"[features] {split}: {X.shape} ok", flush=True)
 
-    X = np.concatenate(mats, axis=0)
+    # The canonical split is ordered by orthomosaic, not by split: write each split's
+    # rows back into the global positions where that split appears.
+    X = np.empty((len(s_ref), mats["train"].shape[1]), dtype=np.float32)
+    for split in ("train", "val", "test"):
+        pos = np.where(s_ref == split)[0]
+        if len(pos) != len(mats[split]):
+            raise SystemExit(f"[features] {split}: {len(pos)} positions vs {len(mats[split])} rows")
+        X[pos] = mats[split]
     os.makedirs(a.out_dir, exist_ok=True)
     np.save(os.path.join(a.out_dir, "features_tile.npy"), X)
     json.dump({"name": a.name, "schema": schema, "n": int(len(X)), "dim": int(X.shape[1]),
