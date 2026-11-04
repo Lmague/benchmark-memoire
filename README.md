@@ -11,7 +11,7 @@ What I found:
 - Learned aggregation of neighbours (attention, GATv2) does not beat a plain average.
 - Embedding geometry can rank models somewhat better than chance, but it does not predict F1.
 
-Best result: **0.5359 macro F1** with a frozen SimDINOv2-B/16, a 3x3 average of tile embeddings and mean-field smoothing of the predicted map (smoothing strength and iterations chosen on validation). The same backbone on a single tile reads 0.4719, so the gain is +0.064. This recipe reads neighbouring tiles at test time, so compare it with other models that do (0.505 to 0.521, from two different runs), not with the single-tile ranking (best 0.4872).
+Best result: **0.5359 macro F1** with a frozen SimDINOv2-B/16, a 3x3 average of tile embeddings and mean-field smoothing of the predicted map (smoothing strength and iterations chosen on validation). The same backbone on a single tile reads 0.4719, so the gain is +0.064. On the 8 reliable classes the same recipe reads 0.7369 (see [Per class](#per-class)). This recipe reads neighbouring tiles at test time, so compare it with other models that do (0.505 to 0.521, from two different runs), not with the single-tile ranking (best 0.4872).
 
 Contents: [Ranking](#ranking-of-42-configurations) · [Adaptation](#adaptation-methods) · [Context and smoothing](#neighbouring-tiles-and-smoothing) · [Learned aggregation](#learned-aggregation) · [Embedding geometry](#embedding-geometry) · [Data size](#data-size) · [Per class](#per-class) · [Protocol](#protocol) · [Ongoing](#ongoing-work) · [Limits](#limits) · [Reproduce](#reproduce)
 
@@ -31,50 +31,50 @@ Contents: [Ranking](#ranking-of-42-configurations) · [Adaptation](#adaptation-m
 <details>
 <summary>All 42 configurations</summary>
 
-| # | Model | Macro F1 | Seed SD | Runs |
-|---:|---|---:|---:|---:|
-| 1 | Context fusion, fine-tuned | 0.5079 | 0.0015 | 3 |
-| 2 | Context fusion, SimDINOv2-B LoRA r8a16 | 0.5056 | 0.0071 | 3 |
-| 3 | Context fusion, SimDINOv2-B LoRA r2a4 | 0.5052 | 0.0030 | 3 |
-| 4 | Context distillation, tile only at inference | 0.4872 | 0.0018 | 3 |
-| 5 | DINOv3-L, LoRA r=8 | 0.4842 | 0.0012 | 3 |
-| 6 | Context distillation, EMA teacher, tile only | 0.4835 | 0.0017 | 3 |
-| 7 | SimDINOv2-L, LoRA r=8 | 0.4835 | 0.0068 | 3 |
-| 8 | DINOv3-B, LoRA r=8 | 0.4830 | 0.0037 | 3 |
-| 9 | SimDINOv2-B, LoRA r=8, Q+K+V | 0.4812 | 0.0052 | 3 |
-| 10 | SimDINOv2-B, LoRA r=8, blocks 9-11 | 0.4805 | 0.0001 | 3 |
-| 11 | DINOv3 ViT-H+/16, frozen | 0.4805 | n/a | 1 |
-| 12 | SimDINOv2-B, LoRA r=8, blocks 6-11 | 0.4803 | 0.0028 | 3 |
-| 13 | SimDINOv2-B, LoRA r=2 | 0.4793 | 0.0024 | 3 |
-| 14 | DINOv3 ViT-L/16, frozen | 0.4791 | n/a | 1 |
-| 15 | DINOv3-B, attention only | 0.4790 | 0.0025 | 3 |
-| 16 | DINOv3-B, full fine-tuning | 0.4788 | 0.0025 | 3 |
-| 17 | SimDINOv2-B, LoRA r=4 | 0.4783 | 0.0050 | 3 |
-| 18 | SimDINOv2-B, norm layers + head only | 0.4783 | 0.0002 | 3 |
-| 19 | SimDINOv2-B, full fine-tuning | 0.4782 | 0.0074 | 3 |
-| 20 | SimDINOv2-B, LoRA r=8 | 0.4780 | 0.0029 | 3 |
-| 21 | DINOv3-S, LoRA r=8 | 0.4776 | 0.0023 | 3 |
-| 22 | SimDINOv2-B, LoRA r=8, blocks 0-5 | 0.4771 | 0.0023 | 3 |
-| 23 | SimDINOv2-B, LoRA r=16 | 0.4769 | 0.0015 | 3 |
-| 24 | SimDINOv2-B, LoRA r=8, scaling 2 | 0.4761 | 0.0017 | 3 |
-| 25 | SimDINOv2 ViT-L/16, frozen | 0.4756 | n/a | 1 |
-| 26 | SimDINOv2-B, LoRA r=8, rsLoRA | 0.4751 | 0.0020 | 3 |
-| 27 | SimDINOv2-B, LoRA r=32 | 0.4751 | 0.0018 | 3 |
-| 28 | SimDINOv2-B, LoRA r=16, scaling 2 | 0.4750 | 0.0026 | 3 |
-| 29 | ViT-B/16 ImageNet, full fine-tuning | 0.4748 | 0.0015 | 3 |
-| 30 | SimDINOv2-B, LoRA r=16, rsLoRA | 0.4735 | 0.0035 | 3 |
-| 31 | SimDINOv2 ViT-B/16, frozen | 0.4719 | n/a | 1 |
-| 32 | DINOv3 ViT-B/16, frozen | 0.4715 | n/a | 1 |
-| 33 | SimDINOv2-B, attention only (MHSA) | 0.4692 | 0.0022 | 3 |
-| 34 | DINOv3 ViT-S/16, frozen | 0.4689 | n/a | 1 |
-| 35 | ViT-B/16 ImageNet, attention only | 0.4686 | 0.0048 | 3 |
-| 36 | DINOv3 ViT-L/16 satellite, frozen | 0.4620 | n/a | 1 |
-| 37 | ResNet-50 ImageNet, full fine-tuning | 0.4573 | 0.0033 | 3 |
-| 38 | ViT-B/16 ImageNet, frozen | 0.4497 | n/a | 1 |
-| 39 | Scale-MAE ViT-L/16, frozen | 0.4478 | n/a | 1 |
-| 40 | SatMAE ViT-L/16, frozen | 0.4097 | n/a | 1 |
-| 41 | ResNet-50 ImageNet, frozen | 0.4077 | n/a | 1 |
-| 42 | ViT-B/16 from scratch | 0.3547 | 0.0115 | 3 |
+| # | Model | Macro F1, 11 classes | Macro F1, 8 classes | Seed SD (11 / 8) | Runs |
+|---:|---|---:|---:|---:|---:|
+| 1 | Context fusion, fine-tuned | 0.5079 | 0.6984 | 0.0015 / 0.0020 | 3 |
+| 2 | Context fusion, SimDINOv2-B LoRA r8a16 | 0.5056 | 0.6953 | 0.0071 / 0.0098 | 3 |
+| 3 | Context fusion, SimDINOv2-B LoRA r2a4 | 0.5052 | 0.6947 | 0.0030 / 0.0042 | 3 |
+| 4 | Context distillation, tile only at inference | 0.4872 | 0.6699 | 0.0018 / 0.0025 | 3 |
+| 5 | DINOv3-L, LoRA r=8 | 0.4842 | 0.6657 | 0.0012 / 0.0017 | 3 |
+| 6 | Context distillation, EMA teacher, tile only | 0.4835 | 0.6648 | 0.0017 / 0.0024 | 3 |
+| 7 | SimDINOv2-L, LoRA r=8 | 0.4835 | 0.6633 | 0.0068 / 0.0106 | 3 |
+| 8 | DINOv3-B, LoRA r=8 | 0.4830 | 0.6641 | 0.0037 / 0.0051 | 3 |
+| 9 | SimDINOv2-B, LoRA r=8, Q+K+V | 0.4812 | 0.6617 | 0.0052 / 0.0072 | 3 |
+| 10 | SimDINOv2-B, LoRA r=8, blocks 9-11 | 0.4805 | 0.6608 | 0.0001 / 0.0001 | 3 |
+| 11 | DINOv3 ViT-H+/16, frozen | 0.4805 | 0.6606 | n/a / n/a | 1 |
+| 12 | SimDINOv2-B, LoRA r=8, blocks 6-11 | 0.4803 | 0.6604 | 0.0028 / 0.0038 | 3 |
+| 13 | SimDINOv2-B, LoRA r=2 | 0.4793 | 0.6591 | 0.0024 / 0.0033 | 3 |
+| 14 | DINOv3 ViT-L/16, frozen | 0.4791 | 0.6588 | n/a / n/a | 1 |
+| 15 | DINOv3-B, attention only | 0.4790 | 0.6572 | 0.0025 / 0.0047 | 3 |
+| 16 | DINOv3-B, full fine-tuning | 0.4788 | 0.6535 | 0.0025 / 0.0032 | 3 |
+| 17 | SimDINOv2-B, LoRA r=4 | 0.4783 | 0.6577 | 0.0050 / 0.0069 | 3 |
+| 18 | SimDINOv2-B, norm layers + head only | 0.4783 | 0.6577 | 0.0002 / 0.0003 | 3 |
+| 19 | SimDINOv2-B, full fine-tuning | 0.4782 | 0.6575 | 0.0074 / 0.0102 | 3 |
+| 20 | SimDINOv2-B, LoRA r=8 | 0.4780 | 0.6572 | 0.0029 / 0.0039 | 3 |
+| 21 | DINOv3-S, LoRA r=8 | 0.4776 | 0.6567 | 0.0023 / 0.0031 | 3 |
+| 22 | SimDINOv2-B, LoRA r=8, blocks 0-5 | 0.4771 | 0.6560 | 0.0023 / 0.0032 | 3 |
+| 23 | SimDINOv2-B, LoRA r=16 | 0.4769 | 0.6557 | 0.0015 / 0.0021 | 3 |
+| 24 | SimDINOv2-B, LoRA r=8, scaling 2 | 0.4761 | 0.6547 | 0.0017 / 0.0023 | 3 |
+| 25 | SimDINOv2 ViT-L/16, frozen | 0.4756 | 0.6540 | n/a / n/a | 1 |
+| 26 | SimDINOv2-B, LoRA r=8, rsLoRA | 0.4751 | 0.6533 | 0.0020 / 0.0027 | 3 |
+| 27 | SimDINOv2-B, LoRA r=32 | 0.4751 | 0.6532 | 0.0018 / 0.0025 | 3 |
+| 28 | SimDINOv2-B, LoRA r=16, scaling 2 | 0.4750 | 0.6531 | 0.0026 / 0.0036 | 3 |
+| 29 | ViT-B/16 ImageNet, full fine-tuning | 0.4748 | 0.6513 | 0.0015 / 0.0016 | 3 |
+| 30 | SimDINOv2-B, LoRA r=16, rsLoRA | 0.4735 | 0.6497 | 0.0035 / 0.0034 | 3 |
+| 31 | SimDINOv2 ViT-B/16, frozen | 0.4719 | 0.6488 | n/a / n/a | 1 |
+| 32 | DINOv3 ViT-B/16, frozen | 0.4715 | 0.6483 | n/a / n/a | 1 |
+| 33 | SimDINOv2-B, attention only (MHSA) | 0.4692 | 0.6430 | 0.0022 / 0.0031 | 3 |
+| 34 | DINOv3 ViT-S/16, frozen | 0.4689 | 0.6448 | n/a / n/a | 1 |
+| 35 | ViT-B/16 ImageNet, attention only | 0.4686 | 0.6430 | 0.0048 / 0.0082 | 3 |
+| 36 | DINOv3 ViT-L/16 satellite, frozen | 0.4620 | 0.6352 | n/a / n/a | 1 |
+| 37 | ResNet-50 ImageNet, full fine-tuning | 0.4573 | 0.6287 | 0.0033 / 0.0046 | 3 |
+| 38 | ViT-B/16 ImageNet, frozen | 0.4497 | 0.6163 | n/a / n/a | 1 |
+| 39 | Scale-MAE ViT-L/16, frozen | 0.4478 | 0.6157 | n/a / n/a | 1 |
+| 40 | SatMAE ViT-L/16, frozen | 0.4097 | 0.5633 | n/a / n/a | 1 |
+| 41 | ResNet-50 ImageNet, frozen | 0.4077 | 0.5606 | n/a / n/a | 1 |
+| 42 | ViT-B/16 from scratch | 0.3547 | 0.4805 | 0.0115 / 0.0067 | 3 |
 
 </details>
 
@@ -154,23 +154,33 @@ Right: keeping 100 principal components recovers 97.4% to 100.3% of the full-emb
 
 Three classes score exactly zero for these two models (all 3 seeds for the fine-tuned one, a single run for the frozen one). Over all 230 baseline probes the best values are 0.082 (ARCA), 0.026 (DRYI) and 0.146 (RUBC). They are the rarest classes, which pulls macro F1 down for every model, so compare models rather than reading the absolute level. A twelfth class, RHOL, is absent from val and test and is dropped.
 
-### Without the three zero classes (8 classes)
+### The same ranking on the 8 reliable classes
 
-The 8-class schema drops ARCA, DRYI and RUBC (321 of 17,598 test tiles) and refits the probe. These values exist only for the context experiments, with no confidence intervals, and I did not recompute the 42-model ranking in 8 classes.
+![8-class view](figures/readme/08_classes_8.png)
+
+ARCA, DRYI and RUBC score near zero for every model, so they lower the macro average without separating models. The 8-class view drops them (321 of 17,598 test tiles) and reports the macro F1 over the remaining 8, with the same 11-class classifier: their tiles stay in the test split, so a kept class they are predicted as counts as a false positive, and a kept tile predicted as one of the three counts as a false negative. The three classes are simply not scored. This is the convention of the `f1_macro_8cls_test` field that each training run writes. It is not a refit on 8 classes. Refits on the 8 classes exist from an earlier campaign (24 entries), but they follow a different protocol and are not used here.
+
+- The level rises by about 0.18 (median +0.179): the 42 configurations span 0.3547 to 0.5079 in 11 classes and 0.4805 to 0.6984 in 8 classes.
+- The order barely moves: Spearman 0.991, Kendall 0.965. 26 models keep their rank, 10 move one place, 4 move two, and 2 move three or more.
+- The two movers are DINOv3-B with full fine-tuning (9 places down) and DINOv3-B with attention only (3 places down). The difference between the two rankings comes entirely from the three dropped classes, which weigh 3/11 of the 11-class average. DINOv3-B full has the highest ARCA score of the 42 (0.039), worth about +0.0035 on its own. Nine models have a non-zero ARCA score, none above 0.040.
+- The best recipe (3x3 mean + mean field) reads 0.5359 in 11 classes and 0.7369 in 8 classes.
 
 | Arm | 11 classes | 8 classes |
 |---|---:|---:|
-| Single tile | 0.4719 | 0.6548 |
-| 3x3 mean | 0.5207 | 0.7228 |
-| Single tile + mean field | 0.5297 | 0.7350 |
-| 3x3 mean + ICM | 0.5332 | 0.7401 |
-| 3x3 mean + mean field | 0.5359 | 0.7439 |
-| GATv2, edges shuffled | 0.4648 | 0.6451 |
-| GATv2, 2 layers | 0.4891 | 0.6786 |
-| Uniform mean over the graph | 0.4924 | 0.6830 |
-| GATv2, 3 layers | 0.4933 | 0.6844 |
+| Single tile | 0.4719 | 0.6489 |
+| 3x3 mean | 0.5207 | 0.7160 |
+| Single tile + mean field | 0.5297 | 0.7284 |
+| 3x3 mean + ICM | 0.5332 | 0.7331 |
+| 3x3 mean + mean field | 0.5359 | 0.7369 |
+| Attention over the 3x3 window | 0.5085 | 0.6957 |
+| Attention, positions shuffled | 0.5115 | 0.6999 |
+| CNN on the 3x3 window | 0.4824 | 0.6575 |
+| Uniform mean over the graph | 0.4924 | 0.6770 |
+| GATv2, 2 layers | 0.4891 | 0.6725 |
+| GATv2, 3 layers | 0.4933 | 0.6783 |
+| GATv2, edges shuffled | 0.4648 | 0.6391 |
 
-The order is the same in both schemas within each run. The first five rows come from the decoding run, the last four from the aggregation run.
+The order is the same in both schemas within each run. The first five rows come from the decoding run, the next three from the probe-arms run, the last four from the aggregation run.
 
 ## Protocol
 

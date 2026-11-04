@@ -522,6 +522,83 @@ def fig_datacurve():
     save(fig, "07_data_curve.png")
 
 
+
+# --------------------------------------------------------------------------- 8-class view
+DROP8 = ["ARCA", "DRYI", "RUBC"]
+KEEP8 = [c for c in ["ALDE", "ARCA", "BIRC", "DRYI", "LICH", "MOSS", "PETF", "RUBC", "SEDG", "TUSS", "WILL"]
+         if c not in DROP8]
+
+
+def readme_scores_8cls() -> pd.DataFrame:
+    """Macro F1 over the 8 kept classes, same 11-class classifier, full test split.
+
+    Equivalent to f1_score(y, pred, average="macro", labels=<8 labels>) in the run metrics:
+    predictions on the 321 ARCA/DRYI/RUBC test tiles count as errors.
+    """
+    rows = {}
+    for f in (BASE / "probes").glob("*.json"):
+        d = jload(f)
+        if d["key"] not in LABELS:
+            continue
+        p8 = float(np.mean([d["per_class_f1_test"][c] for c in KEEP8]))
+        rows.setdefault(d["key"], []).append((p8, d["test"]["f1_macro_pres"]))
+    out = pd.DataFrame([(k, np.mean([x[1] for x in v]), np.mean([x[0] for x in v]),
+                         np.std([x[0] for x in v], ddof=1) if len(v) > 1 else np.nan, len(v))
+                        for k, v in rows.items()], columns=["key", "f11", "f8", "sd8", "n"])
+    assert len(out) == 42, len(out)
+    return out.set_index("key")
+
+
+def fig_classes8():
+    sc = readme_scores_8cls()
+    from scipy.stats import spearmanr, kendalltau
+    rho = spearmanr(sc.f11, sc.f8)
+    r11 = sc.f11.rank(ascending=False)
+    r8 = sc.f8.rank(ascending=False)
+    move = (r8 - r11)
+    fig, (a, b) = plt.subplots(1, 2, figsize=(11.4, 4.8), gridspec_kw={"width_ratios": [1.35, 1], "wspace": 0.28})
+    frozen = [k for k in sc.index if k in FROZEN_KEYS]
+    ft = [k for k in sc.index if k not in FROZEN_KEYS]
+    a.scatter(sc.loc[frozen, "f11"], sc.loc[frozen, "f8"], s=46, color=COL["frozen"],
+              edgecolor="white", linewidth=0.7, label="frozen", zorder=3)
+    a.scatter(sc.loc[ft, "f11"], sc.loc[ft, "f8"], s=46, color=COL["lora"],
+              edgecolor="white", linewidth=0.7, label="fine-tuned", zorder=3)
+    a.scatter([sc.loc["dinov3_vith16plus_lvd", "f11"]], [sc.loc["dinov3_vith16plus_lvd", "f8"]],
+              s=120, facecolor="none", edgecolor=COL["ink"], linewidth=1.1, zorder=4,
+              label="best frozen (DINOv3-H+)")
+    labels = {"ctxdistill_dB_tL": (-7, 7), "dinov3_vitl16_lvd_lora": (7, 5),
+              "dinov3_vitb16_lvd_full": (9, -9), "vitb16_scratch_old": (6, 0)}
+    for k, off in labels.items():
+        a.annotate(LABELS[k], (sc.loc[k, "f11"], sc.loc[k, "f8"]), xytext=off, textcoords="offset points",
+                   fontsize=8, color=COL["ink"], ha="left" if off[0] > 0 else "right")
+    a.set_xlim(0.345, 0.532)
+    a.set_xlabel("macro F1, 11 classes")
+    a.set_ylabel("macro F1, 8 classes")
+    a.legend(loc="upper left", bbox_to_anchor=(0.0, 0.84), fontsize=8.5)
+    a.text(0.98, 0.03, f"Spearman {rho.statistic:.3f}, Kendall {kendalltau(sc.f11, sc.f8).statistic:.3f}.\n"
+           f"Median gain {(sc.f8 - sc.f11).median():+.3f}.", transform=a.transAxes,
+           fontsize=8.5, va="bottom", ha="right", color=COL["grey"])
+    a.set_title("The same 42 configurations, 8 classes instead of 11")
+
+    buckets = [0, 1, 2]
+    counts = [int((move.abs() == k).sum()) for k in buckets] + [int((move.abs() >= 3).sum())]
+    b.bar(range(4), counts, color=[COL["grey"]] * 3 + [COL["nbr"]], width=0.62)
+    for i, c in enumerate(counts):
+        b.text(i, c + 0.4, str(c), ha="center", va="bottom", fontsize=10, fontweight="bold",
+               color=COL["nbr"] if i == 3 else COL["ink"])
+    b.set_xticks(range(4))
+    b.set_xticklabels(["0", "1", "2", "3 or more"])
+    b.set_xlabel("ranks moved between the two schemas")
+    b.set_ylabel("number of models")
+    b.set_ylim(0, max(counts) * 1.28)
+    b.grid(axis="x", visible=False)
+    big = move[move.abs() >= 3].sort_values(key=lambda x: -x.abs())
+    txt = "\n".join(f"{LABELS[k]}: {int(v):+d}" for k, v in big.items())
+    b.text(0.98, 0.72, txt, transform=b.transAxes, ha="right", va="top", fontsize=8.5, color=COL["ink"])
+    b.set_title("Ranking is preserved for 40 of 42")
+    save(fig, "08_classes_8.png")
+
+
 if __name__ == "__main__":
     fig_leaderboard()
     fig_adaptation()
@@ -530,3 +607,4 @@ if __name__ == "__main__":
     fig_gnn()
     fig_latent()
     fig_datacurve()
+    fig_classes8()
