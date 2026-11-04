@@ -11,11 +11,11 @@ What I found:
 - Learned aggregation of neighbours (attention, GATv2) does not beat a plain average.
 - Embedding geometry can rank models somewhat better than chance, but it does not predict F1.
 
-Best recipe: **0.5359 macro F1** with a frozen SimDINOv2-B/16, a 3x3 average of tile embeddings and mean-field smoothing of the predicted map (strength and iterations chosen on validation). The same backbone reads 0.4719 on a single tile, a point difference of +0.064. On the 8 remaining classes the recipe reads 0.7369 (see [Per class](#per-class)).
+Best result: **0.5394 macro F1** with a frozen DINOv3-L, a 3x3 average of tile embeddings and mean-field smoothing of the predicted map, across seven backbones with extended grids. The SimDINOv2-B recipe described in detail below reads 0.5359 in its own run (0.5362 in the seven-backbone run), against 0.4719 on a single tile.
 
-This recipe reads neighbouring tiles at inference and is not one of the 42 configurations. Among single-input deployable models, the best is context distillation at 0.4872. The three context-fusion rows (0.5052 to 0.5079) need the tile plus context at inference and are non-deployable upper bounds; the tile + 512 px recipe in the figure is the same kind of arm.
+These recipes read neighbouring tiles at inference and are not part of the 42 configurations. Among single-input deployable models, the best is context distillation at 0.4872. The three context-fusion rows (0.5052 to 0.5079) need the tile plus context at inference and are non-deployable upper bounds; the tile + 512 px recipe in the figure is the same kind of arm.
 
-Contents: [Ranking](#ranking-of-42-configurations) · [Adaptation](#adaptation-methods) · [Context and smoothing](#neighbouring-tiles-and-smoothing) · [Learned aggregation](#learned-aggregation) · [Embedding geometry](#embedding-geometry) · [Data size](#data-size) · [Per class](#per-class) · [Protocol](#protocol) · [Ongoing](#ongoing-work) · [Limits](#limits) · [Reproduce](#reproduce)
+Contents: [Ranking](#ranking-of-42-configurations) · [Adaptation](#adaptation-methods) · [Context and smoothing](#neighbouring-tiles-and-smoothing) · [Other backbones](#does-it-hold-on-other-backbones) · [Learned aggregation](#learned-aggregation) · [Embedding geometry](#embedding-geometry) · [Data size](#data-size) · [Per class](#per-class) · [Protocol](#protocol) · [Ongoing](#ongoing-work) · [Limits](#limits) · [Reproduce](#reproduce)
 
 ## Ranking of 42 configurations
 
@@ -107,6 +107,30 @@ All rows use the same frozen SimDINOv2-B/16 embeddings and the canonical probe. 
 
 - 301 of the 349 net corrected tiles sit in mixed neighbourhoods (3 to 5 of 8 neighbours share the label). Tiles on true boundaries lose (-55).
 - With mean-field smoothing, the nearest ring reads best (tiles are 224 px, stride 112, so ±112 px is 50% overlap): 0.5294, against 0.5102 at ±224 px and 0.4957 at ±336 px. Validation agrees (0.4891 against 0.4737 for ±224 px). Combining rings reads 0.5195 to 0.5228. No interval was computed for these ring comparisons, so this is a ranking of point estimates.
+
+
+## Does it hold on other backbones?
+
+![Context and smoothing on seven backbones](figures/readme/09_multibackbone.png)
+
+Same canonical split, same probe, same tile graph, seven backbones: five frozen (SimDINOv2-B, SimDINOv2-L, DINOv3-B, DINOv3-L, DINOv3-H+) and two LoRA fine-tunes (DINOv3-L r=8 and SimDINOv2-B r8a16, seed 0). The smoothing grids are wider than in the original run (beta 0.1 to 16, 1 to 12 iterations), still chosen on validation. The SimDINOv2-B row reproduces the reference: 0.4720 / 0.5207 / 0.5362 against 0.4718 / 0.5205 / 0.5359 in the original run.
+
+| Backbone | Single tile | + mean field | 3x3 mean | 3x3 + mean field | Mean field on 3x3, 95% CI |
+|---|---:|---:|---:|---:|---|
+| DINOv3-L, frozen | 0.4791 | 0.5328 | 0.5262 | **0.5394** | +0.0133 [0.002, 0.076] |
+| DINOv3-H+, frozen | 0.4805 | 0.5316 | 0.5238 | 0.5380 | +0.0142 [0.003, 0.057] |
+| DINOv3-B, frozen | 0.4713 | 0.5263 | 0.5241 | 0.5366 | +0.0125 [0.001, 0.059] |
+| SimDINOv2-B, frozen | 0.4720 | 0.5294 | 0.5207 | 0.5362 | +0.0154 [0.005, 0.063] |
+| SimDINOv2-L, frozen | 0.4756 | 0.5344 | 0.5259 | 0.5357 | +0.0098 [-0.002, 0.054] |
+| DINOv3-L + LoRA r=8 | 0.4856 | 0.5200 | 0.5218 | 0.5353 | +0.0135 [-0.001, 0.062] |
+| SimDINOv2-B + LoRA r8a16 | 0.4748 | 0.5184 | 0.5217 | 0.5306 | +0.0089 [-0.005, 0.025] |
+
+- Smoothing a single tile helps on all seven backbones: +0.034 to +0.059 F1, and every interval excludes zero.
+- On top of the 3x3 mean the gain is smaller, +0.009 to +0.015, and excludes zero on four of the seven.
+- After context and smoothing the seven backbones sit between 0.5306 and 0.5394, a 0.009 spread, against 0.4713 to 0.4856 on a single tile (0.014). Backbone and adaptation differences are compressed by the post-processing.
+- Best absolute score: DINOv3-L frozen, 0.5394. The SimDINOv2-B reference reads 0.5362 here and 0.5359 in its own run.
+- The wider grid moves three rows off the boundary for the iteration count, but DINOv3-H+ and both LoRA rows still select the maximum (12). The smoothing gain is therefore still a lower bound, not an upper one.
+- The two fine-tuned rows use seed 0 only; the frozen models have one run anyway, so none of these rows carries an inter-seed interval.
 
 ## Learned aggregation
 
@@ -256,6 +280,7 @@ Two things to know:
 | Per-class table | tile counts, per-class F1 | `splits/*_11cls.csv`, `per_class_f1.csv` |
 | Non-linear readouts | 0 of 33, 2 of 24 | `results/rapport_data/head_sweep_summary.csv` |
 | Context and aggregation arms, 8 classes | 12 arms, two schemas | `results/tile_context_2026-11-01/arms_8cls.csv` |
+| Context and smoothing on 7 backbones | F1, paired deltas | `results/tile_context_2026-11-01/multibackbone_smoothing.csv` |
 | Deployable or upper bound | flag per configuration | `results/baseline_clean_2026-10-08/summary.csv` |
 
 Two 8-class conventions exist in the committed files. `arms_8cls.csv` and `per_class_f1.csv` keep the 321 dropped-class test tiles, which is the convention of the `f1_macro_8cls_test` field written by each run. The `f1_8cls` fields in `recipe_comparisons.json` and `gnn_canonical.json` remove those tiles before scoring, which is about 0.006 higher. The README table and figure use the first.

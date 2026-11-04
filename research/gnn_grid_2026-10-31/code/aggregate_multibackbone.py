@@ -51,8 +51,10 @@ def main() -> None:
             p = os.path.join(d, f)
             if os.path.exists(p):
                 c = load(p)
-                row[f"d_{tag}"] = c["delta"]
-                row[f"lo_{tag}"], row[f"hi_{tag}"] = c["ci95"]
+                # compare_arms was called as (base, smoothed) = arm_a - arm_b:
+                # flip so the table reports smoothed - base.
+                row[f"d_{tag}"] = -c["delta"]
+                row[f"lo_{tag}"], row[f"hi_{tag}"] = -c["ci95"][1], -c["ci95"][0]
                 row[f"p_{tag}"] = c["p"]
         rows.append(row)
 
