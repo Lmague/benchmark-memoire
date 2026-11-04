@@ -129,7 +129,7 @@ Same canonical split, same probe, same tile graph, seven backbones: five frozen 
 - On top of the 3x3 mean the gain is smaller, +0.009 to +0.015, and excludes zero on four of the seven.
 - After context and smoothing the seven backbones sit between 0.5306 and 0.5394, a 0.009 spread, against 0.4713 to 0.4856 on a single tile (0.014). Backbone and adaptation differences are compressed by the post-processing.
 - Best absolute score: DINOv3-L frozen, 0.5394. The SimDINOv2-B reference reads 0.5362 here and 0.5359 in its own run.
-- The wider grid moves three rows off the boundary for the iteration count, but DINOv3-H+ and both LoRA rows still select the maximum (12). The smoothing gain is therefore still a lower bound, not an upper one.
+- The wider grid moves most rows off the boundary, but DINOv3-H+ and DINOv3-L still select the maximum number of iterations (12), and the SimDINOv2-B LoRA row selects the maximum beta (16). The smoothing gain is therefore still a lower bound, not an upper one.
 - The two fine-tuned rows use seed 0 only; the frozen models have one run anyway, so none of these rows carries an inter-seed interval.
 
 ## Learned aggregation
