@@ -1,7 +1,7 @@
 {
  "protocol": "comparaison intra-groupe ; lbfgs = sonde canonique, adamw = baseline de la campagne ; best_nonlin = max sur ['mlp2', 'bil_diag', 'film']",
- "tile_dir": "/home/erazal/Documents/Mémoire/results/rapport_data/tile_heads",
- "fused_dir": "/home/erazal/Documents/Mémoire/results/context_distill/fusion_heads",
+ "tile_dir": "results/rapport_data/tile_heads",
+ "fused_dir": "results/context_distill/fusion_heads",
  "summary": {
   "tile": {
    "n_groups": 33,

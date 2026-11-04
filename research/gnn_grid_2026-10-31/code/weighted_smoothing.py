@@ -55,7 +55,7 @@ def main() -> None:
     ap.add_argument("--split", default="out/canonical_split.json")
     ap.add_argument("--features", default="out/aux/features_tile.npy")
     ap.add_argument("--out", default="out/decoding/weighted.json")
-    ap.add_argument("--repo", default="/home/erazal/Documents/Mémoire")
+    ap.add_argument("--repo", default=str(Path(__file__).resolve().parents[3]))
     a = ap.parse_args()
 
     sys.path.insert(0, a.repo)

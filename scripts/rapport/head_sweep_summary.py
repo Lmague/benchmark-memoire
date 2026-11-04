@@ -68,7 +68,11 @@ def load_records() -> list[dict]:
             "delta_best_vs_adamw": (nonlin[best_head] - heads["lin_adamw"]
                                     if "lin_adamw" in heads else ""),
         })
-    for fp in sorted(glob.glob(os.path.join(FUSED_DIR, "*.json"))):
+    fused_files = sorted(glob.glob(os.path.join(FUSED_DIR, "*.json")))
+    if not fused_files:
+        raise SystemExit(f"[head_sweep_summary] no fused json under {FUSED_DIR}; refusing to "
+                         f"overwrite a table that would lose its fused rows")
+    for fp in fused_files:
         d = json.load(open(fp))
         heads = {k: _f1(d.get(k, {})) for k in ["lin_lbfgs", "lin_adamw"] + NONLIN}
         heads = {k: v for k, v in heads.items() if v is not None}

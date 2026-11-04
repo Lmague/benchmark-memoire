@@ -378,3 +378,15 @@ __pycache__/
 !/splits/val.csv
 !/splits/test.csv
 !/results/baseline_clean_2026-10-08/summary.csv
+# Inférence reproductible : prédictions par sonde + protocole normatif.
+!/results/baseline_clean_2026-10-08/preds/
+/results/baseline_clean_2026-10-08/preds/*
+!/results/baseline_clean_2026-10-08/preds/*.npz
+!/results/baseline_clean_2026-10-08/run_baseline_probe.py
+!/results/baseline_clean_2026-10-08/BASELINE_PROTOCOL.md
+!/results/baseline_clean_2026-10-08/QUALITY_CONTROL.md
+!/results/baseline_clean_2026-10-08/statistics/STATISTICAL_PROTOCOL.md
+!/scripts/rapport/tier_ranking.py
+!/scripts/rapport/
+/scripts/rapport/*
+!/scripts/rapport/*.py

@@ -32,7 +32,7 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MIRROR = "/lustre07/scratch/lmague/head_sweep_inputs"
+MIRROR = os.path.join(os.environ.get("SCRATCH", ""), "head_sweep_inputs")
 
 
 def fingerprint(path: str) -> str:

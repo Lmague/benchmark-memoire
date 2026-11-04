@@ -21,7 +21,7 @@ Contents: [Ranking](#ranking-of-42-configurations) · [Adaptation](#adaptation-m
 
 ![Named ranking and significance](figures/readme/01_leaderboard.png)
 
-42 configurations: 11 frozen and 31 fine-tuned (3 seeds each). 39 are deployable; the other 3 (rows 1 to 3, marked "upper bound" in the table) need the tile plus context at inference. All are read with the same linear probe. The figure has three levels of input: single tile (top 18 models plus 7 reference points), neighbour tiles as input, and smoothing of the predicted map. The full list is below.
+42 configurations: 11 frozen and 31 fine-tuned (3 seeds each). 39 are deployable; the other 3 (rows 1 to 3, marked "upper bound" in the table) need the tile plus context at inference. This is the canonical tier of the clean baseline plus those 3 upper bounds; the other 112 registered runs (supporting and exploratory) are not ranked here. Two supporting runs score above the best canonical model and are excluded: a DINOv3-B rank ablation (0.4845) and a single-seed spatial LoRA (0.4885). All are read with the same linear probe. The figure has three levels of input: single tile (top 18 models plus 7 reference points), neighbour tiles as input, and smoothing of the predicted map. The full list is below.
 
 - Best frozen model: DINOv3 ViT-H+/16, 0.4805. Best plain LoRA in this ranking: DINOv3-L, 0.4842. That is +0.0037, CI [-0.034, +0.017], q = 0.76: not separable.
 - Only 3 of 38 single-tile models separate from the best frozen model after Benjamini-Hochberg correction: SatMAE (-0.071), frozen ResNet-50 ImageNet (-0.073) and ViT-B/16 from scratch (-0.126). Everything else fails the correction (q > 0.10). Three of those still have paired intervals excluding zero: ViT-B/16 ImageNet, Scale-MAE and fine-tuned ResNet-50.
@@ -100,7 +100,7 @@ All rows use the same frozen SimDINOv2-B/16 embeddings and the canonical probe. 
 - Adding context tiles raises F1 from 0.4718 to 0.5205. The step from tile + 512 px context to the 3x3 mean is not separable from zero: paired-bootstrap delta +0.0136 (the point difference is 0.0147), CI [-0.032, +0.036], p = 0.20.
 - Mean-field smoothing gives the largest point gain: +0.0578 on a single tile, +0.0152 on top of the 3x3 mean. Both intervals exclude zero. The two gains were not compared directly with each other.
 - After smoothing, the 3x3 mean is not separable from a single tile: +0.0062, CI [-0.010, +0.053], p = 0.28. The interval still allows a +0.05 gain.
-- Smoothing has no learned parameters and no training. Its strength and number of iterations (5 or fewer) are chosen on validation. Neighbour embeddings come from a cache.
+- Smoothing has no learned parameters and no training. Its strength and number of iterations are chosen on validation; in the reported arms the iteration count and the ±112 px strength both sit at the grid maximum, so these gains may be under-estimated rather than inflated. Neighbour embeddings come from a cache.
 - Colour and texture descriptors concatenated to the embedding lower F1 by 0.004 to 0.005 in both runs. No paired interval was computed for this arm.
 
 ![Where smoothing acts](figures/readme/04_smoothing.png)
@@ -116,7 +116,7 @@ All rows use the same frozen SimDINOv2-B/16 embeddings and the canonical probe. 
 - Shuffling the neighbour positions leaves attention at 0.5115 against 0.5085: paired delta -0.0020, CI [-0.006, +0.005], p = 0.36, not separable. The layout is not shown to be used.
 - GATv2 does not separate from a uniform mean on the same graph: -0.0033 with 2 layers (p = 0.64) and +0.0009 with 3 layers (p = 0.82). The intervals still allow GATv2 to be about 0.05 worse.
 - GATv2 does use the edges: rewiring them costs 0.024 (CI [+0.014, +0.033]).
-- In one run, a uniform mean over the graph that includes 40,030 unannotated windows reads 0.028 lower than the annotated-only 3x3 mean. The two arms differ in aggregation as well as in input, so the cause is not isolated.
+- In one run, a uniform mean over the graph that includes the unannotated windows reads 0.028 lower than the annotated-only 3x3 mean. The two arms differ in aggregation as well as in input, so the cause is not isolated.
 
 ## Embedding geometry
 
@@ -210,7 +210,7 @@ I am extending this toward transferability and alignment of Earth-observation fo
 
 ## Limits
 
-- 9 test maps cap what can be shown. Intervals are wide, and the percentile intervals are not centred on the estimate (for example +0.0152 with CI [+0.006, +0.062]). Read them as "excludes zero or not", not as a precision. For some pairs the interval and the p-value disagree (fine-tuned ResNet-50 ImageNet against the best frozen model: CI [-0.061, -0.015], p = 0.094, q = 0.22). I report the Benjamini-Hochberg decision defined in the protocol: this pair does not survive.
+- 9 test maps cap what can be shown. Intervals are wide, and the percentile intervals are not centred on the estimate (for example +0.0152 with CI [+0.006, +0.062]). Read them as "excludes zero or not", not as a precision. No equivalence test was run: with 9 maps the design resolves differences of roughly 0.03 to 0.05, and smaller differences are unresolved, not shown equal. For some pairs the interval and the p-value disagree (fine-tuned ResNet-50 ImageNet against the best frozen model: CI [-0.061, -0.015], p = 0.094, q = 0.22). I report the Benjamini-Hochberg decision defined in the protocol: this pair does not survive.
 - Model scores in the ranking and adaptation sections come from the clean baseline (2026-10-08). The geometry section uses the earlier registry values, which differ by at most 0.0043. The context, smoothing and aggregation sections come from their own runs: the same frozen single-tile SimDINOv2-B/16 reads 0.4718 to 0.4719 across the three, and the 3x3 mean reads 0.5205 and 0.5207. Comparisons are paired within a run.
 - Frozen models have one run each, so their seed SD is not defined.
 - Context, smoothing and GATv2 were measured on one frozen backbone, SimDINOv2-B/16. The gain on fine-tuned or other backbones is not measured.
@@ -223,7 +223,7 @@ A clone contains the code, the configs, the 11-class splits and the scalar table
 From a clone, the eight figures are rebuilt and every number can be checked against the committed tables:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt          # or the pinned versions in requirements-lock.txt
 python scripts/make_readme_plots.py      # rebuilds the eight figures from results/
 ```
 
@@ -249,7 +249,7 @@ Two things to know:
 | Section | Values | File |
 |---|---|---|
 | Ranking, adaptation, per class, 8-class view | per-seed and per-class F1 | `results/baseline_clean_2026-10-08/per_seed.csv`, `per_class_f1.csv` |
-| Significance of the ranking | paired differences, CIs, q-values | `results/baseline_clean_2026-10-08/statistics/pairwise_effects.csv` |
+| Significance of the ranking | paired differences, CIs, q-values | `results/baseline_clean_2026-10-08/statistics/pairwise_effects.csv`; predictions and protocol in `preds/` and `statistics/STATISTICAL_PROTOCOL.md` |
 | Context, smoothing, learned aggregation | F1, deltas, CIs | `results/tile_context_2026-11-01/*.json` |
 | Embedding geometry | pair ordering, leave-one-model-out | `results/rapport_data/loo_triage.csv`, `dim_probe_summary.csv` |
 | Data size | learning curves, blocked subsets | `results/datacurve_lora/*_agg.csv`, `lora_spatial_v2/results_spatial_summary.csv`, `spatial_datacurve/class_composition.csv` |

@@ -29,6 +29,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     _os.environ[_v] = "1"
 
+import argparse
 import csv
 import json
 import os
@@ -95,7 +96,24 @@ d'entraînement (fraction de valeurs d'entraînement inférieures, 0,5 pour les 
 
 def main() -> None:
     ensure_out()
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--f1-csv", default=None,
+                    help="optional per_seed.csv: use these F1 means instead of registry.CANONICAL_F1")
+    ap.add_argument("--out-dir", default=OUT, help="output directory (default: registry OUT)")
+    args = ap.parse_args()
+
     rows = load_models()[:TIER_K]
+    if args.f1_csv:
+        import pandas as _pd
+        f1 = _pd.read_csv(args.f1_csv).groupby("key")["f1_macro_pres"].mean()
+        missing = [r["model"] for r in rows if r["model"] not in f1.index]
+        if missing:
+            raise SystemExit(f"[loo_triage] no F1 for {missing}")
+        for r in rows:
+            r["f1"] = float(f1[r["model"]])
+        rows.sort(key=lambda r: -r["f1"])
+    out_dir = args.out_dir
+    os.makedirs(out_dir, exist_ok=True)
     print(f"== LOO prédictif sur le palier de {len(rows)} modèles ==")
     print("   (signe et régression ajustés sur n−1 modèles, évalués sur le modèle exclu)")
 
@@ -141,7 +159,7 @@ def main() -> None:
             "pair_acc_loo", "pairs_ok_loo", "pairs_total_loo", "acc_min_model",
             "acc_max_model", "mae_loo", "mae_mean", "mae_gain", "rho_pred_true",
             "p_wilcoxon", "p_bh_family", "p_binom"]
-    out_csv = os.path.join(OUT, "loo_triage.csv")
+    out_csv = os.path.join(out_dir, "loo_triage.csv")
     with open(out_csv, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
@@ -152,7 +170,7 @@ def main() -> None:
                "protocol": "LOO: sign/rank-OLS fitted on n-1, evaluated on held-out; "
                            "Wilcoxon par modèle (n=35) puis BH par famille",
                "metrics": recs},
-              open(os.path.join(OUT, "loo_triage.json"), "w"), indent=1,
+              open(os.path.join(out_dir, "loo_triage.json"), "w"), indent=1,
               ensure_ascii=False)
 
     print(f"\n{'Métrique':24s} {'famille':14s} {'in-sample':>9s} {'LOO':>6s} "
@@ -194,9 +212,9 @@ def main() -> None:
            "signe appris, ≤ 42 % dans le sens pré-enregistré) ; RankMe et LogME train ont "
            "un signe instable (pires que le hasard).", "",
            "Généré par `scripts/rapport/loo_triage.py`."]
-    with open(os.path.join(OUT, "loo_triage.md"), "w", encoding="utf-8") as f:
+    with open(os.path.join(out_dir, "loo_triage.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(md) + "\n")
-    print(f"[OK] {os.path.join(OUT, 'loo_triage.md')}")
+    print(f"[OK] {os.path.join(out_dir, 'loo_triage.md')}")
     print(f"\n[OK] {out_csv}")
 
 

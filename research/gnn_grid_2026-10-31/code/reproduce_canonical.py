@@ -22,7 +22,7 @@ from sklearn.metrics import f1_score, accuracy_score
 from sklearn.preprocessing import StandardScaler
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--emb-dir", default="/home/erazal/Documents/Mémoire/embeddings")
+ap.add_argument("--emb-dir", default=str(Path(__file__).resolve().parents[3] / "embeddings"))
 ap.add_argument("--backbone", default="simdinov2_vitb16")
 ap.add_argument("--out", default="")
 a = ap.parse_args()

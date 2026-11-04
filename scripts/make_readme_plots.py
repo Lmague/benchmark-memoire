@@ -411,7 +411,7 @@ def fig_gnn():
             ("Attention, neighbour positions shuffled", g["L1p"]["f1"], seeds("L1p"), g["L1p"]["n_params"], False),
             ("CNN on the 3x3 window", g["L2"]["f1"], seeds("L2"), g["L2"]["n_params"], False),
         ]),
-        ("Graph with 40,030 unannotated windows added", g["MEAN9"]["f1"], [
+        ("Graph with unannotated windows added", g["MEAN9"]["f1"], [
             ("Uniform mean over the graph", g["MEAN9"]["f1"], None, 0, True),
             ("GATv2, 2 layers", g["GNN2"]["f1"], g["GNN2"]["f1_std"], g["GNN2"]["n_params"], False),
             ("GATv2, 3 layers", g["GNN3"]["f1"], g["GNN3"]["f1_std"], g["GNN3"]["n_params"], False),

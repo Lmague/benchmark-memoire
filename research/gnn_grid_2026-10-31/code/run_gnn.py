@@ -165,7 +165,7 @@ def train_gnn(X, y, tr, va, te, dst, src, eattr, n_nodes, layers, seed, epochs, 
 
 
 # --------------------------------------------------------------------------- sonde moyenne
-REPO = "/home/erazal/Documents/Mémoire"
+REPO = str(Path(__file__).resolve().parents[3])
 
 
 def probe_mean(Xmean, y, tr, va, te):
@@ -203,7 +203,7 @@ def main() -> None:
     ap.add_argument("--wd", type=float, default=0.05)
     ap.add_argument("--dropout", type=float, default=0.1)
     ap.add_argument("--threads", type=int, default=8)
-    ap.add_argument("--repo", default="/home/erazal/Documents/Mémoire")
+    ap.add_argument("--repo", default=str(Path(__file__).resolve().parents[3]))
     a = ap.parse_args()
 
     global REPO

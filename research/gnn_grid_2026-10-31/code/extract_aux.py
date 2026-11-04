@@ -36,9 +36,8 @@ def main() -> None:
     ap.add_argument("--dataset-root", required=True)
     ap.add_argument("--manifest", default="out/coords/coords_manifest_35.json")
     ap.add_argument("--out-dir", default="out/aux")
-    ap.add_argument("--repo", default="/home/erazal/Documents/Mémoire")
-    ap.add_argument("--ckpt", default="/home/erazal/Documents/Mémoire/checkpoints/"
-                                      "simdinov2_vitb_inat21plantae.pth")
+    ap.add_argument("--repo", default=str(Path(__file__).resolve().parents[3]))
+    ap.add_argument("--ckpt", default=str(Path(__file__).resolve().parents[3] / "checkpoints" / "simdinov2_vitb_inat21plantae.pth"))
     ap.add_argument("--backbone", default="simdinov2_vitb16")
     ap.add_argument("--batch-size", type=int, default=64)
     ap.add_argument("--threads", type=int, default=12)

@@ -102,7 +102,7 @@ def main() -> None:
     args = ap.parse_args()
 
     _require("Sur Narval : source $HOME/ENV/bin/activate. En local : "
-             "/home/erazal/miniconda3/bin/python")
+             "python")
     import torch
     from src.data import build_transforms
     from src.models import build_frozen_extractor

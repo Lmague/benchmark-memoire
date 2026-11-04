@@ -51,7 +51,7 @@ def main() -> None:
     ap.add_argument("--aux-features", default="out/aux/aux_features.npy")
     ap.add_argument("--aux-index", default="out/aux/aux_index.json")
     ap.add_argument("--out", default="out/pseudo/pseudo.json")
-    ap.add_argument("--repo", default="/home/erazal/Documents/Mémoire")
+    ap.add_argument("--repo", default=str(Path(__file__).resolve().parents[3]))
     a = ap.parse_args()
 
     sys.path.insert(0, a.repo)

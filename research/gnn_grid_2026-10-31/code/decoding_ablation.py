@@ -29,12 +29,21 @@ def main() -> None:
     ap.add_argument("--split", default="out/canonical_split.json")
     ap.add_argument("--features", default="out/aux/features_tile.npy")
     ap.add_argument("--out", default="out/decoding/ablation.json")
-    ap.add_argument("--repo", default="/home/erazal/Documents/Mémoire")
+    ap.add_argument("--repo", default=str(Path(__file__).resolve().parents[3]))
+    ap.add_argument("--mf-beta", default="0.25,0.5,1,2,3,5,8")
+    ap.add_argument("--mf-iters", default="1,2,3,5")
+    ap.add_argument("--icm-beta", default="0.1,0.25,0.5,1,2,3")
+    ap.add_argument("--icm-iters", default="1,2,3,5")
     a = ap.parse_args()
 
     sys.path.insert(0, a.repo)
     from sklearn.preprocessing import StandardScaler
     from src.utils import make_canonical_lr
+
+    fl = lambda z: tuple(float(x) for x in z.split(","))
+    il = lambda z: tuple(int(x) for x in z.split(","))
+    mf_betas, mf_iters = fl(a.mf_beta), il(a.mf_iters)
+    icm_betas, icm_iters = fl(a.icm_beta), il(a.icm_iters)
 
     tiles = json.load(open(a.split))["tiles"]
     X = np.load(a.features).astype(np.float32)
@@ -65,20 +74,20 @@ def main() -> None:
               flush=True)
 
         bestmf = (-1, None)
-        for beta in (0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 8.0):
-            for it in (1, 2, 3, 5):
+        for beta in mf_betas:
+            for it in mf_iters:
                 L = meanfield(logp, A, beta, it, init)
                 v = f1_macro(y[va], L[va])
                 if v > bestmf[0]:
                     bestmf = (v, (beta, it, L))
-        v, (bb, bi, L) = bestmf
+        v_mf, (bb, bi, L) = bestmf
         t = f1_macro(y[te], L[te])
         preds[f"{name}_MF"] = L[te].astype(np.uint8)
-        print(f"[abl] {name:3s}+MF     val={v:.4f} (beta={bb}, it={bi})  test={t:.4f}", flush=True)
+        print(f"[abl] {name:3s}+MF     val={v_mf:.4f} (beta={bb}, it={bi})  test={t:.4f}", flush=True)
 
         besticm = (-1, None)
-        for beta in (0.1, 0.25, 0.5, 1.0, 2.0, 3.0):
-            for it in (1, 2, 3, 5):
+        for beta in icm_betas:
+            for it in icm_iters:
                 L = icm(logp, A, beta, it, init)
                 v = f1_macro(y[va], L[va])
                 if v > besticm[0]:
@@ -86,7 +95,7 @@ def main() -> None:
         v, (ib, ii, L) = besticm
         preds[f"{name}_ICM"] = L[te].astype(np.uint8)
         results[name] = {"C": C, "base_test": base, "base_val": f1_macro(y[va], init[va]),
-                         "mf": {"beta": bb, "iters": bi, "val": v, "test": t},
+                         "mf": {"beta": bb, "iters": bi, "val": v_mf, "test": t},
                          "icm": {"beta": ib, "iters": ii, "val": f1_macro(y[va], L[va]),
                                  "test": f1_macro(y[te], L[te])}}
         print(f"[abl] {name:3s}+ICM    val={f1_macro(y[va], L[va]):.4f} test="

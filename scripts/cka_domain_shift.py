@@ -44,6 +44,7 @@ import argparse
 import glob
 import json
 import os
+from pathlib import Path
 import sys
 
 import numpy as np
@@ -234,7 +235,7 @@ def main() -> None:
     ap.add_argument("--arctic-split", default="test")
     ap.add_argument("--coco-dir", required=True,
                     help="Dossier plat d'images COCO val2017 (.jpg), ex. "
-                         "/lustre07/scratch/lmague/coco/val2017")
+                         + str(Path(os.environ.get("SCRATCH", "")) / "coco/val2017"))
     ap.add_argument("--subsample-n", type=int, default=5000,
                     help="N cible partagé Arctic/COCO pour la CKA (réduit si l'un des deux "
                          "pools est plus petit).")

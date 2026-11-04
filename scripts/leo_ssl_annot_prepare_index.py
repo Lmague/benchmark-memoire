@@ -38,7 +38,7 @@ from pathlib import Path
 
 import numpy as np
 
-DEFAULT_ANNOT = Path("/home/erazal/annotations_leo")
+DEFAULT_ANNOT = Path(os.environ.get("LEO_ANNOTATIONS", "annotations_leo"))
 TILE = 224
 N_BG = 3000
 BUF = 3
@@ -61,8 +61,8 @@ def main() -> None:
         raise SystemExit(
             f"[env] import impossible dans {sys.executable}\n      {e}\n"
             "      → mauvais interpréteur. Utiliser l'env miniconda3 (qui a rasterio) :\n"
-            "        /home/erazal/miniconda3/bin/python scripts/leo_ssl_annot_prepare_index.py ...\n"
-            "      ou :  source /home/erazal/miniconda3/etc/profile.d/conda.sh && conda activate base") from e
+            "        python scripts/leo_ssl_annot_prepare_index.py ...\n"
+            "      or :  activate your environment first") from e
     import rasterio
     from rasterio import transform as rt
 

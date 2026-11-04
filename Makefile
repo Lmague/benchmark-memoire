@@ -52,19 +52,21 @@ status:
 	  ls embeddings/*_test.npy 2>/dev/null | wc -l | xargs printf "  test.npy:    %s\n" && \
 	  ls embeddings/*_train.npy 2>/dev/null | wc -l | xargs printf "  train.npy:   %s\n" && \
 	  ls embeddings/*_val.npy 2>/dev/null | wc -l | xargs printf "  val.npy:     %s\n"
-	@echo "=== Artefacts canoniques ===" && \
-	  for f in results/with_rhol/probe_knn_cgrid.json \
-	           results/with_rhol/latent_metrics.json \
-	           results/geometry_extended_12models.json \
-	           results/significance_matrix_all12.json \
-	           results/transfer/spectrum_metrics.json \
-	           results/transfer/logme_scores.json \
-	           results/correlations.json \
-	           results/transfer/headline_pairs_paired_tests.json \
-	           results/transfer/aso_matrix_eps_min.json \
-	           results/figures_paper/headline_pair.png \
-	           results/figures_paper/controlled_pair.png ; do \
-	    [ -f $$f ] && printf "  OK  %s\n" $$f || printf "  MANQUE  %s\n" $$f ; \
+	@echo "=== Artefacts cités par le README ===" && \
+	  for f in results/baseline_clean_2026-10-08/per_seed.csv \
+	           results/baseline_clean_2026-10-08/per_class_f1.csv \
+	           results/baseline_clean_2026-10-08/summary.csv \
+	           results/baseline_clean_2026-10-08/statistics/pairwise_effects.csv \
+	           results/tile_context_2026-11-01/recipe_ablation.json \
+	           results/tile_context_2026-11-01/recipe_comparisons.json \
+	           results/tile_context_2026-11-01/arms_8cls.csv \
+	           results/rapport_data/loo_triage.csv \
+	           results/rapport_data/dim_probe_summary.csv \
+	           results/datacurve_lora/results_agg.csv \
+	           lora_spatial_v2/results_spatial_summary.csv \
+	           spatial_datacurve/class_composition.csv \
+	           splits/train_11cls.csv figures/readme/01_leaderboard.png ; do \
+	    [ -f $$f ] && printf "  OK      %s\n" $$f || printf "  MANQUE  %s\n" $$f ; \
 	  done
 
 reconcile:

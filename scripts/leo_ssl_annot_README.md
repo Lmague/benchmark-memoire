@@ -11,14 +11,14 @@ Deux `base` cohabitent sur cette machine : **anaconda3** (Python 3.14, sans `tor
 
 ```bash
 # soit l'interpréteur explicite (le plus simple)
-/home/erazal/miniconda3/bin/python scripts/leo_ssl_annot_prepare_index.py --out ~/annot_index.npz
+python scripts/leo_ssl_annot_prepare_index.py --out ~/annot_index.npz
 
-PY=/home/erazal/miniconda3/bin/python   # pour tout le reste de ce document
+PY=python   # interpreter used for the rest of this document
 
 # soit activer le bon base
-source /home/erazal/miniconda3/etc/profile.d/conda.sh
+# activate your environment if needed
 conda activate base          # py314 d'anaconda3 = MAUVAIS encore ; vérifier :
-which python                 # doit afficher /home/erazal/miniconda3/bin/python
+which python                 # should point to that interpreter
 ```
 
 > `conda activate CV` échoue depuis anaconda3 (les envs de miniconda3 ne sont pas

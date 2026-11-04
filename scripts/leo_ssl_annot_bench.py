@@ -50,7 +50,7 @@ import numpy as np
 SPECIES = ["Lotcorn", "Leuvul", "Ascsyr", "Daucar", "Solcan"]   # Eumac (n=1) exclu
 BLOCK_M = 10.0
 N_SPLITS = 5
-DEFAULT_EMB = Path("/home/erazal/annotations_leo/embeddings")
+DEFAULT_EMB = Path(_os.environ.get("LEO_ANNOTATIONS", "annotations_leo")) / "embeddings"
 
 
 def log(msg: str) -> None:

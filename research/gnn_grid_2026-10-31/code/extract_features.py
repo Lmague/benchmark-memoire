@@ -52,7 +52,7 @@ def main() -> None:
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--repo", default=os.path.expanduser("~/benchmark-memoire"))
     ap.add_argument("--backbone", default="simdinov2_vitb16")
-    ap.add_argument("--ckpt", default="/scratch/lmague/checkpoints/simdinov2_vitb_inat21plantae.pth")
+    ap.add_argument("--ckpt", default=str(Path(os.environ.get("SCRATCH", "")) / "checkpoints/simdinov2_vitb_inat21plantae.pth"))
     ap.add_argument("--batch-size", type=int, default=256)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--limit", type=int, default=0)

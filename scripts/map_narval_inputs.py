@@ -41,7 +41,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _HERE)
 sys.path.insert(0, os.path.join(_HERE, "rapport"))
 
-SCRATCH = os.environ.get("SCRATCH") or "/scratch/lmague"
+SCRATCH = os.environ.get("SCRATCH") or "scratch"
 MIRROR = os.path.join(SCRATCH, "head_sweep_inputs")
 
 from significance_tier import GROUPS  # noqa: E402

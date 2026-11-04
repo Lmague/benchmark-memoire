@@ -38,7 +38,7 @@ def sha256_file(p: str) -> str:
 def main() -> None:
     ap = argparse.ArgumentParser()
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    repo = "/home/erazal/Documents/Mémoire"
+    repo = str(Path(__file__).resolve().parents[3])
     ap.add_argument("--manifest17", default=os.path.join(repo, "out/context/coords_manifest.json"))
     ap.add_argument("--train-coords", default=os.path.join(base, "out/coords/train_coords.json"))
     ap.add_argument("--splits-dir", default=os.path.join(repo, "splits"))
