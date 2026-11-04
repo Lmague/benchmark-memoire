@@ -21,11 +21,11 @@ Contents: [Ranking](#ranking-of-42-configurations) · [Adaptation](#adaptation-m
 
 ![Named ranking and significance](figures/readme/01_leaderboard.png)
 
-42 configurations: 11 frozen and 31 fine-tuned (3 seeds each), of which 28 are deployable and 3 are non-deployable upper bounds (rows 1 to 3, marked with a dagger). All are read with the same linear probe. The figure has three levels of input: single tile (top 18 models plus 7 reference points), neighbour tiles as input, and smoothing of the predicted map. The full list is below.
+42 configurations: 11 frozen and 31 fine-tuned (3 seeds each). 39 are deployable; the other 3 (rows 1 to 3, marked "upper bound" in the table) need the tile plus context at inference. All are read with the same linear probe. The figure has three levels of input: single tile (top 18 models plus 7 reference points), neighbour tiles as input, and smoothing of the predicted map. The full list is below.
 
 - Best frozen model: DINOv3 ViT-H+/16, 0.4805. Best plain LoRA in this ranking: DINOv3-L, 0.4842. That is +0.0037, CI [-0.034, +0.017], q = 0.76: not separable.
-- Only 3 of 38 single-tile models separate from the best frozen model after Benjamini-Hochberg correction: SatMAE (-0.071), frozen ResNet-50 ImageNet (-0.073) and ViT-B/16 from scratch (-0.126). Everything else fails the correction (q >= 0.11). Three of those still have paired intervals excluding zero: ViT-B/16 ImageNet, Scale-MAE and fine-tuned ResNet-50.
-- The three satellite-pretrained models tested do not beat their natural-image counterparts in this frozen linear-probe setting. DINOv3 ViT-L on satellite images reads 0.4620 against 0.4791 for the natural-image version (-0.017, CI [-0.058, +0.001], not separable). Scale-MAE (0.4478) and SatMAE (0.4097) sit below frozen ViT-B/16 ImageNet (0.4497).
+- Only 3 of 38 single-tile models separate from the best frozen model after Benjamini-Hochberg correction: SatMAE (-0.071), frozen ResNet-50 ImageNet (-0.073) and ViT-B/16 from scratch (-0.126). Everything else fails the correction (q > 0.10). Three of those still have paired intervals excluding zero: ViT-B/16 ImageNet, Scale-MAE and fine-tuned ResNet-50.
+- DINOv3 ViT-L on satellite images reads 0.4620 against 0.4791 for the natural-image version of the same model (-0.017, CI [-0.058, +0.001], not separable). Scale-MAE (0.4478) and SatMAE (0.4097) are ViT-L models and read below frozen ViT-B/16 ImageNet (0.4497), a different model size, so they do not isolate the effect of satellite pretraining.
 - Fine-tuning on top of the same 512 px fusion does not visibly help: LoRA variants read 0.5056 and 0.5052 (clean baseline) against 0.5058 for the frozen fusion (tile-context run). Different runs, so this is indicative only.
 - The fusion and mean arms (0.5052 to 0.5205) sit above every single-tile model; three of them are non-deployable upper bounds. Learned aggregation does not: the CNN reads 0.4824 and GATv2 with shuffled edges 0.4648, both below the best single-tile model. These arms are outside the test family above.
 - Non-linear readouts (MLP, bilinear, FiLM) never beat the linear probe on tile features (0 of 33 groups, mean delta -0.0103). They do on 2 of 24 fused groups, both single-seed without intervals, so they are not claimed as gains.
@@ -113,7 +113,7 @@ All rows use the same frozen SimDINOv2-B/16 embeddings and the canonical probe. 
 ![Learned aggregation](figures/readme/05_learned_aggregation.png)
 
 - Attention over the 3x3 window reads 0.5085 (seeds 0.4928 to 0.5204) against 0.5205 for the mean: -0.012, CI [-0.044, +0.002].
-- Shuffling the neighbour positions leaves attention at 0.5115 against 0.5085, with a seed spread of 0.014. No paired test was computed for this contrast, so it does not show whether the model uses the spatial layout.
+- Shuffling the neighbour positions leaves attention at 0.5115 against 0.5085: paired delta -0.0020, CI [-0.006, +0.005], p = 0.36, not separable. The layout is not shown to be used.
 - GATv2 does not separate from a uniform mean on the same graph: -0.0033 with 2 layers (p = 0.64) and +0.0009 with 3 layers (p = 0.82). The intervals still allow GATv2 to be about 0.05 worse.
 - GATv2 does use the edges: rewiring them costs 0.024 (CI [+0.014, +0.033]).
 - In one run, a uniform mean over the graph that includes 40,030 unannotated windows reads 0.028 lower than the annotated-only 3x3 mean. The two arms differ in aggregation as well as in input, so the cause is not isolated.
@@ -122,7 +122,7 @@ All rows use the same frozen SimDINOv2-B/16 embeddings and the canonical probe. 
 
 ![Embedding geometry](figures/readme/06_latent_geometry.png)
 
-Left: for the 35 models that have geometry metrics (7 of the 42 have none), how often a score orders two models like their F1 does, with the sign and fit learned on the other 34. This analysis uses the earlier registry F1 values, including 0.4799 for DINOv3-L LoRA, which the clean baseline supersedes with 0.4842. Rerunning it on clean values is pending.
+Left: for the 35 models in `results/rapport_data/loo_triage.csv`, how often a score orders two models like their F1 does, with the sign and fit learned on the other 34. This analysis uses the earlier registry F1 values, including 0.4799 for DINOv3-L LoRA, which the clean baseline supersedes with 0.4842. Rerunning it on clean values is pending.
 
 - Cluster scores do best: Fisher ratio 69.4%, Davies-Bouldin 67.4% (grouped with the neighbourhood measures in the figure), NC1 and Calinski-Harabasz 66.9%, silhouette 63.5%. Chance is 50%.
 - Spectral scores are weaker (the effective-rank family at most 59.5%; RankMe is an effective-rank score of the embedding matrix). RankMe (37.2%) and LogME on train (33.6%, a transferability score) fall below chance under leave-one-model-out: the sign fitted on the other models does not transfer (rho_pred -0.37 and -0.47).
@@ -186,7 +186,7 @@ Rows are sorted by 8-class F1, ascending; the last column gives the run each val
 | 3x3 mean + ICM | 0.5332 | 0.7331 | decoding |
 | 3x3 mean + mean field | 0.5359 | 0.7369 | decoding |
 
-These arms are plotted as red diamonds in the figure above.
+These arms are plotted as red diamonds in the figure above. Single tile reads 0.6488 in the 42-configuration table (clean baseline) and 0.6489 here (decoding run).
 
 ## Protocol
 

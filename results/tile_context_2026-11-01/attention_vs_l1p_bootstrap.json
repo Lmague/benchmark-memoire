@@ -1,0 +1,14 @@
+{
+ "source": "research/gnn_grid_2026-10-31/out/canon/bootstrap.json",
+ "comparison": "L1 - L1p",
+ "description": "attention over the 3x3 window vs the same model with neighbour positions shuffled",
+ "unit": "orthomosaic (9 test) then tiles",
+ "n_boot": 10000,
+ "seed": 7,
+ "delta_mean": -0.0020298720337450504,
+ "ci95": [
+  -0.006008744984865188,
+  0.004588727653026581
+ ],
+ "p_two_sided_boot": 0.3586
+}

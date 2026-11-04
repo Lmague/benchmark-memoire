@@ -535,8 +535,9 @@ def main() -> None:
         pairs = [("L1", "R2"), ("L1", "R1"), ("L1", "L2"), ("L1", "L1p")]
         deltas = {f"{x}-{z}": paired_delta(boot, x, z) for x, z in pairs
                   if x in boot and z in boot}
+        n_test_ortho = len(set(ortho[te].tolist()))
         json.dump({"ci": boot_ci, "paired": deltas, "n_boot": a.boot,
-                   "unit": "orthomosaic (6 test) then tiles", "seed": 7},
+                   "unit": f"orthomosaic ({n_test_ortho} test) then tiles", "seed": 7},
                   open(os.path.join(a.out_dir, "bootstrap.json"), "w"), indent=1)
         log("[boot] " + json.dumps(deltas))
 
