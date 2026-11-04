@@ -304,6 +304,7 @@ __pycache__/
 /results/tile_context_2026-11-01/*
 !/results/tile_context_2026-11-01/*.json
 !/scripts/make_readme_context_figures.py
+!/scripts/make_readme_plots.py
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # RÈGLE GITHUB (2026-10-04) — CODE + README uniquement.
