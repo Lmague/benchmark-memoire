@@ -11,7 +11,7 @@ What I found:
 - Learned aggregation of neighbours (attention, GATv2) does not beat a plain average.
 - Embedding geometry can rank models somewhat better than chance, but it does not predict F1.
 
-Best result: **0.5394 macro F1** with a frozen DINOv3-L, a 3x3 average of tile embeddings and mean-field smoothing of the predicted map, across seven backbones with extended grids. The SimDINOv2-B recipe described in detail below reads 0.5359 in its own run (0.5362 in the seven-backbone run), against 0.4719 on a single tile.
+Highest point estimate: **0.5394 macro F1** with a frozen DINOv3-L, a 3x3 average of tile embeddings and mean-field smoothing of the predicted map, across seven backbones with extended grids. The SimDINOv2-B recipe described in detail below reads 0.5359 in its own run (0.5362 in the seven-backbone run), against 0.4720 on a single tile in that same run.
 
 These recipes read neighbouring tiles at inference and are not part of the 42 configurations. Among single-input deployable models, the best is context distillation at 0.4872. The three context-fusion rows (0.5052 to 0.5079) need the tile plus context at inference and are non-deployable upper bounds; the tile + 512 px recipe in the figure is the same kind of arm.
 
@@ -113,7 +113,7 @@ All rows use the same frozen SimDINOv2-B/16 embeddings and the canonical probe. 
 
 ![Context and smoothing on seven backbones](figures/readme/09_multibackbone.png)
 
-Same canonical split, same probe, same tile graph, seven backbones: five frozen (SimDINOv2-B, SimDINOv2-L, DINOv3-B, DINOv3-L, DINOv3-H+) and two LoRA fine-tunes (DINOv3-L r=8 and SimDINOv2-B r8a16, seed 0). The smoothing grids are wider than in the original run (beta 0.1 to 16, 1 to 12 iterations), still chosen on validation. The SimDINOv2-B row reproduces the reference: 0.4720 / 0.5207 / 0.5362 against 0.4718 / 0.5205 / 0.5359 in the original run.
+Same canonical split, same probe, same tile graph, seven backbones: five frozen (SimDINOv2-B, SimDINOv2-L, DINOv3-B, DINOv3-L, DINOv3-H+) and two LoRA fine-tunes (DINOv3-L r=8 and SimDINOv2-B r8a16, seed 0). The smoothing grids are wider than in the original run (beta 0.1 to 16, 1 to 12 iterations), still chosen on validation. The SimDINOv2-B row matches the decoding run to 0.0001 / 0.0000 / 0.0003: 0.4720 / 0.5207 / 0.5362 against 0.4719 / 0.5207 / 0.5359. The probe-arms run reads 0.4718 / 0.5205.
 
 | Backbone | Single tile | + mean field | 3x3 mean | 3x3 + mean field | Mean field on 3x3, 95% CI |
 |---|---:|---:|---:|---:|---|
@@ -122,14 +122,14 @@ Same canonical split, same probe, same tile graph, seven backbones: five frozen 
 | DINOv3-B, frozen | 0.4713 | 0.5263 | 0.5241 | 0.5366 | +0.0125 [0.001, 0.059] |
 | SimDINOv2-B, frozen | 0.4720 | 0.5294 | 0.5207 | 0.5362 | +0.0154 [0.005, 0.063] |
 | SimDINOv2-L, frozen | 0.4756 | 0.5344 | 0.5259 | 0.5357 | +0.0098 [-0.002, 0.054] |
-| DINOv3-L + LoRA r=8 | 0.4856 | 0.5200 | 0.5218 | 0.5353 | +0.0135 [-0.001, 0.062] |
-| SimDINOv2-B + LoRA r8a16 | 0.4748 | 0.5184 | 0.5217 | 0.5306 | +0.0089 [-0.005, 0.025] |
+| DINOv3-L + LoRA r=8, seed 0 | 0.4856 | 0.5200 | 0.5218 | 0.5353 | +0.0135 [-0.001, 0.062] |
+| SimDINOv2-B + LoRA r8a16, seed 0 | 0.4748 | 0.5184 | 0.5217 | 0.5306 | +0.0089 [-0.005, 0.025] |
 
 - Smoothing a single tile helps on all seven backbones: +0.034 to +0.059 F1, and every interval excludes zero.
 - On top of the 3x3 mean the gain is smaller, +0.009 to +0.015, and excludes zero on four of the seven.
-- After context and smoothing the seven backbones sit between 0.5306 and 0.5394, a 0.009 spread, against 0.4713 to 0.4856 on a single tile (0.014). Backbone and adaptation differences are compressed by the post-processing.
-- Best absolute score: DINOv3-L frozen, 0.5394. The SimDINOv2-B reference reads 0.5362 here and 0.5359 in its own run.
-- The wider grid moves most rows off the boundary, but DINOv3-H+ and DINOv3-L still select the maximum number of iterations (12), and the SimDINOv2-B LoRA row selects the maximum beta (16). The smoothing gain is therefore still a lower bound, not an upper one.
+- After context and smoothing the seven backbones sit between 0.5306 and 0.5394, a 0.009 spread, against 0.4713 to 0.4856 on a single tile (0.014). The spread is smaller after post-processing; no test links the two.
+- Highest point estimate: DINOv3-L frozen, 0.5394. DINOv3-H+ is 0.0014 behind and no paired test between backbones was computed, so this is an ordering of point estimates. The SimDINOv2-B reference reads 0.5362 here and 0.5359 in its own run.
+- On the 3x3 arm, four of the seven rows sit off the boundary; DINOv3-H+ and DINOv3-L still select the maximum number of iterations (12), and the SimDINOv2-B LoRA row selects the maximum beta (16). On the single-tile arm, five of seven rows sit at a boundary. The smoothing gain may therefore still be under-estimated.
 - The two fine-tuned rows use seed 0 only; the frozen models have one run anyway, so none of these rows carries an inter-seed interval.
 
 ## Learned aggregation
@@ -149,8 +149,8 @@ Same canonical split, same probe, same tile graph, seven backbones: five frozen 
 Left: for the 35 models in `results/rapport_data/loo_triage.csv`, how often a score orders two models like their F1 does, with the sign and fit learned on the other 34. Recomputed on the clean-baseline F1 values (1,190 pairs); the earlier registry-F1 version is kept as `loo_triage_registry_f1.*`.
 
 - Cluster scores do best: Calinski-Harabasz 69.1%, NC1 68.7%, Fisher ratio 68.6%, Davies-Bouldin 67.1% (grouped with the neighbourhood measures in the figure), silhouette 61.8%. Chance is 50%.
-- Spectral scores are weaker (stable rank 64.0%, participation ratio 63.5%, RankMe 56.6%, effective rank 56.3%; RankMe is an effective-rank score of the embedding matrix). The two transferability scores fall below chance under leave-one-model-out: LogME on train 44.4% (p_BH 0.16) and on test 42.7% (p_BH 0.046), where the sign fitted on the other models does not transfer (rho_pred -0.39 and -0.31).
-- These scores rank, they do not predict: the error gain over predicting the mean F1 is about 0.0001 at best, on a tier whose F1 range is about 0.04.
+- Spectral scores are weaker (stable rank 64.0%, participation ratio 63.5%, RankMe 56.6%, effective rank 56.3%; RankMe is an effective-rank score of the embedding matrix). The two transferability scores sit below chance under leave-one-model-out: LogME 44.4% on train (p_BH 0.16, not significant) and 42.7% on test (p_BH 0.046), where the sign fitted on the other models does not transfer (rho_pred -0.39 and -0.31).
+- These scores rank, they do not predict: the error gain over predicting the mean F1 is about 0.0001 at best, on a tier whose F1 range is about 0.03.
 - Pairs share models, so they are not independent. The p-values come from a per-model Wilcoxon test with Benjamini-Hochberg correction inside each family, not from the pair count.
 
 Right: keeping 100 principal components recovers 97.4% to 100.3% of the full-embedding F1 for 5 backbones.
@@ -235,9 +235,9 @@ I am extending this toward transferability and alignment of Earth-observation fo
 ## Limits
 
 - 9 test maps cap what can be shown. Intervals are wide, and the percentile intervals are not centred on the estimate (for example +0.0152 with CI [+0.006, +0.062]). Read them as "excludes zero or not", not as a precision. No equivalence test was run: with 9 maps the design resolves differences of roughly 0.03 to 0.05, and smaller differences are unresolved, not shown equal. For some pairs the interval and the p-value disagree (fine-tuned ResNet-50 ImageNet against the best frozen model: CI [-0.061, -0.015], p = 0.094, q = 0.22). I report the Benjamini-Hochberg decision defined in the protocol: this pair does not survive.
-- Model scores in the ranking and adaptation sections come from the clean baseline (2026-10-08). The geometry section uses the earlier registry values, which differ by at most 0.0043. The context, smoothing and aggregation sections come from their own runs: the same frozen single-tile SimDINOv2-B/16 reads 0.4718 to 0.4719 across the three, and the 3x3 mean reads 0.5205 and 0.5207. Comparisons are paired within a run.
+- Model scores in the ranking and adaptation sections come from the clean baseline (2026-10-08), and the geometry section now uses the same clean-baseline F1; the earlier registry-F1 version is kept as `loo_triage_registry_f1.*`. The context, smoothing and aggregation sections come from their own runs: the same frozen single-tile SimDINOv2-B/16 reads 0.4718 to 0.4720 across the runs, and the 3x3 mean reads 0.5205 and 0.5207. Comparisons are paired within a run.
 - Frozen models have one run each, so their seed SD is not defined.
-- Context, smoothing and GATv2 were measured on one frozen backbone, SimDINOv2-B/16. The gain on fine-tuned or other backbones is not measured.
+- Context and smoothing are measured on seven backbones (five frozen, two LoRA at seed 0). GATv2 and the learned aggregation arms are measured on SimDINOv2-B/16 only.
 - Invalid ExPLoRA runs and the deprecated single-seed fine-tunes (resnet50_arctic, vitb16_arctic, vitb16_fulft_arctic) are excluded. The `_old` keys that remain in the table are the 3-seed SOTA-screening runs, not the deprecated ones. `tests/test_repo_guards.py` checks the manuscript for a few retired values; it does not cover this README.
 
 ## Reproduce

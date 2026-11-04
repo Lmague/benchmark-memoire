@@ -22,7 +22,7 @@ Palier `registry.TIER_K` = 35 modèles ; 1190 paires prédictives. Signe et rég
 ## Lecture
 
 - **Séparabilité (Fisher, DBI, CHI, NC1, silhouette) : la validation LOO passe.** 62 à 69 % d'ordonnancement hors échantillon, p_BH ≤ 4.7e-05 ; la régression sur rangs bat la moyenne pour 1/4 métriques.
-- **Elle classe, elle ne prédit pas finement le F1** : gain de MAE ≤ 0.0001 sur un palier dont l'étendue de F1 vaut ≈ 0,04.
+- **Elle classe, elle ne prédit pas finement le F1** : gain de MAE ≤ 0.0001 sur un palier dont l'étendue de F1 vaut 0.039.
 - **Spectre et transférabilité** : Stable rank 64.0 %, Participation ratio 63.5 %, RankMe (σ) 56.6 %, Rang effectif (σ²) 56.3 %. Sous le hasard : LogME (train) 44.4 %, LogME (test) 42.7 %.
 
 Généré par `scripts/rapport/loo_triage.py`.

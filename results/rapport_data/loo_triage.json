@@ -2,6 +2,7 @@
  "tier": 35,
  "n_models": 35,
  "n_pairs": 1190,
+ "f1_range": 0.03925788110411027,
  "protocol": "LOO: sign/rank-OLS fitted on n-1, evaluated on held-out; Wilcoxon par modèle (n=35) puis BH par famille",
  "metrics": [
   {

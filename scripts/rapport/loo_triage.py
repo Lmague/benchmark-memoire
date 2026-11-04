@@ -166,7 +166,9 @@ def main() -> None:
         for r in recs:
             w.writerow({c: r.get(c, "") for c in cols})
 
+    f1_range = max(r["f1"] for r in rows) - min(r["f1"] for r in rows)
     json.dump({"tier": TIER_K, "n_models": len(rows), "n_pairs": recs[0]["pairs_total_loo"],
+               "f1_range": f1_range,
                "protocol": "LOO: sign/rank-OLS fitted on n-1, evaluated on held-out; "
                            "Wilcoxon par modèle (n=35) puis BH par famille",
                "metrics": recs},
@@ -218,7 +220,7 @@ def main() -> None:
            f"{100 * lo:.0f} à {100 * hi:.0f} % d'ordonnancement hors échantillon, p_BH ≤ {pbh:.1e} ; "
            f"la régression sur rangs bat la moyenne pour {gain_pos}/{len(sep)} métriques.",
            f"- **Elle classe, elle ne prédit pas finement le F1** : gain de MAE ≤ {best_gain:.4f} sur "
-           "un palier dont l'étendue de F1 vaut ≈ 0,04.",
+           f"un palier dont l'étendue de F1 vaut {f1_range:.3f}.",
            f"- **Spectre et transférabilité** : {spec_txt}. Sous le hasard : {below_txt}.", "",
            "Généré par `scripts/rapport/loo_triage.py`."]
     with open(os.path.join(out_dir, "loo_triage.md"), "w", encoding="utf-8") as f:
